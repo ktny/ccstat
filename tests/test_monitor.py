@@ -34,9 +34,9 @@ def test_monitor_init() -> None:
 def test_monitor_init_with_params() -> None:
     """Test RealTimeMonitor initialization with parameters."""
     mock_db = Mock()
-    monitor = RealTimeMonitor(db=mock_db, update_interval=2.5)
+    monitor = RealTimeMonitor(db=mock_db)
     assert monitor.db is mock_db
-    assert monitor.update_interval == 2.5
+    assert monitor.update_interval == 1.0
 
 
 def test_create_layout_no_processes() -> None:
