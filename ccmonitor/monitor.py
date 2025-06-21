@@ -95,24 +95,6 @@ class RealTimeMonitor:
             (" to force update", ""),
         )
 
-        # Add database stats if available
-        if self.db:
-            try:
-                stats = self.db.get_summary_stats()
-                footer_text.append("\n")
-                footer_text.append(
-                    Text.assemble(
-                        ("Database: ", "dim"),
-                        (f"{stats['total_records']} records", "magenta"),
-                        ("  Size: ", "dim"),
-                        (
-                            self._format_file_size(self.db.get_database_size()),
-                            "magenta",
-                        ),
-                    )
-                )
-            except Exception:
-                pass  # Ignore database errors in real-time display
 
         layout["footer"].update(Panel(footer_text, border_style="green"))
 
@@ -141,23 +123,6 @@ class RealTimeMonitor:
 
         return table
 
-    def _format_file_size(self, size_bytes: int) -> str:
-        """Format file size in human-readable format.
-
-        Args:
-            size_bytes: Size in bytes
-
-        Returns:
-            Formatted size string
-        """
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.1f} KB"
-        elif size_bytes < 1024 * 1024 * 1024:
-            return f"{size_bytes / (1024 * 1024):.1f} MB"
-        else:
-            return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
 
     def run(self) -> None:
         """Start the real-time monitoring loop."""
@@ -214,6 +179,3 @@ class RealTimeMonitor:
         # Clean exit message
         self.console.print("\n👋 [bold green]Monitoring stopped.[/bold green]")
 
-    def stop(self) -> None:
-        """Stop the monitoring loop."""
-        self.running = False
