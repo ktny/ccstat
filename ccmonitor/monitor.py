@@ -113,12 +113,14 @@ class RealTimeMonitor:
         table.add_column("PID", justify="right", style="cyan", no_wrap=True)
         table.add_column("CPU Time", justify="right", style="green")
         table.add_column("Elapsed", justify="right", style="yellow")
+        table.add_column("Operating Rate", justify="right", style="magenta")
 
         for proc in processes:
             table.add_row(
                 str(proc.pid),
                 format_cpu_time(proc.cpu_time),
                 format_elapsed_time(proc.elapsed_time),
+                f"{proc.cpu_usage_percent:.1f}%",
             )
 
         return table

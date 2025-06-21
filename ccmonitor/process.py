@@ -16,6 +16,7 @@ class ProcessInfo:
     start_time: datetime
     elapsed_time: timedelta
     cmdline: list[str]
+    cpu_usage_percent: float
 
 
 def find_claude_processes() -> list[ProcessInfo]:
@@ -40,13 +41,19 @@ def find_claude_processes() -> list[ProcessInfo]:
                 create_time = datetime.fromtimestamp(pinfo["create_time"])
                 elapsed = current_time - create_time
 
+                # Calculate CPU usage percentage
+                cpu_time_total = cpu_times.user + cpu_times.system
+                elapsed_seconds = elapsed.total_seconds()
+                cpu_usage_percent = (cpu_time_total / elapsed_seconds * 100) if elapsed_seconds > 0 else 0.0
+
                 process_info = ProcessInfo(
                     pid=pinfo["pid"],
                     name=name,
-                    cpu_time=cpu_times.user + cpu_times.system,
+                    cpu_time=cpu_time_total,
                     start_time=create_time,
                     elapsed_time=elapsed,
                     cmdline=cmdline,
+                    cpu_usage_percent=cpu_usage_percent,
                 )
                 claude_processes.append(process_info)
 

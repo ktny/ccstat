@@ -89,6 +89,7 @@ def test_process_info_dataclass():
         start_time=now,
         elapsed_time=elapsed,
         cmdline=["claude", "--verbose"],
+        cpu_usage_percent=2.92,
     )
 
     assert process_info.pid == 1234
@@ -97,3 +98,4 @@ def test_process_info_dataclass():
     assert process_info.start_time == now
     assert process_info.elapsed_time == elapsed
     assert process_info.cmdline == ["claude", "--verbose"]
+    assert process_info.cpu_usage_percent == 2.92

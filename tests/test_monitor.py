@@ -19,6 +19,7 @@ def sample_process() -> ProcessInfo:
         start_time=datetime.now() - timedelta(minutes=10),
         elapsed_time=timedelta(minutes=10),
         cmdline=["python", "-m", "claude"],
+        cpu_usage_percent=2.05,
     )
 
 
@@ -112,6 +113,7 @@ def test_create_layout_truncates_long_commands() -> None:
         start_time=datetime.now() - timedelta(minutes=10),
         elapsed_time=timedelta(minutes=10),
         cmdline=["python", "-m", "very_long_command_that_should_be_truncated"] * 10,
+        cpu_usage_percent=2.05,
     )
 
     monitor = RealTimeMonitor()

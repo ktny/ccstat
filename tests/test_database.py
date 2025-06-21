@@ -37,6 +37,7 @@ def test_save_single_process():
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
+            cpu_usage_percent=2.92,
         )
 
         db.save_processes([process])
@@ -58,6 +59,7 @@ def test_save_multiple_processes():
                 start_time=datetime.now(),
                 elapsed_time=timedelta(hours=1),
                 cmdline=["claude", "--config", ".claude.json"],
+                cpu_usage_percent=2.92,
             ),
             ProcessInfo(
                 pid=5678,
@@ -66,6 +68,7 @@ def test_save_multiple_processes():
                 start_time=datetime.now(),
                 elapsed_time=timedelta(minutes=30),
                 cmdline=["claude-helper", "--daemon"],
+                cpu_usage_percent=2.89,
             ),
         ]
 
@@ -106,6 +109,7 @@ def test_process_termination_marking():
                 start_time=datetime.now(),
                 elapsed_time=timedelta(hours=1),
                 cmdline=["claude", "--config", ".claude.json"],
+                cpu_usage_percent=2.92,
             ),
             ProcessInfo(
                 pid=5678,
@@ -114,6 +118,7 @@ def test_process_termination_marking():
                 start_time=datetime.now(),
                 elapsed_time=timedelta(minutes=30),
                 cmdline=["claude-helper", "--daemon"],
+                cpu_usage_percent=2.89,
             ),
         ]
         db.save_processes(initial_processes)
@@ -135,6 +140,6 @@ def test_corrupted_json_handling():
             f.write("invalid json content")
 
         # Database should handle corruption gracefully
-        db = ProcessDatabase(str(db_path))
+        ProcessDatabase(str(db_path))
 
         # Database should handle corruption gracefully (no verification needed for this test)
