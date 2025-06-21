@@ -14,7 +14,7 @@ class ProcessDatabase:
 
     def __init__(self, db_path: Optional[str] = None):
         """Initialize the database.
-        
+
         Args:
             db_path: Path to the database file. If None, uses default location.
         """
@@ -60,29 +60,32 @@ class ProcessDatabase:
 
     def save_process(self, process: ProcessInfo) -> None:
         """Save a process to the database.
-        
+
         Args:
             process: ProcessInfo object to save
         """
         with duckdb.connect(self.db_path) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO processes (
                     pid, name, cpu_time, memory_mb, start_time, 
                     elapsed_seconds, cmdline
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                process.pid,
-                process.name,
-                process.cpu_time,
-                process.memory_mb,
-                process.start_time,
-                int(process.elapsed_time.total_seconds()),
-                " ".join(process.cmdline)
-            ))
+            """,
+                (
+                    process.pid,
+                    process.name,
+                    process.cpu_time,
+                    process.memory_mb,
+                    process.start_time,
+                    int(process.elapsed_time.total_seconds()),
+                    " ".join(process.cmdline),
+                ),
+            )
 
     def save_processes(self, processes: list[ProcessInfo]) -> None:
         """Save multiple processes to the database.
-        
+
         Args:
             processes: List of ProcessInfo objects to save
         """
@@ -96,23 +99,32 @@ class ProcessDatabase:
             # Insert new process records
             data = [
                 (
-                    p.pid, p.name, p.cpu_time, p.memory_mb, p.start_time,
-                    int(p.elapsed_time.total_seconds()), " ".join(p.cmdline)
+                    p.pid,
+                    p.name,
+                    p.cpu_time,
+                    p.memory_mb,
+                    p.start_time,
+                    int(p.elapsed_time.total_seconds()),
+                    " ".join(p.cmdline),
                 )
                 for p in processes
             ]
 
-            conn.executemany("""
+            conn.executemany(
+                """
                 INSERT INTO processes (
                     pid, name, cpu_time, memory_mb, start_time,
                     elapsed_seconds, cmdline
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, data)
+            """,
+                data,
+            )
 
-    def _mark_terminated_processes(self, conn: duckdb.DuckDBPyConnection,
-                                 current_pids: list[int]) -> None:
+    def _mark_terminated_processes(
+        self, conn: duckdb.DuckDBPyConnection, current_pids: list[int]
+    ) -> None:
         """Mark processes not in current_pids as terminated.
-        
+
         Args:
             conn: Database connection
             current_pids: List of currently running PIDs
@@ -136,59 +148,79 @@ class ProcessDatabase:
 
     def get_recent_processes(self, limit: int = 50) -> list[dict]:
         """Get recent process records from the database.
-        
+
         Args:
             limit: Maximum number of records to return
-            
+
         Returns:
             List of process records as dictionaries
         """
         with duckdb.connect(self.db_path) as conn:
-            result = conn.execute("""
+            result = conn.execute(
+                """
                 SELECT 
                     pid, name, cpu_time, memory_mb, start_time,
                     elapsed_seconds, cmdline, recorded_at, status
                 FROM processes
                 ORDER BY recorded_at DESC
                 LIMIT ?
-            """, (limit,)).fetchall()
+            """,
+                (limit,),
+            ).fetchall()
 
             columns = [
-                "pid", "name", "cpu_time", "memory_mb", "start_time",
-                "elapsed_seconds", "cmdline", "recorded_at", "status"
+                "pid",
+                "name",
+                "cpu_time",
+                "memory_mb",
+                "start_time",
+                "elapsed_seconds",
+                "cmdline",
+                "recorded_at",
+                "status",
             ]
 
             return [dict(zip(columns, row)) for row in result]
 
     def get_process_history(self, pid: int) -> list[dict]:
         """Get history for a specific process PID.
-        
+
         Args:
             pid: Process ID to get history for
-            
+
         Returns:
             List of process records for the given PID
         """
         with duckdb.connect(self.db_path) as conn:
-            result = conn.execute("""
+            result = conn.execute(
+                """
                 SELECT 
                     pid, name, cpu_time, memory_mb, start_time,
                     elapsed_seconds, cmdline, recorded_at, status
                 FROM processes
                 WHERE pid = ?
                 ORDER BY recorded_at DESC
-            """, (pid,)).fetchall()
+            """,
+                (pid,),
+            ).fetchall()
 
             columns = [
-                "pid", "name", "cpu_time", "memory_mb", "start_time",
-                "elapsed_seconds", "cmdline", "recorded_at", "status"
+                "pid",
+                "name",
+                "cpu_time",
+                "memory_mb",
+                "start_time",
+                "elapsed_seconds",
+                "cmdline",
+                "recorded_at",
+                "status",
             ]
 
             return [dict(zip(columns, row)) for row in result]
 
     def get_summary_stats(self) -> dict:
         """Get summary statistics from the database.
-        
+
         Returns:
             Dictionary containing summary statistics
         """
@@ -235,15 +267,15 @@ class ProcessDatabase:
                 "total_memory_mb": total_memory,
                 "total_cpu_time": total_cpu_time,
                 "oldest_record": date_range[0],
-                "newest_record": date_range[1]
+                "newest_record": date_range[1],
             }
 
     def cleanup_old_records(self, days: int = 30) -> int:
         """Remove records older than specified days.
-        
+
         Args:
             days: Number of days to keep records for
-            
+
         Returns:
             Number of records deleted
         """
@@ -257,7 +289,7 @@ class ProcessDatabase:
 
     def get_database_size(self) -> int:
         """Get the size of the database file in bytes.
-        
+
         Returns:
             Size of database file in bytes, or 0 if file doesn't exist
         """

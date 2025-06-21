@@ -102,7 +102,7 @@ def test_display_summary_with_database():
         "total_memory_mb": 500.0,
         "total_cpu_time": 25.5,
         "oldest_record": datetime(2024, 1, 1),
-        "newest_record": datetime(2024, 1, 2)
+        "newest_record": datetime(2024, 1, 2),
     }
     mock_db.get_database_size.return_value = 1024 * 1024  # 1MB
 
@@ -127,7 +127,7 @@ def test_display_history():
             "memory_mb": 256.0,
             "elapsed_seconds": 3600,  # 1 hour
             "recorded_at": datetime(2024, 1, 1, 12, 0),
-            "status": "running"
+            "status": "running",
         },
         {
             "pid": 5678,
@@ -136,12 +136,10 @@ def test_display_history():
             "memory_mb": 128.0,
             "elapsed_seconds": 1800,  # 30 minutes
             "recorded_at": datetime(2024, 1, 1, 11, 30),
-            "status": "terminated"
-        }
+            "status": "terminated",
+        },
     ]
-    mock_db.get_summary_stats.return_value = {
-        "total_records": 10
-    }
+    mock_db.get_summary_stats.return_value = {"total_records": 10}
     mock_db.get_database_size.return_value = 2048
 
     with patch("sys.stdout", new_callable=StringIO) as mock_stdout:

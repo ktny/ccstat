@@ -31,7 +31,7 @@ def test_save_single_process():
             memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"]
+            cmdline=["claude", "--config", ".claude.json"],
         )
 
         db.save_process(process)
@@ -57,7 +57,7 @@ def test_save_multiple_processes():
                 memory_mb=256.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(hours=1),
-                cmdline=["claude", "--config", ".claude.json"]
+                cmdline=["claude", "--config", ".claude.json"],
             ),
             ProcessInfo(
                 pid=5678,
@@ -66,8 +66,8 @@ def test_save_multiple_processes():
                 memory_mb=128.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(minutes=30),
-                cmdline=["claude-helper", "--daemon"]
-            )
+                cmdline=["claude-helper", "--daemon"],
+            ),
         ]
 
         db.save_processes(processes)
@@ -95,7 +95,7 @@ def test_process_history():
             memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"]
+            cmdline=["claude", "--config", ".claude.json"],
         )
 
         db.save_process(process)
@@ -121,7 +121,7 @@ def test_summary_stats():
                 memory_mb=256.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(hours=1),
-                cmdline=["claude", "--config", ".claude.json"]
+                cmdline=["claude", "--config", ".claude.json"],
             ),
             ProcessInfo(
                 pid=5678,
@@ -130,8 +130,8 @@ def test_summary_stats():
                 memory_mb=128.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(minutes=30),
-                cmdline=["claude-helper", "--daemon"]
-            )
+                cmdline=["claude-helper", "--daemon"],
+            ),
         ]
 
         db.save_processes(processes)
@@ -142,7 +142,7 @@ def test_summary_stats():
         assert stats["unique_processes"] == 2
         assert stats["running_processes"] == 2
         assert stats["total_memory_mb"] == 384.0  # 256 + 128
-        assert stats["total_cpu_time"] == 15.7   # 10.5 + 5.2
+        assert stats["total_cpu_time"] == 15.7  # 10.5 + 5.2
 
 
 def test_cleanup_old_records():
@@ -159,7 +159,7 @@ def test_cleanup_old_records():
             memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"]
+            cmdline=["claude", "--config", ".claude.json"],
         )
 
         db.save_process(process)
@@ -192,7 +192,7 @@ def test_database_size():
             memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"]
+            cmdline=["claude", "--config", ".claude.json"],
         )
 
         db.save_process(process)

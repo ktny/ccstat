@@ -53,7 +53,9 @@ def display_processes_table(processes: list[ProcessInfo]) -> None:
     console.print(f"\n📈 [bold]Total processes found: {len(processes)}[/bold]")
 
 
-def display_summary(processes: list[ProcessInfo], db: Optional["ProcessDatabase"] = None) -> None:
+def display_summary(
+    processes: list[ProcessInfo], db: Optional["ProcessDatabase"] = None
+) -> None:
     """Display summary statistics for Claude processes.
 
     Args:
@@ -107,16 +109,21 @@ def display_summary(processes: list[ProcessInfo], db: Optional["ProcessDatabase"
             db_table.add_row("Database Size", _format_file_size(db.get_database_size()))
 
             if stats["oldest_record"] and stats["newest_record"]:
-                db_table.add_row("Data Range", f"{stats['oldest_record'].strftime('%Y-%m-%d')} to {stats['newest_record'].strftime('%Y-%m-%d')}")
+                db_table.add_row(
+                    "Data Range",
+                    f"{stats['oldest_record'].strftime('%Y-%m-%d')} to {stats['newest_record'].strftime('%Y-%m-%d')}",
+                )
 
             console.print(db_table)
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not load database statistics: {e}[/yellow]")
+            console.print(
+                f"[yellow]Warning: Could not load database statistics: {e}[/yellow]"
+            )
 
 
 def display_history(db: "ProcessDatabase", limit: int = 20) -> None:
     """Display historical process information from database.
-    
+
     Args:
         db: Database instance
         limit: Maximum number of records to display
@@ -148,7 +155,9 @@ def display_history(db: "ProcessDatabase", limit: int = 20) -> None:
             recorded_time = record["recorded_at"].strftime("%m-%d %H:%M")
 
             # Format status with emoji
-            status_display = "🟢 Running" if record["status"] == "running" else "🔴 Terminated"
+            status_display = (
+                "🟢 Running" if record["status"] == "running" else "🔴 Terminated"
+            )
 
             table.add_row(
                 str(record["pid"]),
@@ -157,15 +166,19 @@ def display_history(db: "ProcessDatabase", limit: int = 20) -> None:
                 format_memory(record["memory_mb"]),
                 format_elapsed_time(elapsed),
                 recorded_time,
-                status_display
+                status_display,
             )
 
         console.print(table)
 
         # Display summary stats
         stats = db.get_summary_stats()
-        console.print(f"\n📈 [bold]Total records in database: {stats['total_records']}[/bold]")
-        console.print(f"💾 [bold]Database size: {_format_file_size(db.get_database_size())}[/bold]")
+        console.print(
+            f"\n📈 [bold]Total records in database: {stats['total_records']}[/bold]"
+        )
+        console.print(
+            f"💾 [bold]Database size: {_format_file_size(db.get_database_size())}[/bold]"
+        )
 
     except Exception as e:
         console.print(f"❌ [red]Error loading historical data: {e}[/red]")
@@ -173,10 +186,10 @@ def display_history(db: "ProcessDatabase", limit: int = 20) -> None:
 
 def _format_file_size(size_bytes: int) -> str:
     """Format file size in human-readable format.
-    
+
     Args:
         size_bytes: Size in bytes
-        
+
     Returns:
         Formatted size string
     """
