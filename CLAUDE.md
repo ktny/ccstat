@@ -108,3 +108,26 @@ ccmonitor/
 ### 設定ファイル
 - データベース: `~/.ccmonitor/data.db`
 - Claudeタスク情報: `~/.claude.json`（読み取り専用）
+
+## カスタムコマンド
+
+### `/project:worktree-task`
+`.worktree`配下にgit worktreeで新しいブランチを作成し、タスク完了後にPRまで作成するカスタムスラッシュコマンドです。
+
+#### 使用方法
+1. `/project:worktree-task` を実行
+2. タスクの説明を入力
+3. 自動的に新しいworktreeブランチが作成される
+4. 実装指示を与える
+5. 完了後、自動的にコミット・プッシュ・PR作成まで実行される
+
+#### 前提条件
+- GitHub CLIがセットアップされていること
+- リモートリポジトリへのプッシュ権限があること
+
+#### ディレクトリ構造
+```
+.worktree/
+├── feat-task-name-1221-1430/  # 各タスクのworktreeディレクトリ
+└── .gitignore                 # .worktree/は.gitignoreに追加済み
+```
