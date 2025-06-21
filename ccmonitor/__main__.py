@@ -2,6 +2,9 @@
 
 import click
 
+from .display import display_processes_table, display_summary
+from .process import find_claude_processes
+
 
 @click.command()
 @click.option(
@@ -11,13 +14,19 @@ import click
 )
 def main(summary: bool) -> None:
     """Claude Code Monitor - Claude Codeのプロセス監視とリアルタイム可視化ツール."""
-    if summary:
-        click.echo("🔍 Summary mode: Claude Code process monitoring summary")
-        click.echo("This is a dummy output for summary mode.")
-    else:
-        click.echo("📊 Real-time monitoring: Claude Code process monitor")
-        click.echo("This is a dummy output for real-time monitoring mode.")
-        click.echo("Press Ctrl+C to exit.")
+    try:
+        # Find Claude processes
+        processes = find_claude_processes()
+
+        if summary:
+            display_summary(processes)
+        else:
+            display_processes_table(processes)
+
+    except KeyboardInterrupt:
+        click.echo("\n👋 Monitoring stopped.")
+    except Exception as e:
+        click.echo(f"❌ Error: {e}", err=True)
 
 
 if __name__ == "__main__":
