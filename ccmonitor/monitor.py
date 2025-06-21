@@ -95,19 +95,6 @@ class RealTimeMonitor:
             (" to force update", ""),
         )
 
-        # Add database stats if available
-        if self.db:
-            try:
-                stats = self.db.get_summary_stats()
-                footer_text.append("\n")
-                footer_text.append(
-                    Text.assemble(
-                        ("Database: ", "dim"),
-                        (f"{stats['total_records']} records", "magenta"),
-                    )
-                )
-            except Exception:
-                pass  # Ignore database errors in real-time display
 
         layout["footer"].update(Panel(footer_text, border_style="green"))
 

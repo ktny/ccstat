@@ -99,40 +99,8 @@ def test_run_with_keyboard_interrupt(
     assert not monitor.running
 
 
-@patch("ccmonitor.monitor.find_claude_processes")
-def test_layout_with_database_stats(
-    mock_find_processes, sample_process: ProcessInfo
-) -> None:
-    """Test layout creation with database statistics."""
-    mock_find_processes.return_value = [sample_process]
-
-    mock_db = Mock()
-    mock_db.get_summary_stats.return_value = {
-        "total_records": 100,
-        "unique_processes": 5,
-    }
-    monitor = RealTimeMonitor(db=mock_db)
-    monitor.create_layout([sample_process])
-
-    # Should call database methods
-    mock_db.get_summary_stats.assert_called_once()
 
 
-@patch("ccmonitor.monitor.find_claude_processes")
-def test_layout_with_database_error(
-    mock_find_processes, sample_process: ProcessInfo
-) -> None:
-    """Test layout creation when database operations fail."""
-    mock_find_processes.return_value = [sample_process]
-
-    mock_db = Mock()
-    mock_db.get_summary_stats.side_effect = Exception("Database error")
-
-    monitor = RealTimeMonitor(db=mock_db)
-
-    # Should not raise exception
-    layout = monitor.create_layout([sample_process])
-    assert layout is not None
 
 
 def test_create_layout_truncates_long_commands() -> None:
