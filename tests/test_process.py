@@ -6,8 +6,7 @@ from unittest.mock import Mock, patch
 from ccmonitor.process import (
     ProcessInfo,
     find_claude_processes,
-    format_cpu_time,
-    format_elapsed_time,
+    format_time_duration,
     is_claude_process,
 )
 
@@ -28,24 +27,17 @@ def test_is_claude_process():
     assert not is_claude_process("vim", ["vim", "file.txt"])
 
 
-def test_format_elapsed_time():
-    """Test elapsed time formatting."""
-    assert format_elapsed_time(timedelta(seconds=30)) == "30s"
-    assert format_elapsed_time(timedelta(seconds=90)) == "1m 30s"
-    assert format_elapsed_time(timedelta(minutes=5)) == "5m"
-    assert format_elapsed_time(timedelta(hours=2, minutes=30)) == "2h 30m"
-    assert format_elapsed_time(timedelta(hours=1)) == "1h"
-    assert format_elapsed_time(timedelta(days=1, hours=3)) == "1d 3h"
-    assert format_elapsed_time(timedelta(days=2)) == "2d"
+def test_format_time_duration():
+    """Test time duration formatting."""
+    assert format_time_duration(30) == "0:30"
+    assert format_time_duration(90) == "1:30"
+    assert format_time_duration(300) == "5:00"
+    assert format_time_duration(9000) == "2:30:00"
+    assert format_time_duration(3600) == "1:00:00"
+    assert format_time_duration(97200) == "27:00:00"
+    assert format_time_duration(172800) == "48:00:00"
 
 
-def test_format_cpu_time():
-    """Test CPU time formatting."""
-    assert format_cpu_time(0.5) == "0.50s"
-    assert format_cpu_time(1.5) == "1.5s"
-    assert format_cpu_time(45.0) == "45.0s"
-    assert format_cpu_time(90.5) == "1m 30.5s"
-    assert format_cpu_time(3661.0) == "1h 1m"
 
 
 @patch("ccmonitor.process.psutil.process_iter")

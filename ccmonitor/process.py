@@ -81,62 +81,22 @@ def is_claude_process(name: str, cmdline: list[str]) -> bool:
     return "claude" in name.lower()
 
 
-def format_elapsed_time(elapsed: timedelta) -> str:
-    """Format elapsed time in a human-readable format.
+def format_time_duration(total_seconds: float) -> str:
+    """Format time duration in hh:mm:ss format.
 
     Args:
-        elapsed: Time elapsed since process start
+        total_seconds: Total time in seconds
 
     Returns:
-        Formatted time string (e.g., "1h 23m", "45m 30s", "12s")
+        Formatted time string (e.g., "1:23:45", "0:23:45", "0:00:12")
     """
-    total_seconds = int(elapsed.total_seconds())
-
-    if total_seconds < 60:
-        return f"{total_seconds}s"
-
-    minutes = total_seconds // 60
+    total_seconds = int(total_seconds)
+    
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
-
-    if minutes < 60:
-        if seconds > 0:
-            return f"{minutes}m {seconds}s"
-        return f"{minutes}m"
-
-    hours = minutes // 60
-    minutes = minutes % 60
-
-    if hours < 24:
-        if minutes > 0:
-            return f"{hours}h {minutes}m"
-        return f"{hours}h"
-
-    days = hours // 24
-    hours = hours % 24
-
+    
     if hours > 0:
-        return f"{days}d {hours}h"
-    return f"{days}d"
-
-
-def format_cpu_time(cpu_time: float) -> str:
-    """Format CPU time in a human-readable format.
-
-    Args:
-        cpu_time: CPU time in seconds
-
-    Returns:
-        Formatted CPU time string
-    """
-    if cpu_time < 1:
-        return f"{cpu_time:.2f}s"
-    elif cpu_time < 60:
-        return f"{cpu_time:.1f}s"
-    elif cpu_time < 3600:
-        minutes = int(cpu_time // 60)
-        seconds = cpu_time % 60
-        return f"{minutes}m {seconds:.1f}s"
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
     else:
-        hours = int(cpu_time // 3600)
-        minutes = int((cpu_time % 3600) // 60)
-        return f"{hours}h {minutes}m"
+        return f"{minutes}:{seconds:02d}"

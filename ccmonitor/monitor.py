@@ -16,8 +16,7 @@ from .database import ProcessDatabase
 from .process import (
     ProcessInfo,
     find_claude_processes,
-    format_cpu_time,
-    format_elapsed_time,
+    format_time_duration,
 )
 
 
@@ -118,8 +117,8 @@ class RealTimeMonitor:
         for proc in processes:
             table.add_row(
                 str(proc.pid),
-                format_cpu_time(proc.cpu_time),
-                format_elapsed_time(proc.elapsed_time),
+                format_time_duration(proc.cpu_time),
+                format_time_duration(proc.elapsed_time.total_seconds()),
                 f"{proc.cpu_usage_percent:.1f}%",
             )
 
