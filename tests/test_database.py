@@ -115,31 +115,6 @@ def test_summary_stats():
         assert stats["total_cpu_time"] == 15.7  # 10.5 + 5.2
 
 
-def test_database_size():
-    """Test getting database file size."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
-
-        # Initially should have minimal size for empty JSON array
-        initial_size = db.get_database_size()
-        assert initial_size > 0
-
-        # Add data and verify size increases
-        process = ProcessInfo(
-            pid=1234,
-            name="claude",
-            cpu_time=10.5,
-            start_time=datetime.now(),
-            elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"],
-        )
-
-        db.save_processes([process])
-
-        new_size = db.get_database_size()
-        assert new_size > initial_size
-
 
 def test_default_config_directory():
     """Test default configuration directory creation."""

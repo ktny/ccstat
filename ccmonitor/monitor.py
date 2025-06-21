@@ -104,11 +104,6 @@ class RealTimeMonitor:
                     Text.assemble(
                         ("Database: ", "dim"),
                         (f"{stats['total_records']} records", "magenta"),
-                        ("  Size: ", "dim"),
-                        (
-                            self._format_file_size(self.db.get_database_size()),
-                            "magenta",
-                        ),
                     )
                 )
             except Exception:
@@ -141,23 +136,6 @@ class RealTimeMonitor:
 
         return table
 
-    def _format_file_size(self, size_bytes: int) -> str:
-        """Format file size in human-readable format.
-
-        Args:
-            size_bytes: Size in bytes
-
-        Returns:
-            Formatted size string
-        """
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.1f} KB"
-        elif size_bytes < 1024 * 1024 * 1024:
-            return f"{size_bytes / (1024 * 1024):.1f} MB"
-        else:
-            return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
 
     def run(self) -> None:
         """Start the real-time monitoring loop."""

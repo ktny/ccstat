@@ -194,13 +194,3 @@ class ProcessDatabase:
         }
 
 
-    def get_database_size(self) -> int:
-        """Get the size of the database file in bytes.
-
-        Returns:
-            Size of database file in bytes, or 0 if file doesn't exist
-        """
-        try:
-            return self.data_path.stat().st_size
-        except OSError:
-            return 0

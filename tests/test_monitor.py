@@ -77,14 +77,6 @@ def test_create_process_table_empty() -> None:
     assert "Claude Code Processes (0 found)" in str(table.title)
 
 
-def test_format_file_size() -> None:
-    """Test file size formatting."""
-    monitor = RealTimeMonitor()
-
-    assert monitor._format_file_size(512) == "512 B"
-    assert monitor._format_file_size(1536) == "1.5 KB"
-    assert monitor._format_file_size(2048 * 1024) == "2.0 MB"
-    assert monitor._format_file_size(1024 * 1024 * 1024 * 2) == "2.0 GB"
 
 
 
@@ -119,14 +111,11 @@ def test_layout_with_database_stats(
         "total_records": 100,
         "unique_processes": 5,
     }
-    mock_db.get_database_size.return_value = 1024 * 1024  # 1MB
-
     monitor = RealTimeMonitor(db=mock_db)
     monitor.create_layout([sample_process])
 
     # Should call database methods
     mock_db.get_summary_stats.assert_called_once()
-    mock_db.get_database_size.assert_called_once()
 
 
 @patch("ccmonitor.monitor.find_claude_processes")
