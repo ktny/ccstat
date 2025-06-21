@@ -1,9 +1,11 @@
 """Database functionality for persisting process information."""
 
+import json
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-import duckdb
+import polars as pl
 
 from .process import ProcessInfo
 
@@ -11,50 +13,98 @@ from .process import ProcessInfo
 class ProcessDatabase:
     """Database manager for persisting Claude process information."""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, data_path: Optional[str] = None):
         """Initialize the database.
 
         Args:
-            db_path: Path to the database file. If None, uses default location.
+            data_path: Path to the JSON data file. If None, uses default location.
         """
-        if db_path is None:
-            # Use ~/.config/ccmonitor/processes.db as default
+        if data_path is None:
+            # Use ~/.config/ccmonitor/processes.json as default
             config_dir = Path.home() / ".config" / "ccmonitor"
             config_dir.mkdir(parents=True, exist_ok=True)
-            self.db_path = str(config_dir / "processes.db")
+            self.data_path = config_dir / "processes.json"
         else:
-            self.db_path = db_path
+            self.data_path = Path(data_path)
 
-        self._init_database()
+        # Ensure the data file exists
+        if not self.data_path.exists():
+            self._init_data_file()
 
-    def _init_database(self) -> None:
-        """Initialize the database schema."""
-        with duckdb.connect(self.db_path) as conn:
-            # Create processes table
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS processes (
-                    id INTEGER,
-                    pid INTEGER NOT NULL,
-                    name VARCHAR NOT NULL,
-                    cpu_time DOUBLE NOT NULL,
-                    start_time TIMESTAMP NOT NULL,
-                    elapsed_seconds INTEGER NOT NULL,
-                    cmdline VARCHAR NOT NULL,
-                    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    status VARCHAR DEFAULT 'running'
+    def _init_data_file(self) -> None:
+        """Initialize an empty JSON data file."""
+        with self.data_path.open("w", encoding="utf-8") as f:
+            json.dump([], f)
+
+    def _load_data(self) -> pl.DataFrame:
+        """Load data from JSON file into a Polars DataFrame.
+
+        Returns:
+            DataFrame containing process data.
+        """
+        try:
+            with self.data_path.open(encoding="utf-8") as f:
+                data = json.load(f)
+
+            if not data:
+                # Return empty DataFrame with proper schema
+                return pl.DataFrame(
+                    schema={
+                        "pid": pl.Int64,
+                        "name": pl.Utf8,
+                        "cpu_time": pl.Float64,
+                        "start_time": pl.Datetime,
+                        "elapsed_seconds": pl.Int64,
+                        "cmdline": pl.Utf8,
+                        "recorded_at": pl.Datetime,
+                        "status": pl.Utf8,
+                    }
                 )
-            """)
 
-            # Create index for faster queries
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_processes_pid
-                ON processes(pid)
-            """)
+            # Convert JSON data to DataFrame
+            df = pl.DataFrame(data)
 
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_processes_recorded_at
-                ON processes(recorded_at)
-            """)
+            # Convert datetime strings back to datetime objects
+            if "start_time" in df.columns:
+                df = df.with_columns(pl.col("start_time").str.to_datetime())
+            if "recorded_at" in df.columns:
+                df = df.with_columns(pl.col("recorded_at").str.to_datetime())
+
+            return df
+
+        except (json.JSONDecodeError, FileNotFoundError):
+            # Return empty DataFrame if file is corrupted or missing
+            return pl.DataFrame(
+                schema={
+                    "pid": pl.Int64,
+                    "name": pl.Utf8,
+                    "cpu_time": pl.Float64,
+                    "start_time": pl.Datetime,
+                    "elapsed_seconds": pl.Int64,
+                    "cmdline": pl.Utf8,
+                    "recorded_at": pl.Datetime,
+                    "status": pl.Utf8,
+                }
+            )
+
+    def _save_data(self, df: pl.DataFrame) -> None:
+        """Save DataFrame to JSON file.
+
+        Args:
+            df: DataFrame to save.
+        """
+        # Convert DataFrame to list of dictionaries for JSON serialization
+        data = df.to_dicts()
+
+        # Convert datetime objects to ISO format strings
+        for record in data:
+            if "start_time" in record and record["start_time"] is not None:
+                record["start_time"] = record["start_time"].isoformat()
+            if "recorded_at" in record and record["recorded_at"] is not None:
+                record["recorded_at"] = record["recorded_at"].isoformat()
+
+        with self.data_path.open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
     def save_process(self, process: ProcessInfo) -> None:
         """Save a process to the database.
@@ -62,23 +112,27 @@ class ProcessDatabase:
         Args:
             process: ProcessInfo object to save
         """
-        with duckdb.connect(self.db_path) as conn:
-            conn.execute(
-                """
-                INSERT INTO processes (
-                    pid, name, cpu_time, start_time,
-                    elapsed_seconds, cmdline
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    process.pid,
-                    process.name,
-                    process.cpu_time,
-                    process.start_time,
-                    int(process.elapsed_time.total_seconds()),
-                    " ".join(process.cmdline),
-                ),
-            )
+        # Load existing data
+        df = self._load_data()
+
+        # Create new record
+        new_record = {
+            "pid": process.pid,
+            "name": process.name,
+            "cpu_time": process.cpu_time,
+            "start_time": process.start_time,
+            "elapsed_seconds": int(process.elapsed_time.total_seconds()),
+            "cmdline": " ".join(process.cmdline),
+            "recorded_at": datetime.now(),
+            "status": "running",
+        }
+
+        # Add new record to DataFrame
+        new_df = pl.DataFrame([new_record])
+        df = pl.concat([df, new_df], how="vertical")
+
+        # Save updated data
+        self._save_data(df)
 
     def save_processes(self, processes: list[ProcessInfo]) -> None:
         """Save multiple processes to the database.
@@ -89,60 +143,48 @@ class ProcessDatabase:
         if not processes:
             return
 
-        with duckdb.connect(self.db_path) as conn:
-            # Mark currently running processes as terminated
-            self._mark_terminated_processes(conn, [p.pid for p in processes])
+        # Load existing data
+        df = self._load_data()
 
-            # Insert new process records
-            data = [
-                (
-                    p.pid,
-                    p.name,
-                    p.cpu_time,
-                    p.start_time,
-                    int(p.elapsed_time.total_seconds()),
-                    " ".join(p.cmdline),
+        # Mark currently running processes as terminated if they're not in the new list
+        current_pids = [p.pid for p in processes]
+        if not df.is_empty():
+            df = df.with_columns(
+                pl.when(
+                    (pl.col("status") == "running")
+                    & (~pl.col("pid").is_in(current_pids))
                 )
-                for p in processes
-            ]
-
-            conn.executemany(
-                """
-                INSERT INTO processes (
-                    pid, name, cpu_time, start_time,
-                    elapsed_seconds, cmdline
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                data,
+                .then(pl.lit("terminated"))
+                .otherwise(pl.col("status"))
+                .alias("status")
             )
 
-    def _mark_terminated_processes(
-        self, conn: duckdb.DuckDBPyConnection, current_pids: list[int]
-    ) -> None:
-        """Mark processes not in current_pids as terminated.
+        # Create new records
+        current_time = datetime.now()
+        new_records = []
+        for process in processes:
+            new_records.append(
+                {
+                    "pid": process.pid,
+                    "name": process.name,
+                    "cpu_time": process.cpu_time,
+                    "start_time": process.start_time,
+                    "elapsed_seconds": int(process.elapsed_time.total_seconds()),
+                    "cmdline": " ".join(process.cmdline),
+                    "recorded_at": current_time,
+                    "status": "running",
+                }
+            )
 
-        Args:
-            conn: Database connection
-            current_pids: List of currently running PIDs
-        """
-        if current_pids:
-            # Convert to comma-separated string for SQL IN clause
-            pid_list = ",".join(map(str, current_pids))
-            conn.execute(f"""
-                UPDATE processes
-                SET status = 'terminated'
-                WHERE status = 'running'
-                AND pid NOT IN ({pid_list})
-            """)
-        else:
-            # No running processes, mark all as terminated
-            conn.execute("""
-                UPDATE processes
-                SET status = 'terminated'
-                WHERE status = 'running'
-            """)
+        # Add new records to DataFrame
+        if new_records:
+            new_df = pl.DataFrame(new_records)
+            df = pl.concat([df, new_df], how="vertical")
 
-    def get_recent_processes(self, limit: int = 50) -> list[dict]:
+        # Save updated data
+        self._save_data(df)
+
+    def get_recent_processes(self, limit: int = 50) -> list[dict[str, Any]]:
         """Get recent process records from the database.
 
         Args:
@@ -151,33 +193,17 @@ class ProcessDatabase:
         Returns:
             List of process records as dictionaries
         """
-        with duckdb.connect(self.db_path) as conn:
-            result = conn.execute(
-                """
-                SELECT
-                    pid, name, cpu_time, start_time,
-                    elapsed_seconds, cmdline, recorded_at, status
-                FROM processes
-                ORDER BY recorded_at DESC
-                LIMIT ?
-            """,
-                (limit,),
-            ).fetchall()
+        df = self._load_data()
 
-            columns = [
-                "pid",
-                "name",
-                "cpu_time",
-                "start_time",
-                "elapsed_seconds",
-                "cmdline",
-                "recorded_at",
-                "status",
-            ]
+        if df.is_empty():
+            return []
 
-            return [dict(zip(columns, row)) for row in result]
+        # Sort by recorded_at descending and limit
+        result_df = df.sort("recorded_at", descending=True).head(limit)
 
-    def get_process_history(self, pid: int) -> list[dict]:
+        return result_df.to_dicts()
+
+    def get_process_history(self, pid: int) -> list[dict[str, Any]]:
         """Get history for a specific process PID.
 
         Args:
@@ -186,75 +212,52 @@ class ProcessDatabase:
         Returns:
             List of process records for the given PID
         """
-        with duckdb.connect(self.db_path) as conn:
-            result = conn.execute(
-                """
-                SELECT
-                    pid, name, cpu_time, start_time,
-                    elapsed_seconds, cmdline, recorded_at, status
-                FROM processes
-                WHERE pid = ?
-                ORDER BY recorded_at DESC
-            """,
-                (pid,),
-            ).fetchall()
+        df = self._load_data()
 
-            columns = [
-                "pid",
-                "name",
-                "cpu_time",
-                "start_time",
-                "elapsed_seconds",
-                "cmdline",
-                "recorded_at",
-                "status",
-            ]
+        if df.is_empty():
+            return []
 
-            return [dict(zip(columns, row)) for row in result]
+        # Filter by PID and sort by recorded_at descending
+        result_df = df.filter(pl.col("pid") == pid).sort("recorded_at", descending=True)
 
-    def get_summary_stats(self) -> dict:
+        return result_df.to_dicts()
+
+    def get_summary_stats(self) -> dict[str, Any]:
         """Get summary statistics from the database.
 
         Returns:
             Dictionary containing summary statistics
         """
-        with duckdb.connect(self.db_path) as conn:
-            # Get total records count
-            total_records = conn.execute("""
-                SELECT COUNT(*) FROM processes
-            """).fetchone()[0]
+        df = self._load_data()
 
-            # Get unique processes count
-            unique_processes = conn.execute("""
-                SELECT COUNT(DISTINCT pid) FROM processes
-            """).fetchone()[0]
-
-            # Get currently running processes
-            running_processes = conn.execute("""
-                SELECT COUNT(*) FROM processes
-                WHERE status = 'running'
-            """).fetchone()[0]
-
-            # Get total CPU time of all recorded processes
-            total_cpu_time = conn.execute("""
-                SELECT COALESCE(SUM(cpu_time), 0)
-                FROM processes
-            """).fetchone()[0]
-
-            # Get oldest and newest records
-            date_range = conn.execute("""
-                SELECT MIN(recorded_at), MAX(recorded_at)
-                FROM processes
-            """).fetchone()
-
+        if df.is_empty():
             return {
-                "total_records": total_records,
-                "unique_processes": unique_processes,
-                "running_processes": running_processes,
-                "total_cpu_time": total_cpu_time,
-                "oldest_record": date_range[0],
-                "newest_record": date_range[1],
+                "total_records": 0,
+                "unique_processes": 0,
+                "running_processes": 0,
+                "total_cpu_time": 0.0,
+                "oldest_record": None,
+                "newest_record": None,
             }
+
+        # Calculate statistics
+        total_records = len(df)
+        unique_processes = df["pid"].n_unique()
+        running_processes = len(df.filter(pl.col("status") == "running"))
+        total_cpu_time = df["cpu_time"].sum()
+
+        # Get date range
+        oldest_record = df["recorded_at"].min()
+        newest_record = df["recorded_at"].max()
+
+        return {
+            "total_records": total_records,
+            "unique_processes": unique_processes,
+            "running_processes": running_processes,
+            "total_cpu_time": total_cpu_time,
+            "oldest_record": oldest_record,
+            "newest_record": newest_record,
+        }
 
     def cleanup_old_records(self, days: int = 30) -> int:
         """Remove records older than specified days.
@@ -265,13 +268,24 @@ class ProcessDatabase:
         Returns:
             Number of records deleted
         """
-        with duckdb.connect(self.db_path) as conn:
-            result = conn.execute(f"""
-                DELETE FROM processes
-                WHERE recorded_at < CURRENT_TIMESTAMP - INTERVAL {days} DAY
-            """)
+        df = self._load_data()
 
-            return result.rowcount if result.rowcount else 0
+        if df.is_empty():
+            return 0
+
+        # Calculate cutoff date
+        cutoff_date = datetime.now() - pl.duration(days=days)
+
+        # Count records to be deleted
+        old_records_count = len(df.filter(pl.col("recorded_at") < cutoff_date))
+
+        # Keep only recent records
+        df_filtered = df.filter(pl.col("recorded_at") >= cutoff_date)
+
+        # Save filtered data
+        self._save_data(df_filtered)
+
+        return old_records_count
 
     def get_database_size(self) -> int:
         """Get the size of the database file in bytes.
@@ -280,6 +294,6 @@ class ProcessDatabase:
             Size of database file in bytes, or 0 if file doesn't exist
         """
         try:
-            return Path(self.db_path).stat().st_size
+            return self.data_path.stat().st_size
         except OSError:
             return 0

@@ -48,8 +48,6 @@ def test_format_cpu_time():
     assert format_cpu_time(3661.0) == "1h 1m"
 
 
-
-
 @patch("ccmonitor.process.psutil.process_iter")
 def test_find_claude_processes(mock_process_iter):
     """Test finding Claude processes."""
