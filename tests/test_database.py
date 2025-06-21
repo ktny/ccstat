@@ -28,7 +28,6 @@ def test_save_single_process():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
@@ -54,7 +53,6 @@ def test_save_multiple_processes():
                 pid=1234,
                 name="claude",
                 cpu_time=10.5,
-                memory_mb=256.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(hours=1),
                 cmdline=["claude", "--config", ".claude.json"],
@@ -63,7 +61,6 @@ def test_save_multiple_processes():
                 pid=5678,
                 name="claude-helper",
                 cpu_time=5.2,
-                memory_mb=128.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(minutes=30),
                 cmdline=["claude-helper", "--daemon"],
@@ -92,7 +89,6 @@ def test_process_history():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
@@ -118,7 +114,6 @@ def test_summary_stats():
                 pid=1234,
                 name="claude",
                 cpu_time=10.5,
-                memory_mb=256.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(hours=1),
                 cmdline=["claude", "--config", ".claude.json"],
@@ -127,7 +122,6 @@ def test_summary_stats():
                 pid=5678,
                 name="claude-helper",
                 cpu_time=5.2,
-                memory_mb=128.0,
                 start_time=datetime.now(),
                 elapsed_time=timedelta(minutes=30),
                 cmdline=["claude-helper", "--daemon"],
@@ -141,7 +135,6 @@ def test_summary_stats():
         assert stats["total_records"] == 2
         assert stats["unique_processes"] == 2
         assert stats["running_processes"] == 2
-        assert stats["total_memory_mb"] == 384.0  # 256 + 128
         assert stats["total_cpu_time"] == 15.7  # 10.5 + 5.2
 
 
@@ -156,7 +149,6 @@ def test_cleanup_old_records():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
@@ -189,7 +181,6 @@ def test_database_size():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],

@@ -8,23 +8,22 @@ from ccmonitor.process import (
     find_claude_processes,
     format_cpu_time,
     format_elapsed_time,
-    format_memory,
     is_claude_process,
 )
 
 
 def test_is_claude_process():
     """Test Claude process detection logic."""
-    # Test positive cases
+    # Test positive cases (only name matters now)
     assert is_claude_process("claude", ["claude", "--some-arg"])
     assert is_claude_process("claude-code", ["./claude-code"])
-    assert is_claude_process("python", ["python", "/path/to/.claude/script.py"])
-    assert is_claude_process("node", ["node", "claude.ai/app.js"])
-    assert is_claude_process("anthropic-cli", ["anthropic-cli", "run"])
+    assert is_claude_process("Claude", [])  # Case insensitive
+    assert is_claude_process("some-claude-app", [])
 
     # Test negative cases
-    assert not is_claude_process("python", ["python", "script.py"])
-    assert not is_claude_process("node", ["node", "app.js"])
+    assert not is_claude_process("python", ["python", "/path/to/.claude/script.py"])
+    assert not is_claude_process("node", ["node", "claude.ai/app.js"])
+    assert not is_claude_process("anthropic-cli", ["anthropic-cli", "run"])
     assert not is_claude_process("", [])
     assert not is_claude_process("vim", ["vim", "file.txt"])
 
@@ -49,11 +48,6 @@ def test_format_cpu_time():
     assert format_cpu_time(3661.0) == "1h 1m"
 
 
-def test_format_memory():
-    """Test memory formatting."""
-    assert format_memory(100.5) == "100.5 MB"
-    assert format_memory(1024.0) == "1.00 GB"
-    assert format_memory(2560.0) == "2.50 GB"
 
 
 @patch("ccmonitor.process.psutil.process_iter")
@@ -68,15 +62,11 @@ def test_find_claude_processes(mock_process_iter):
         "create_time": datetime.now().timestamp() - 3600,  # 1 hour ago
     }
 
-    # Mock CPU and memory info
+    # Mock CPU info
     mock_cpu_times = Mock()
     mock_cpu_times.user = 5.0
     mock_cpu_times.system = 1.0
     mock_proc.cpu_times.return_value = mock_cpu_times
-
-    mock_memory_info = Mock()
-    mock_memory_info.rss = 100 * 1024 * 1024  # 100 MB
-    mock_proc.memory_info.return_value = mock_memory_info
 
     mock_process_iter.return_value = [mock_proc]
 
@@ -86,7 +76,6 @@ def test_find_claude_processes(mock_process_iter):
     assert processes[0].pid == 1234
     assert processes[0].name == "claude"
     assert processes[0].cpu_time == 6.0  # user + system
-    assert processes[0].memory_mb == 100.0
     assert isinstance(processes[0].elapsed_time, timedelta)
 
 
@@ -99,7 +88,6 @@ def test_process_info_dataclass():
         pid=1234,
         name="claude",
         cpu_time=10.5,
-        memory_mb=256.0,
         start_time=now,
         elapsed_time=elapsed,
         cmdline=["claude", "--verbose"],
@@ -108,7 +96,6 @@ def test_process_info_dataclass():
     assert process_info.pid == 1234
     assert process_info.name == "claude"
     assert process_info.cpu_time == 10.5
-    assert process_info.memory_mb == 256.0
     assert process_info.start_time == now
     assert process_info.elapsed_time == elapsed
     assert process_info.cmdline == ["claude", "--verbose"]

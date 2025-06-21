@@ -13,7 +13,6 @@ class ProcessInfo:
     pid: int
     name: str
     cpu_time: float
-    memory_mb: float
     start_time: datetime
     elapsed_time: timedelta
     cmdline: list[str]
@@ -38,7 +37,6 @@ def find_claude_processes() -> list[ProcessInfo]:
             if is_claude_process(name, cmdline):
                 # Get additional process information
                 cpu_times = proc.cpu_times()
-                memory_info = proc.memory_info()
                 create_time = datetime.fromtimestamp(pinfo["create_time"])
                 elapsed = current_time - create_time
 
@@ -46,7 +44,6 @@ def find_claude_processes() -> list[ProcessInfo]:
                     pid=pinfo["pid"],
                     name=name,
                     cpu_time=cpu_times.user + cpu_times.system,
-                    memory_mb=memory_info.rss / 1024 / 1024,  # Convert to MB
                     start_time=create_time,
                     elapsed_time=elapsed,
                     cmdline=cmdline,
@@ -60,48 +57,21 @@ def find_claude_processes() -> list[ProcessInfo]:
     return claude_processes
 
 
-def is_claude_process(name: str, cmdline: list[str]) -> bool:
+def is_claude_process(name: str, cmdline: list[str]) -> bool:  # noqa: ARG001
     """Determine if a process is related to Claude Code.
 
     Args:
         name: Process name
-        cmdline: Command line arguments
+        cmdline: Command line arguments (unused but kept for compatibility)
 
     Returns:
         True if this appears to be a Claude Code process
     """
-    if not name or not cmdline:
+    if not name:
         return False
 
-    # Convert to lowercase for case-insensitive matching
-    name_lower = name.lower()
-    cmdline_str = " ".join(cmdline).lower()
-
-    # Check for Claude Code indicators
-    claude_indicators = [
-        "claude",
-        "claude-code",
-        "anthropic",
-    ]
-
-    # Check process name
-    for indicator in claude_indicators:
-        if indicator in name_lower:
-            return True
-
-    # Check command line
-    for indicator in claude_indicators:
-        if indicator in cmdline_str:
-            return True
-
-    # Check for specific Claude Code patterns in command line
-    claude_patterns = [
-        ".claude",
-        "claude.ai",
-        "anthropic.com",
-    ]
-
-    return any(pattern in cmdline_str for pattern in claude_patterns)
+    # Check if process name contains "claude"
+    return "claude" in name.lower()
 
 
 def format_elapsed_time(elapsed: timedelta) -> str:
@@ -163,19 +133,3 @@ def format_cpu_time(cpu_time: float) -> str:
         hours = int(cpu_time // 3600)
         minutes = int((cpu_time % 3600) // 60)
         return f"{hours}h {minutes}m"
-
-
-def format_memory(memory_mb: float) -> str:
-    """Format memory usage in a human-readable format.
-
-    Args:
-        memory_mb: Memory usage in megabytes
-
-    Returns:
-        Formatted memory string
-    """
-    if memory_mb < 1024:
-        return f"{memory_mb:.1f} MB"
-    else:
-        memory_gb = memory_mb / 1024
-        return f"{memory_gb:.2f} GB"

@@ -1,6 +1,5 @@
 """Database functionality for persisting process information."""
 
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -38,7 +37,6 @@ class ProcessDatabase:
                     pid INTEGER NOT NULL,
                     name VARCHAR NOT NULL,
                     cpu_time DOUBLE NOT NULL,
-                    memory_mb DOUBLE NOT NULL,
                     start_time TIMESTAMP NOT NULL,
                     elapsed_seconds INTEGER NOT NULL,
                     cmdline VARCHAR NOT NULL,
@@ -49,12 +47,12 @@ class ProcessDatabase:
 
             # Create index for faster queries
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_processes_pid 
+                CREATE INDEX IF NOT EXISTS idx_processes_pid
                 ON processes(pid)
             """)
 
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_processes_recorded_at 
+                CREATE INDEX IF NOT EXISTS idx_processes_recorded_at
                 ON processes(recorded_at)
             """)
 
@@ -68,15 +66,14 @@ class ProcessDatabase:
             conn.execute(
                 """
                 INSERT INTO processes (
-                    pid, name, cpu_time, memory_mb, start_time, 
+                    pid, name, cpu_time, start_time,
                     elapsed_seconds, cmdline
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?)
             """,
                 (
                     process.pid,
                     process.name,
                     process.cpu_time,
-                    process.memory_mb,
                     process.start_time,
                     int(process.elapsed_time.total_seconds()),
                     " ".join(process.cmdline),
@@ -102,7 +99,6 @@ class ProcessDatabase:
                     p.pid,
                     p.name,
                     p.cpu_time,
-                    p.memory_mb,
                     p.start_time,
                     int(p.elapsed_time.total_seconds()),
                     " ".join(p.cmdline),
@@ -113,9 +109,9 @@ class ProcessDatabase:
             conn.executemany(
                 """
                 INSERT INTO processes (
-                    pid, name, cpu_time, memory_mb, start_time,
+                    pid, name, cpu_time, start_time,
                     elapsed_seconds, cmdline
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?)
             """,
                 data,
             )
@@ -133,15 +129,15 @@ class ProcessDatabase:
             # Convert to comma-separated string for SQL IN clause
             pid_list = ",".join(map(str, current_pids))
             conn.execute(f"""
-                UPDATE processes 
+                UPDATE processes
                 SET status = 'terminated'
-                WHERE status = 'running' 
+                WHERE status = 'running'
                 AND pid NOT IN ({pid_list})
             """)
         else:
             # No running processes, mark all as terminated
             conn.execute("""
-                UPDATE processes 
+                UPDATE processes
                 SET status = 'terminated'
                 WHERE status = 'running'
             """)
@@ -158,8 +154,8 @@ class ProcessDatabase:
         with duckdb.connect(self.db_path) as conn:
             result = conn.execute(
                 """
-                SELECT 
-                    pid, name, cpu_time, memory_mb, start_time,
+                SELECT
+                    pid, name, cpu_time, start_time,
                     elapsed_seconds, cmdline, recorded_at, status
                 FROM processes
                 ORDER BY recorded_at DESC
@@ -172,7 +168,6 @@ class ProcessDatabase:
                 "pid",
                 "name",
                 "cpu_time",
-                "memory_mb",
                 "start_time",
                 "elapsed_seconds",
                 "cmdline",
@@ -194,8 +189,8 @@ class ProcessDatabase:
         with duckdb.connect(self.db_path) as conn:
             result = conn.execute(
                 """
-                SELECT 
-                    pid, name, cpu_time, memory_mb, start_time,
+                SELECT
+                    pid, name, cpu_time, start_time,
                     elapsed_seconds, cmdline, recorded_at, status
                 FROM processes
                 WHERE pid = ?
@@ -208,7 +203,6 @@ class ProcessDatabase:
                 "pid",
                 "name",
                 "cpu_time",
-                "memory_mb",
                 "start_time",
                 "elapsed_seconds",
                 "cmdline",
@@ -237,26 +231,19 @@ class ProcessDatabase:
 
             # Get currently running processes
             running_processes = conn.execute("""
-                SELECT COUNT(*) FROM processes 
-                WHERE status = 'running'
-            """).fetchone()[0]
-
-            # Get total memory usage of running processes
-            total_memory = conn.execute("""
-                SELECT COALESCE(SUM(memory_mb), 0) 
-                FROM processes 
+                SELECT COUNT(*) FROM processes
                 WHERE status = 'running'
             """).fetchone()[0]
 
             # Get total CPU time of all recorded processes
             total_cpu_time = conn.execute("""
-                SELECT COALESCE(SUM(cpu_time), 0) 
+                SELECT COALESCE(SUM(cpu_time), 0)
                 FROM processes
             """).fetchone()[0]
 
             # Get oldest and newest records
             date_range = conn.execute("""
-                SELECT MIN(recorded_at), MAX(recorded_at) 
+                SELECT MIN(recorded_at), MAX(recorded_at)
                 FROM processes
             """).fetchone()
 
@@ -264,7 +251,6 @@ class ProcessDatabase:
                 "total_records": total_records,
                 "unique_processes": unique_processes,
                 "running_processes": running_processes,
-                "total_memory_mb": total_memory,
                 "total_cpu_time": total_cpu_time,
                 "oldest_record": date_range[0],
                 "newest_record": date_range[1],
@@ -281,7 +267,7 @@ class ProcessDatabase:
         """
         with duckdb.connect(self.db_path) as conn:
             result = conn.execute(f"""
-                DELETE FROM processes 
+                DELETE FROM processes
                 WHERE recorded_at < CURRENT_TIMESTAMP - INTERVAL {days} DAY
             """)
 
@@ -294,6 +280,6 @@ class ProcessDatabase:
             Size of database file in bytes, or 0 if file doesn't exist
         """
         try:
-            return os.path.getsize(self.db_path)
+            return Path(self.db_path).stat().st_size
         except OSError:
             return 0
