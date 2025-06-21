@@ -23,7 +23,6 @@ def test_display_processes_table_with_data():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
@@ -34,8 +33,8 @@ def test_display_processes_table_with_data():
         display_processes_table(processes)
         output = mock_stdout.getvalue()
         assert "1234" in output
-        assert "claude" in output
         assert "Total processes found: 1" in output
+        # Note: process name is no longer displayed in the table
 
 
 def test_display_summary_empty():
@@ -53,7 +52,6 @@ def test_display_summary_with_data():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
@@ -62,7 +60,6 @@ def test_display_summary_with_data():
             pid=5678,
             name="claude-helper",
             cpu_time=5.2,
-            memory_mb=128.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(minutes=30),
             cmdline=["claude-helper", "--daemon"],
@@ -74,7 +71,6 @@ def test_display_summary_with_data():
         output = mock_stdout.getvalue()
         assert "Running Processes" in output
         assert "2" in output  # Process count
-        assert "Total Memory Usage" in output
         assert "Total CPU Time" in output
         assert "Longest Running" in output
 
@@ -86,7 +82,6 @@ def test_display_summary_with_database():
             pid=1234,
             name="claude",
             cpu_time=10.5,
-            memory_mb=256.0,
             start_time=datetime.now(),
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
@@ -99,7 +94,6 @@ def test_display_summary_with_database():
         "total_records": 10,
         "unique_processes": 5,
         "running_processes": 2,
-        "total_memory_mb": 500.0,
         "total_cpu_time": 25.5,
         "oldest_record": datetime(2024, 1, 1),
         "newest_record": datetime(2024, 1, 2),
@@ -124,7 +118,6 @@ def test_display_history():
             "pid": 1234,
             "name": "claude",
             "cpu_time": 10.5,
-            "memory_mb": 256.0,
             "elapsed_seconds": 3600,  # 1 hour
             "recorded_at": datetime(2024, 1, 1, 12, 0),
             "status": "running",
@@ -133,7 +126,6 @@ def test_display_history():
             "pid": 5678,
             "name": "claude-helper",
             "cpu_time": 5.2,
-            "memory_mb": 128.0,
             "elapsed_seconds": 1800,  # 30 minutes
             "recorded_at": datetime(2024, 1, 1, 11, 30),
             "status": "terminated",

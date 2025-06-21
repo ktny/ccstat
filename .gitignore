@@ -159,3 +159,8 @@ uv.lock
 
 # ruff
 .ruff_cache/
+
+# claude
+.claude/CLAUDE.md
+.claude/settings.local.json
+.worktree/

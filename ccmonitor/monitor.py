@@ -1,5 +1,6 @@
 """Real-time monitoring functionality."""
 
+import contextlib
 import time
 from datetime import datetime
 from typing import Optional
@@ -17,7 +18,6 @@ from .process import (
     find_claude_processes,
     format_cpu_time,
     format_elapsed_time,
-    format_memory,
 )
 
 
@@ -132,25 +132,14 @@ class RealTimeMonitor:
         """
         table = Table(title=f"Claude Code Processes ({len(processes)} found)")
         table.add_column("PID", justify="right", style="cyan", no_wrap=True)
-        table.add_column("Name", style="magenta")
         table.add_column("CPU Time", justify="right", style="green")
-        table.add_column("Memory", justify="right", style="blue")
         table.add_column("Elapsed", justify="right", style="yellow")
-        table.add_column("Command", style="dim", max_width=40)
 
         for proc in processes:
-            # Truncate command line for display
-            cmd_display = " ".join(proc.cmdline)
-            if len(cmd_display) > 40:
-                cmd_display = cmd_display[:37] + "..."
-
             table.add_row(
                 str(proc.pid),
-                proc.name,
                 format_cpu_time(proc.cpu_time),
-                format_memory(proc.memory_mb),
                 format_elapsed_time(proc.elapsed_time),
-                cmd_display,
             )
 
         return table
@@ -186,10 +175,8 @@ class RealTimeMonitor:
 
                     # Save to database if enabled
                     if self.db and processes:
-                        try:
+                        with contextlib.suppress(Exception):
                             self.db.save_processes(processes)
-                        except Exception:
-                            pass  # Ignore database errors in real-time mode
 
                     # Update counters
                     self.last_update = datetime.now()

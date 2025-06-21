@@ -16,7 +16,6 @@ def sample_process() -> ProcessInfo:
         pid=12345,
         name="claude",
         cpu_time=1.23,
-        memory_mb=128.5,
         start_time=datetime.now() - timedelta(minutes=10),
         elapsed_time=timedelta(minutes=10),
         cmdline=["python", "-m", "claude"],
@@ -130,7 +129,7 @@ def test_layout_with_database_stats(
     mock_db.get_database_size.return_value = 1024 * 1024  # 1MB
 
     monitor = RealTimeMonitor(db=mock_db)
-    layout = monitor.create_layout([sample_process])
+    monitor.create_layout([sample_process])
 
     # Should call database methods
     mock_db.get_summary_stats.assert_called_once()
@@ -160,7 +159,6 @@ def test_create_layout_truncates_long_commands() -> None:
         pid=12345,
         name="claude",
         cpu_time=1.23,
-        memory_mb=128.5,
         start_time=datetime.now() - timedelta(minutes=10),
         elapsed_time=timedelta(minutes=10),
         cmdline=["python", "-m", "very_long_command_that_should_be_truncated"] * 10,

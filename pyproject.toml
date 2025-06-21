@@ -11,7 +11,7 @@ dependencies = [
     "click>=8.1.0",
     "psutil>=5.9.0",
     "rich>=13.0.0",
-    "duckdb>=0.9.0",
+    "polars>=0.20.0",
 ]
 
 [project.scripts]

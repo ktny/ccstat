@@ -33,7 +33,7 @@ from .process import find_claude_processes
     "--interval",
     default=1.0,
     type=float,
-    help="リアルタイム監視の更新間隔（秒）",
+    help="リアルタイム監視の更新間隔(秒)",
 )
 def main(
     summary: bool, history: bool, no_save: bool, once: bool, interval: float
