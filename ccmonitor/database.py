@@ -148,49 +148,5 @@ class ProcessDatabase:
         self._save_data(df)
 
 
-    def get_summary_stats(self) -> dict[str, Any]:
-        """Get summary statistics from the database.
-
-        Returns:
-            Dictionary containing summary statistics
-        """
-        df = self._load_data()
-
-        if df.is_empty():
-            return {
-                "total_records": 0,
-                "unique_processes": 0,
-                "running_processes": 0,
-                "total_cpu_time": 0.0,
-                "oldest_record": None,
-                "newest_record": None,
-            }
-
-        # Calculate statistics
-        total_records = len(df)
-        unique_processes = df["pid"].n_unique()
-
-        # Get the latest status for each PID
-        latest_status_df = (
-            df.sort("recorded_at", descending=True)
-            .group_by("pid")
-            .first()
-        )
-        running_processes = len(latest_status_df.filter(pl.col("status") == "running"))
-
-        total_cpu_time = df["cpu_time"].sum()
-
-        # Get date range
-        oldest_record = df["recorded_at"].min()
-        newest_record = df["recorded_at"].max()
-
-        return {
-            "total_records": total_records,
-            "unique_processes": unique_processes,
-            "running_processes": running_processes,
-            "total_cpu_time": total_cpu_time,
-            "oldest_record": oldest_record,
-            "newest_record": newest_record,
-        }
 
 
