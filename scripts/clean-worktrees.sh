@@ -35,8 +35,15 @@ echo "$WORKTREES" | while IFS= read -r worktree_path; do
     
     echo "🔧 処理中: $worktree_path"
     
-    # ブランチ名を取得
-    branch_name=$(git worktree list --porcelain | grep -A1 "^worktree $worktree_path" | grep "^branch " | sed 's/^branch refs\/heads\///')
+    # ブランチ名を取得（より確実な方法）
+    branch_name=$(git worktree list --porcelain | awk -v path="$worktree_path" '
+        $0 ~ "^worktree " path "$" { found=1; next }
+        found && /^branch / { 
+            gsub(/^branch (refs\/heads\/)?/, ""); 
+            print; 
+            found=0 
+        }
+    ')
     
     if [ -n "$branch_name" ]; then
         echo "  📌 ブランチ: $branch_name"
