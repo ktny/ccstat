@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Worktreeクリーンアップスクリプト
-# 全てのworktreeをunlock、remove、ブランチ削除する
+# .worktree配下のworktreeをすべて削除する
 
 set -e
 
 echo "🧹 Worktreeクリーンアップを開始します..."
 
-# 現在のworktree一覧を取得
-WORKTREES=$(git worktree list --porcelain | grep "^worktree " | grep -v "$(pwd)$" | sed 's/^worktree //')
+# .worktree配下のworktree一覧を取得
+WORKTREES=$(git worktree list | awk '$1 ~ /\.worktree\// {print $1}')
 
 if [ -z "$WORKTREES" ]; then
     echo "✅ クリーンアップするworktreeはありません"
@@ -27,53 +27,19 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# 各worktreeを処理
+# 各worktreeを削除
 echo "$WORKTREES" | while IFS= read -r worktree_path; do
     if [ -z "$worktree_path" ]; then
         continue
     fi
     
-    echo "🔧 処理中: $worktree_path"
-    
-    # ブランチ名を取得（より確実な方法）
-    branch_name=$(git worktree list --porcelain | awk -v path="$worktree_path" '
-        $0 ~ "^worktree " path "$" { found=1; next }
-        found && /^branch / { 
-            gsub(/^branch (refs\/heads\/)?/, ""); 
-            print; 
-            found=0 
-        }
-    ')
-    
-    if [ -n "$branch_name" ]; then
-        echo "  📌 ブランチ: $branch_name"
-        
-        # worktreeがロックされている場合はunlock
-        if git worktree list | grep -q "$worktree_path.*locked"; then
-            echo "  🔓 Worktreeをunlockしています..."
-            git worktree unlock "$worktree_path" || true
-        fi
-        
-        # worktreeを削除
-        echo "  🗑️  Worktreeを削除しています..."
-        git worktree remove "$worktree_path" --force || {
-            echo "  ⚠️  強制削除を試行中..."
-            rm -rf "$worktree_path" 2>/dev/null || true
-            git worktree prune
-        }
-        
-        # ブランチを削除
-        echo "  🌿 ブランチを削除しています..."
-        git branch -D "$branch_name" 2>/dev/null || {
-            echo "  ⚠️  ブランチ $branch_name の削除に失敗しました（既に削除済みかもしれません）"
-        }
-        
-        echo "  ✅ 完了: $branch_name"
-    else
-        echo "  ⚠️  ブランチ情報を取得できませんでした"
-    fi
-    
-    echo ""
+    echo "🗑️  削除中: $worktree_path"
+    git worktree remove "$worktree_path" --force || {
+        echo "  ⚠️  強制削除を試行中..."
+        rm -rf "$worktree_path" 2>/dev/null || true
+        git worktree prune
+    }
+    echo "  ✅ 完了"
 done
 
 # .worktreeディレクトリが空の場合は削除
