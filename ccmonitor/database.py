@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 import polars as pl
 
@@ -12,6 +12,18 @@ from .process import ProcessInfo
 
 class ProcessDatabase:
     """Database manager for persisting Claude process information."""
+
+    # Common schema for all DataFrames
+    SCHEMA: ClassVar[dict[str, pl.DataType]] = {
+        "pid": pl.Int64,
+        "name": pl.Utf8,
+        "cpu_time": pl.Float64,
+        "start_time": pl.Datetime,
+        "elapsed_seconds": pl.Int64,
+        "cmdline": pl.Utf8,
+        "recorded_at": pl.Datetime,
+        "status": pl.Utf8,
+    }
 
     def __init__(self, data_path: Optional[str] = None):
         """Initialize the database.
@@ -48,18 +60,7 @@ class ProcessDatabase:
 
             if not data:
                 # Return empty DataFrame with proper schema
-                return pl.DataFrame(
-                    schema={
-                        "pid": pl.Int64,
-                        "name": pl.Utf8,
-                        "cpu_time": pl.Float64,
-                        "start_time": pl.Datetime,
-                        "elapsed_seconds": pl.Int64,
-                        "cmdline": pl.Utf8,
-                        "recorded_at": pl.Datetime,
-                        "status": pl.Utf8,
-                    }
-                )
+                return pl.DataFrame(schema=self.SCHEMA)
 
             # Convert JSON data to DataFrame
             df = pl.DataFrame(data)
@@ -74,18 +75,7 @@ class ProcessDatabase:
 
         except (json.JSONDecodeError, FileNotFoundError):
             # Return empty DataFrame if file is corrupted or missing
-            return pl.DataFrame(
-                schema={
-                    "pid": pl.Int64,
-                    "name": pl.Utf8,
-                    "cpu_time": pl.Float64,
-                    "start_time": pl.Datetime,
-                    "elapsed_seconds": pl.Int64,
-                    "cmdline": pl.Utf8,
-                    "recorded_at": pl.Datetime,
-                    "status": pl.Utf8,
-                }
-            )
+            return pl.DataFrame(schema=self.SCHEMA)
 
     def _save_data(self, df: pl.DataFrame) -> None:
         """Save DataFrame to JSON file.
