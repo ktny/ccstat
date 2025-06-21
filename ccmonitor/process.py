@@ -57,7 +57,7 @@ def find_claude_processes() -> list[ProcessInfo]:
     return claude_processes
 
 
-def is_claude_process(name: str, cmdline: list[str]) -> bool:  # noqa: ARG001
+def is_claude_process(name: str, cmdline: list[str]) -> bool:
     """Determine if a process is related to Claude Code.
 
     Args:
