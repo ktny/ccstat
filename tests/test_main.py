@@ -1,32 +1,66 @@
 """Tests for main entry point."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
 from ccmonitor.__main__ import main
 
 
+@patch("ccmonitor.__main__.ProcessDatabase")
 @patch("ccmonitor.__main__.find_claude_processes")
-def test_main_default_no_processes(mock_find_processes) -> None:
+def test_main_default_no_processes(mock_find_processes, mock_db_class) -> None:
     """Test main command without options when no processes found."""
     mock_find_processes.return_value = []
+    mock_db = Mock()
+    mock_db_class.return_value = mock_db
 
     runner = CliRunner()
     result = runner.invoke(main)
     assert result.exit_code == 0
     assert "No Claude Code processes found" in result.output
+    mock_db.save_processes.assert_called_once_with([])
 
 
+@patch("ccmonitor.__main__.ProcessDatabase")
 @patch("ccmonitor.__main__.find_claude_processes")
-def test_main_summary_no_processes(mock_find_processes) -> None:
+def test_main_summary_no_processes(mock_find_processes, mock_db_class) -> None:
     """Test main command with summary flag when no processes found."""
     mock_find_processes.return_value = []
+    mock_db = Mock()
+    mock_db_class.return_value = mock_db
 
     runner = CliRunner()
     result = runner.invoke(main, ["--summary"])
     assert result.exit_code == 0
     assert "No Claude Code processes found" in result.output
+
+
+@patch("ccmonitor.__main__.ProcessDatabase")
+def test_main_history(mock_db_class) -> None:
+    """Test main command with history flag."""
+    mock_db = Mock()
+    mock_db_class.return_value = mock_db
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["--history"])
+    assert result.exit_code == 0
+    # Should not call find_claude_processes for history mode
+
+
+@patch("ccmonitor.__main__.ProcessDatabase")
+@patch("ccmonitor.__main__.find_claude_processes")
+def test_main_no_save(mock_find_processes, mock_db_class) -> None:
+    """Test main command with --no-save flag."""
+    mock_find_processes.return_value = []
+    mock_db = Mock()
+    mock_db_class.return_value = mock_db
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["--no-save"])
+    assert result.exit_code == 0
+    # Should not call save_processes
+    mock_db.save_processes.assert_not_called()
 
 
 def test_main_help() -> None:
@@ -37,10 +71,12 @@ def test_main_help() -> None:
     assert "Claude Code Monitor" in result.output
 
 
+@patch("ccmonitor.__main__.ProcessDatabase")
 @patch("ccmonitor.__main__.find_claude_processes")
-def test_main_exception_handling(mock_find_processes) -> None:
+def test_main_exception_handling(mock_find_processes, mock_db_class) -> None:
     """Test error handling in main function."""
     mock_find_processes.side_effect = Exception("Test error")
+    mock_db_class.return_value = Mock()
 
     runner = CliRunner()
     result = runner.invoke(main)
