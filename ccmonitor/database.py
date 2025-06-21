@@ -174,43 +174,6 @@ class ProcessDatabase:
         # Save updated data
         self._save_data(df)
 
-    def get_recent_processes(self, limit: int = 50) -> list[dict[str, Any]]:
-        """Get recent process records from the database.
-
-        Args:
-            limit: Maximum number of records to return
-
-        Returns:
-            List of process records as dictionaries
-        """
-        df = self._load_data()
-
-        if df.is_empty():
-            return []
-
-        # Sort by recorded_at descending and limit
-        result_df = df.sort("recorded_at", descending=True).head(limit)
-
-        return result_df.to_dicts()
-
-    def get_process_history(self, pid: int) -> list[dict[str, Any]]:
-        """Get history for a specific process PID.
-
-        Args:
-            pid: Process ID to get history for
-
-        Returns:
-            List of process records for the given PID
-        """
-        df = self._load_data()
-
-        if df.is_empty():
-            return []
-
-        # Filter by PID and sort by recorded_at descending
-        result_df = df.filter(pl.col("pid") == pid).sort("recorded_at", descending=True)
-
-        return result_df.to_dicts()
 
     def get_summary_stats(self) -> dict[str, Any]:
         """Get summary statistics from the database.
@@ -233,7 +196,15 @@ class ProcessDatabase:
         # Calculate statistics
         total_records = len(df)
         unique_processes = df["pid"].n_unique()
-        running_processes = len(df.filter(pl.col("status") == "running"))
+
+        # Get the latest status for each PID
+        latest_status_df = (
+            df.sort("recorded_at", descending=True)
+            .group_by("pid")
+            .first()
+        )
+        running_processes = len(latest_status_df.filter(pl.col("status") == "running"))
+
         total_cpu_time = df["cpu_time"].sum()
 
         # Get date range

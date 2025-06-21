@@ -42,10 +42,9 @@ def test_save_single_process():
         db.save_process(process)
 
         # Verify process was saved
-        records = db.get_recent_processes(limit=1)
-        assert len(records) == 1
-        assert records[0]["pid"] == 1234
-        assert records[0]["name"] == "claude"
+        stats = db.get_summary_stats()
+        assert stats["total_records"] == 1
+        assert stats["unique_processes"] == 1
 
 
 def test_save_multiple_processes():
@@ -76,37 +75,9 @@ def test_save_multiple_processes():
         db.save_processes(processes)
 
         # Verify processes were saved
-        records = db.get_recent_processes(limit=10)
-        assert len(records) == 2
-
-        pids = [r["pid"] for r in records]
-        assert 1234 in pids
-        assert 5678 in pids
-
-
-def test_process_history():
-    """Test getting process history for specific PID."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
-
-        # Save process multiple times
-        process = ProcessInfo(
-            pid=1234,
-            name="claude",
-            cpu_time=10.5,
-            start_time=datetime.now(),
-            elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"],
-        )
-
-        db.save_process(process)
-        db.save_process(process)
-
-        # Get history for PID
-        history = db.get_process_history(1234)
-        assert len(history) == 2
-        assert all(h["pid"] == 1234 for h in history)
+        stats = db.get_summary_stats()
+        assert stats["total_records"] == 2
+        assert stats["unique_processes"] == 2
 
 
 def test_summary_stats():
@@ -167,8 +138,8 @@ def test_cleanup_old_records():
         assert deleted_count > 0
 
         # Verify records were deleted
-        records = db.get_recent_processes(limit=10)
-        assert len(records) == 0
+        stats = db.get_summary_stats()
+        assert stats["total_records"] == 0
 
 
 def test_database_size():
@@ -216,8 +187,6 @@ def test_empty_data_handling():
         db = ProcessDatabase(str(db_path))
 
         # Test with no data
-        assert db.get_recent_processes() == []
-        assert db.get_process_history(1234) == []
 
         stats = db.get_summary_stats()
         assert stats["total_records"] == 0
@@ -259,18 +228,12 @@ def test_process_termination_marking():
         new_processes = [initial_processes[0]]  # Only keep first process
         db.save_processes(new_processes)
 
-        # Check that the second process is marked as terminated
-        records = db.get_recent_processes(limit=10)
-
-        # Find the records for each PID
-        pid_1234_records = [r for r in records if r["pid"] == 1234]
-        pid_5678_records = [r for r in records if r["pid"] == 5678]
-
-        # PID 1234 should have running records
-        assert any(r["status"] == "running" for r in pid_1234_records)
-
-        # PID 5678 should be marked as terminated
-        assert any(r["status"] == "terminated" for r in pid_5678_records)
+        # Check that the stats reflect the termination
+        stats = db.get_summary_stats()
+        # Should have records from both processes
+        assert stats["total_records"] >= 2
+        # But only one running process
+        assert stats["running_processes"] == 1
 
 
 def test_corrupted_json_handling():
@@ -286,6 +249,5 @@ def test_corrupted_json_handling():
         db = ProcessDatabase(str(db_path))
 
         # Should return empty results for corrupted data
-        assert db.get_recent_processes() == []
         stats = db.get_summary_stats()
         assert stats["total_records"] == 0
