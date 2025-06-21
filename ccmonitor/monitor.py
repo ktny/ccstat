@@ -24,17 +24,14 @@ from .process import (
 class RealTimeMonitor:
     """Real-time process monitor with live updating display."""
 
-    def __init__(
-        self, db: Optional[ProcessDatabase] = None, update_interval: float = 1.0
-    ):
+    def __init__(self, db: Optional[ProcessDatabase] = None):
         """Initialize the real-time monitor.
 
         Args:
             db: Database instance for persistence
-            update_interval: Update interval in seconds
         """
         self.db = db
-        self.update_interval = update_interval
+        self.update_interval = 1.0
         self.console = Console()
         self.running = False
         self.last_update = datetime.now()
