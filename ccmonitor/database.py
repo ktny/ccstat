@@ -96,33 +96,6 @@ class ProcessDatabase:
         with self.data_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
-    def save_process(self, process: ProcessInfo) -> None:
-        """Save a process to the database.
-
-        Args:
-            process: ProcessInfo object to save
-        """
-        # Load existing data
-        df = self._load_data()
-
-        # Create new record
-        new_record = {
-            "pid": process.pid,
-            "name": process.name,
-            "cpu_time": process.cpu_time,
-            "start_time": process.start_time,
-            "elapsed_seconds": int(process.elapsed_time.total_seconds()),
-            "cmdline": " ".join(process.cmdline),
-            "recorded_at": datetime.now(),
-            "status": "running",
-        }
-
-        # Add new record to DataFrame
-        new_df = pl.DataFrame([new_record])
-        df = pl.concat([df, new_df], how="vertical")
-
-        # Save updated data
-        self._save_data(df)
 
     def save_processes(self, processes: list[ProcessInfo]) -> None:
         """Save multiple processes to the database.
@@ -220,33 +193,6 @@ class ProcessDatabase:
             "newest_record": newest_record,
         }
 
-    def cleanup_old_records(self, days: int = 30) -> int:
-        """Remove records older than specified days.
-
-        Args:
-            days: Number of days to keep records for
-
-        Returns:
-            Number of records deleted
-        """
-        df = self._load_data()
-
-        if df.is_empty():
-            return 0
-
-        # Calculate cutoff date
-        cutoff_date = datetime.now() - pl.duration(days=days)
-
-        # Count records to be deleted
-        old_records_count = len(df.filter(pl.col("recorded_at") < cutoff_date))
-
-        # Keep only recent records
-        df_filtered = df.filter(pl.col("recorded_at") >= cutoff_date)
-
-        # Save filtered data
-        self._save_data(df_filtered)
-
-        return old_records_count
 
     def get_database_size(self) -> int:
         """Get the size of the database file in bytes.

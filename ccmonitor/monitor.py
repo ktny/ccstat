@@ -214,6 +214,3 @@ class RealTimeMonitor:
         # Clean exit message
         self.console.print("\n👋 [bold green]Monitoring stopped.[/bold green]")
 
-    def stop(self) -> None:
-        """Stop the monitoring loop."""
-        self.running = False

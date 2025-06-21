@@ -87,13 +87,6 @@ def test_format_file_size() -> None:
     assert monitor._format_file_size(1024 * 1024 * 1024 * 2) == "2.0 GB"
 
 
-def test_stop() -> None:
-    """Test stopping the monitor."""
-    monitor = RealTimeMonitor()
-    monitor.running = True
-    monitor.stop()
-    assert not monitor.running
-
 
 @patch("ccmonitor.monitor.find_claude_processes")
 @patch("ccmonitor.monitor.time.sleep")

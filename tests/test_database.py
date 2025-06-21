@@ -39,7 +39,7 @@ def test_save_single_process():
             cmdline=["claude", "--config", ".claude.json"],
         )
 
-        db.save_process(process)
+        db.save_processes([process])
 
         # Verify process was saved
         stats = db.get_summary_stats()
@@ -115,33 +115,6 @@ def test_summary_stats():
         assert stats["total_cpu_time"] == 15.7  # 10.5 + 5.2
 
 
-def test_cleanup_old_records():
-    """Test cleaning up old records."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
-
-        # Add some test records
-        process = ProcessInfo(
-            pid=1234,
-            name="claude",
-            cpu_time=10.5,
-            start_time=datetime.now(),
-            elapsed_time=timedelta(hours=1),
-            cmdline=["claude", "--config", ".claude.json"],
-        )
-
-        db.save_process(process)
-
-        # Cleanup with 0 days (should remove all records)
-        deleted_count = db.cleanup_old_records(days=0)
-        assert deleted_count > 0
-
-        # Verify records were deleted
-        stats = db.get_summary_stats()
-        assert stats["total_records"] == 0
-
-
 def test_database_size():
     """Test getting database file size."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -162,7 +135,7 @@ def test_database_size():
             cmdline=["claude", "--config", ".claude.json"],
         )
 
-        db.save_process(process)
+        db.save_processes([process])
 
         new_size = db.get_database_size()
         assert new_size > initial_size
