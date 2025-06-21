@@ -10,7 +10,9 @@ def test_main_default() -> None:
     runner = CliRunner()
     result = runner.invoke(main)
     assert result.exit_code == 0
-    assert "Real-time monitoring: Not implemented yet" in result.output
+    assert "📊 Real-time monitoring: Claude Code process monitor" in result.output
+    assert "This is a dummy output for real-time monitoring mode." in result.output
+    assert "Press Ctrl+C to exit." in result.output
 
 
 def test_main_summary() -> None:
@@ -18,7 +20,8 @@ def test_main_summary() -> None:
     runner = CliRunner()
     result = runner.invoke(main, ["--summary"])
     assert result.exit_code == 0
-    assert "Summary mode: Not implemented yet" in result.output
+    assert "🔍 Summary mode: Claude Code process monitoring summary" in result.output
+    assert "This is a dummy output for summary mode." in result.output
 
 
 def test_main_help() -> None:
