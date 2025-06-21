@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import ClassVar, Optional
 
 import polars as pl
 

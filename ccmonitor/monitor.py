@@ -147,31 +147,25 @@ class RealTimeMonitor:
                     # Yield the layout
                     yield self.create_layout(processes)
 
-                    # Wait for next update
-                    time.sleep(self.update_interval)
-
-                except KeyboardInterrupt:
-                    self.running = False
-                    break
                 except Exception:
-                    # Continue on errors to maintain monitoring
-                    time.sleep(self.update_interval)
-                    continue
+                    # Continue monitoring even if process detection or UI creation fails
+                    # Return empty layout to maintain display
+                    yield self.create_layout([])
 
-        # Start the live display
+                # Wait for next update
+                time.sleep(self.update_interval)
+
+        # Start the live display with single KeyboardInterrupt handler
         try:
             with Live(refresh_per_second=2, screen=True) as live:
                 # Show initial instruction
                 self.console.print("Press Ctrl+C or 'q' to quit", style="dim")
 
                 # Keep the live display running
-                try:
-                    for layout in generate():
-                        live.update(layout)
-                        if not self.running:
-                            break
-                except KeyboardInterrupt:
-                    self.running = False
+                for layout in generate():
+                    live.update(layout)
+                    if not self.running:
+                        break
 
         except KeyboardInterrupt:
             self.running = False
