@@ -38,6 +38,7 @@ def test_save_single_process():
             elapsed_time=timedelta(hours=1),
             cmdline=["claude", "--config", ".claude.json"],
             cpu_usage_percent=2.92,
+            cwd="/home/user/project",
         )
 
         db.save_processes([process])
@@ -60,6 +61,7 @@ def test_save_multiple_processes():
                 elapsed_time=timedelta(hours=1),
                 cmdline=["claude", "--config", ".claude.json"],
                 cpu_usage_percent=2.92,
+                cwd="/home/user/project1",
             ),
             ProcessInfo(
                 pid=5678,
@@ -69,6 +71,7 @@ def test_save_multiple_processes():
                 elapsed_time=timedelta(minutes=30),
                 cmdline=["claude-helper", "--daemon"],
                 cpu_usage_percent=2.89,
+                cwd="/home/user/project2",
             ),
         ]
 
@@ -110,6 +113,7 @@ def test_process_termination_marking():
                 elapsed_time=timedelta(hours=1),
                 cmdline=["claude", "--config", ".claude.json"],
                 cpu_usage_percent=2.92,
+                cwd="/home/user/project1",
             ),
             ProcessInfo(
                 pid=5678,
@@ -119,6 +123,7 @@ def test_process_termination_marking():
                 elapsed_time=timedelta(minutes=30),
                 cmdline=["claude-helper", "--daemon"],
                 cpu_usage_percent=2.89,
+                cwd="/home/user/project2",
             ),
         ]
         db.save_processes(initial_processes)

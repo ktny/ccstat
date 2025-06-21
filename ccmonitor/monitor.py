@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from .claude_config import format_conversation_preview
 from .database import ProcessDatabase
 from .process import (
     ProcessInfo,
@@ -110,16 +111,28 @@ class RealTimeMonitor:
         """
         table = Table(title=f"Claude Code Processes ({len(processes)} found)")
         table.add_column("PID", justify="right", style="cyan", no_wrap=True)
+        table.add_column("Directory", justify="left", style="blue", min_width=20)
         table.add_column("CPU Time", justify="right", style="green")
         table.add_column("Elapsed", justify="right", style="yellow")
         table.add_column("Operating Rate", justify="right", style="magenta")
+        table.add_column("Last Conversation", justify="left", style="bright_cyan", min_width=25)
 
         for proc in processes:
+            # Format directory name (show basename if too long)
+            directory = proc.cwd
+            if len(directory) > 30:
+                directory = "..." + directory[-27:]
+
+            # Format conversation info
+            conversation_text = format_conversation_preview(proc.last_conversation)
+
             table.add_row(
                 str(proc.pid),
+                directory,
                 format_time_duration(proc.cpu_time),
                 format_time_duration(proc.elapsed_time.total_seconds()),
                 f"{proc.cpu_usage_percent:.1f}%",
+                conversation_text,
             )
 
         return table

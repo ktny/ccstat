@@ -2,8 +2,11 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Optional
 
 import psutil
+
+from .claude_config import ConversationInfo, get_last_conversation_for_directory
 
 
 @dataclass
@@ -17,6 +20,8 @@ class ProcessInfo:
     elapsed_time: timedelta
     cmdline: list[str]
     cpu_usage_percent: float
+    cwd: str
+    last_conversation: Optional[ConversationInfo] = None
 
 
 def find_claude_processes() -> list[ProcessInfo]:
@@ -46,6 +51,17 @@ def find_claude_processes() -> list[ProcessInfo]:
                 elapsed_seconds = elapsed.total_seconds()
                 cpu_usage_percent = (cpu_time_total / elapsed_seconds * 100) if elapsed_seconds > 0 else 0.0
 
+                # Get current working directory
+                try:
+                    cwd = proc.cwd()
+                except (psutil.AccessDenied, psutil.NoSuchProcess):
+                    cwd = "unknown"
+
+                # Get last conversation for this directory
+                last_conversation = None
+                if cwd != "unknown":
+                    last_conversation = get_last_conversation_for_directory(cwd)
+
                 process_info = ProcessInfo(
                     pid=pinfo["pid"],
                     name=name,
@@ -54,6 +70,8 @@ def find_claude_processes() -> list[ProcessInfo]:
                     elapsed_time=elapsed,
                     cmdline=cmdline,
                     cpu_usage_percent=cpu_usage_percent,
+                    cwd=cwd,
+                    last_conversation=last_conversation,
                 )
                 claude_processes.append(process_info)
 
@@ -91,11 +109,11 @@ def format_time_duration(total_seconds: float) -> str:
         Formatted time string (e.g., "1:23:45", "0:23:45", "0:00:12")
     """
     total_seconds = int(total_seconds)
-    
+
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
-    
+
     if hours > 0:
         return f"{hours}:{minutes:02d}:{seconds:02d}"
     else:
