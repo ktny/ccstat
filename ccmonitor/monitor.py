@@ -3,7 +3,6 @@
 import contextlib
 import time
 from datetime import datetime
-from typing import Optional
 
 from rich.console import Console
 from rich.layout import Layout
@@ -13,15 +12,15 @@ from rich.table import Table
 from rich.text import Text
 
 from .claude_config import format_conversation_preview
-from .store import ProcessStore
 from .process import ProcessInfo, find_claude_processes
+from .store import ProcessStore
 from .util import format_time_duration
 
 
 class RealTimeMonitor:
     """Real-time process monitor with live updating display."""
 
-    def __init__(self, db: Optional[ProcessStore] = None):
+    def __init__(self, db: ProcessStore | None = None):
         """Initialize the real-time monitor.
 
         Args:

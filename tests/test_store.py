@@ -5,8 +5,8 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ccmonitor.store import ProcessStore
 from ccmonitor.process import ProcessInfo
+from ccmonitor.store import ProcessStore
 
 
 def test_store_initialization():
@@ -23,8 +23,15 @@ def test_store_initialization():
             reader = csv.reader(f)
             headers = next(reader)
             assert headers == [
-                "pid", "name", "cpu_time", "start_time", "elapsed_seconds",
-                "cmdline", "cwd", "recorded_at", "status"
+                "pid",
+                "name",
+                "cpu_time",
+                "start_time",
+                "elapsed_seconds",
+                "cmdline",
+                "cwd",
+                "recorded_at",
+                "status",
             ]
 
 

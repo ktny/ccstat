@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
 
 import psutil
 
@@ -22,7 +21,7 @@ class ProcessInfo:
     cmdline: list[str]
     cpu_usage_percent: float
     cwd: str
-    last_conversation: Optional[ConversationInfo] = None
+    last_conversation: ConversationInfo | None = None
 
 
 def find_claude_processes() -> list[ProcessInfo]:

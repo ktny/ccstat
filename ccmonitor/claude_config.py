@@ -4,7 +4,9 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
+
+from .util import parse_datetime
 
 
 @dataclass
@@ -13,8 +15,8 @@ class ConversationInfo:
 
     conversation_id: str
     last_activity: datetime
-    name: Optional[str] = None
-    summary: Optional[str] = None
+    name: str | None = None
+    summary: str | None = None
 
 
 @dataclass
@@ -23,10 +25,10 @@ class ClaudeSession:
 
     directory: str
     conversations: list[ConversationInfo]
-    last_conversation: Optional[ConversationInfo] = None
+    last_conversation: ConversationInfo | None = None
 
 
-def load_claude_config() -> Optional[dict[str, Any]]:
+def load_claude_config() -> dict[str, Any] | None:
     """Load Claude configuration from ~/.claude.json.
 
     Returns:
@@ -44,7 +46,7 @@ def load_claude_config() -> Optional[dict[str, Any]]:
         return None
 
 
-def get_conversations_by_directory(config: Optional[dict[str, Any]] = None) -> dict[str, ClaudeSession]:
+def get_conversations_by_directory(config: dict[str, Any] | None = None) -> dict[str, ClaudeSession]:
     """Get conversations organized by directory.
 
     Args:
@@ -73,7 +75,7 @@ def get_conversations_by_directory(config: Optional[dict[str, Any]] = None) -> d
         # Create conversation info
         conversation_info = ConversationInfo(
             conversation_id=conv_data.get("id", ""),
-            last_activity=_parse_datetime(conv_data.get("last_activity")),
+            last_activity=parse_datetime(conv_data.get("last_activity")),
             name=conv_data.get("name"),
             summary=conv_data.get("summary"),
         )
@@ -97,25 +99,7 @@ def get_conversations_by_directory(config: Optional[dict[str, Any]] = None) -> d
     return sessions_by_dir
 
 
-def _parse_datetime(dt_str: Optional[str]) -> datetime:
-    """Parse datetime string safely.
-
-    Args:
-        dt_str: ISO format datetime string
-
-    Returns:
-        Parsed datetime object, or current time if parsing fails.
-    """
-    if not dt_str:
-        return datetime.now()
-
-    try:
-        return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
-        return datetime.now()
-
-
-def get_last_conversation_for_directory(directory: str) -> Optional[ConversationInfo]:
+def get_last_conversation_for_directory(directory: str) -> ConversationInfo | None:
     """Get the last conversation for a specific directory.
 
     Args:
@@ -138,7 +122,7 @@ def get_last_conversation_for_directory(directory: str) -> Optional[Conversation
     return None
 
 
-def format_conversation_preview(conv: Optional[ConversationInfo]) -> str:
+def format_conversation_preview(conv: ConversationInfo | None) -> str:
     """Format conversation information for display.
 
     Args:
