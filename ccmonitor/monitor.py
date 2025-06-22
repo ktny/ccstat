@@ -104,11 +104,11 @@ class RealTimeMonitor:
         Returns:
             Rich Table object
         """
-        table = Table(title=f"Claude Code Processes ({len(processes)} found)")
+        table = Table(title=f"Claude Code Processes ({len(processes)} found)", box=None)
         table.add_column("PID", justify="right", style="cyan", no_wrap=True)
-        table.add_column("Directory", justify="left", style="blue", min_width=20)
+        table.add_column("Directory", justify="left", style="blue")
         table.add_column("CPU Time", justify="right", style="green")
-        table.add_column("Last Conversation", justify="left", style="bright_cyan", min_width=25)
+        table.add_column("Last Conversation", justify="left", style="bright_cyan", no_wrap=True)
 
         for proc in processes:
             # Format directory name (show only the deepest directory name)
