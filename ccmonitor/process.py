@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 import psutil
 
-from .claude_config import ConversationInfo, get_last_conversation_for_directory
+from .claude_config import get_last_conversation_for_directory
 from .constants import CLAUDE_COMMAND
 
 
@@ -21,7 +21,7 @@ class ProcessInfo:
     cmdline: list[str]
     cpu_usage_percent: float
     cwd: str
-    last_conversation: ConversationInfo | None = None
+    last_conversation: str | None = None
 
 
 def find_claude_processes() -> list[ProcessInfo]:
