@@ -5,7 +5,6 @@ from datetime import datetime
 
 import psutil
 
-from .claude_config import get_last_conversation_for_directory
 from .constants import CLAUDE_COMMAND
 
 
@@ -18,7 +17,6 @@ class ProcessInfo:
     cpu_time: float
     start_time: datetime
     cwd: str
-    last_conversation: str | None = None
 
 
 def find_claude_processes() -> list[ProcessInfo]:
@@ -28,7 +26,6 @@ def find_claude_processes() -> list[ProcessInfo]:
         List of ProcessInfo objects for Claude Code processes.
     """
     claude_processes = []
-    current_time = datetime.now()
 
     for proc in psutil.process_iter(["pid", "name", "create_time"]):
         try:
@@ -50,18 +47,12 @@ def find_claude_processes() -> list[ProcessInfo]:
                 except (psutil.AccessDenied, psutil.NoSuchProcess):
                     cwd = "unknown"
 
-                # Get last conversation for this directory
-                last_conversation = None
-                if cwd != "unknown":
-                    last_conversation = get_last_conversation_for_directory(cwd)
-
                 process_info = ProcessInfo(
                     pid=pinfo["pid"],
                     name=name,
                     cpu_time=cpu_time_total,
                     start_time=create_time,
                     cwd=cwd,
-                    last_conversation=last_conversation,
                 )
                 claude_processes.append(process_info)
 

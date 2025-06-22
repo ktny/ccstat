@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from .claude_config import format_conversation_preview
+from .claude_config import format_conversation_preview, get_conversations_by_directory
 from .process import ProcessInfo, find_claude_processes
 from .store import ProcessStore
 from .util import format_time_duration
@@ -31,15 +31,18 @@ class RealTimeMonitor:
         self.console = Console()
         self.running = False
 
-    def create_layout(self, processes: list[ProcessInfo]) -> Layout:
+    def create_layout(self, processes: list[ProcessInfo], sessions: dict | None = None) -> Layout:
         """Create the layout for real-time display.
 
         Args:
             processes: Current process list
+            sessions: Dictionary mapping directory paths to ClaudeSession objects
 
         Returns:
             Rich Layout object
         """
+        if sessions is None:
+            sessions = {}
         layout = Layout()
 
         # Split into header, main content, and footer
@@ -51,7 +54,7 @@ class RealTimeMonitor:
 
         # Main content with process table
         if processes:
-            main_table = self._create_process_table(processes)
+            main_table = self._create_process_table(processes, sessions)
             layout["main"].update(main_table)
         else:
             no_processes_text = Text("🔍 No Claude Code processes found", style="yellow", justify="center")
@@ -91,11 +94,12 @@ class RealTimeMonitor:
         )
         return Panel(footer_text, border_style="green")
 
-    def _create_process_table(self, processes: list[ProcessInfo]) -> Table:
+    def _create_process_table(self, processes: list[ProcessInfo], sessions: dict) -> Table:
         """Create a table for displaying processes.
 
         Args:
             processes: List of ProcessInfo objects
+            sessions: Dictionary mapping directory paths to ClaudeSession objects
 
         Returns:
             Rich Table object
@@ -113,8 +117,20 @@ class RealTimeMonitor:
             else:
                 directory = proc.cwd.rstrip("/").split("/")[-1] or "/"
 
-            # Format conversation info
-            conversation_text = format_conversation_preview(proc.last_conversation)
+            # Format conversation info from sessions
+            last_conversation = None
+            if proc.cwd != "unknown":
+                # Try exact match first
+                if proc.cwd in sessions:
+                    last_conversation = sessions[proc.cwd].last_conversation
+                else:
+                    # Try to find a session that contains the directory as a substring
+                    for session_dir, session in sessions.items():
+                        if proc.cwd in session_dir or session_dir in proc.cwd:
+                            last_conversation = session.last_conversation
+                            break
+
+            conversation_text = format_conversation_preview(last_conversation)
 
             table.add_row(
                 str(proc.pid),
@@ -136,18 +152,21 @@ class RealTimeMonitor:
                     # Find current processes
                     processes = find_claude_processes()
 
+                    # Get conversations by directory (once per update)
+                    sessions = get_conversations_by_directory()
+
                     # Save to store if enabled
                     if self.db and processes:
                         with contextlib.suppress(Exception):
                             self.db.save_processes(processes)
 
                     # Yield the layout
-                    yield self.create_layout(processes)
+                    yield self.create_layout(processes, sessions)
 
                 except Exception:
                     # Continue monitoring even if process detection or UI creation fails
                     # Return empty layout to maintain display
-                    yield self.create_layout([])
+                    yield self.create_layout([], {})
 
                 # Wait for next update
                 time.sleep(self.update_interval)
