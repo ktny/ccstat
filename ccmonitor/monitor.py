@@ -11,10 +11,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from .claude_config import format_conversation_preview, get_conversations_by_directory
+from .claude_config import ClaudeSession, format_conversation_preview, get_conversations_by_directory
 from .process import ProcessInfo, find_claude_processes
 from .store import ProcessStore
-from .util import format_time_duration
 
 
 class RealTimeMonitor:
@@ -31,7 +30,7 @@ class RealTimeMonitor:
         self.console = Console()
         self.running = False
 
-    def create_layout(self, processes: list[ProcessInfo], sessions: dict | None = None) -> Layout:
+    def create_layout(self, processes: list[ProcessInfo], sessions: dict[str, ClaudeSession] | None = None) -> Layout:
         """Create the layout for real-time display.
 
         Args:
@@ -94,7 +93,7 @@ class RealTimeMonitor:
         )
         return Panel(footer_text, border_style="green")
 
-    def _create_process_table(self, processes: list[ProcessInfo], sessions: dict) -> Table:
+    def _create_process_table(self, processes: list[ProcessInfo], sessions: dict[str, ClaudeSession]) -> Table:
         """Create a table for displaying processes.
 
         Args:
@@ -107,7 +106,6 @@ class RealTimeMonitor:
         table = Table(title=f"Claude Code Processes ({len(processes)} found)", box=None)
         table.add_column("PID", justify="right", style="cyan", no_wrap=True, width=8)
         table.add_column("Directory", justify="left", style="blue", no_wrap=True, min_width=12, max_width=20)
-        table.add_column("CPU Time", justify="right", style="green", no_wrap=True, width=10)
         table.add_column("Last Conversation", justify="left", style="bright_cyan", no_wrap=True, max_width=50)
 
         for proc in processes:
@@ -138,7 +136,6 @@ class RealTimeMonitor:
             table.add_row(
                 str(proc.pid),
                 directory,
-                format_time_duration(proc.cpu_time),
                 conversation_text,
             )
 
