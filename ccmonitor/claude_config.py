@@ -2,21 +2,16 @@
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .util import parse_datetime
 
 
 @dataclass
 class ConversationInfo:
     """Information about a Claude conversation."""
 
-    conversation_id: str
-    last_activity: datetime
-    name: str | None = None
-    summary: str | None = None
+    display: str | None = None
 
 
 @dataclass
@@ -63,38 +58,34 @@ def get_conversations_by_directory(config: dict[str, Any] | None = None) -> dict
 
     sessions_by_dir = {}
 
-    # Extract conversations from config
-    conversations = config.get("conversations", [])
+    # Extract projects from config
+    projects = config.get("projects", {})
 
-    for conv_data in conversations:
-        # Get directory information
-        directory = conv_data.get("directory", "")
-        if not directory:
+    for directory, project_data in projects.items():
+        # Get history for this directory
+        history = project_data.get("history", [])
+        if not history:
             continue
 
-        # Create conversation info
-        conversation_info = ConversationInfo(
-            conversation_id=conv_data.get("id", ""),
-            last_activity=parse_datetime(conv_data.get("last_activity")),
-            name=conv_data.get("name"),
-            summary=conv_data.get("summary"),
+        conversations = []
+        for conv_data in history:
+            # Create conversation info
+            conversation_info = ConversationInfo(
+                display=conv_data.get("display"),
+            )
+            conversations.append(conversation_info)
+
+        # Create session for this directory
+        session = ClaudeSession(
+            directory=directory,
+            conversations=conversations,
         )
 
-        # Add to directory session
-        if directory not in sessions_by_dir:
-            sessions_by_dir[directory] = ClaudeSession(
-                directory=directory,
-                conversations=[],
-            )
+        # The first conversation in history is the most recent
+        if conversations:
+            session.last_conversation = conversations[0]
 
-        sessions_by_dir[directory].conversations.append(conversation_info)
-
-    # Set last conversation for each directory
-    for session in sessions_by_dir.values():
-        if session.conversations:
-            # Sort by last activity and get the most recent
-            session.conversations.sort(key=lambda c: c.last_activity, reverse=True)
-            session.last_conversation = session.conversations[0]
+        sessions_by_dir[directory] = session
 
     return sessions_by_dir
 
@@ -131,16 +122,9 @@ def format_conversation_preview(conv: ConversationInfo | None) -> str:
     Returns:
         Formatted string for display
     """
-    if not conv:
+    if not conv or not conv.display:
         return "No conversation"
 
-    if conv.name:
-        if len(conv.name) > 30:
-            return conv.name[:27] + "..."
-        return conv.name
-    elif conv.summary:
-        if len(conv.summary) > 30:
-            return conv.summary[:27] + "..."
-        return conv.summary
-    else:
-        return f"Conv {conv.conversation_id[:8]}"
+    if len(conv.display) > 30:
+        return conv.display[:27] + "..."
+    return conv.display

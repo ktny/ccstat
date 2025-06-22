@@ -2,7 +2,6 @@
 
 import json
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -70,7 +69,7 @@ class TestGetConversationsByDirectory:
         assert result == {}
 
     def test_no_conversations(self):
-        """Test with config that has no conversations."""
+        """Test with config that has no projects."""
         config = {"other_key": "value"}
         result = get_conversations_by_directory(config)
         assert result == {}
@@ -78,20 +77,22 @@ class TestGetConversationsByDirectory:
     def test_conversations_with_directory(self):
         """Test with conversations that have directory information."""
         config = {
-            "conversations": [
-                {
-                    "id": "conv1",
-                    "directory": "/home/user/project1",
-                    "name": "Test conversation",
-                    "last_activity": "2024-01-01T12:00:00Z",
+            "projects": {
+                "/home/user/project1": {
+                    "history": [
+                        {
+                            "display": "Test conversation"
+                        }
+                    ]
                 },
-                {
-                    "id": "conv2",
-                    "directory": "/home/user/project2",
-                    "summary": "Another conversation",
-                    "last_activity": "2024-01-02T12:00:00Z",
-                },
-            ]
+                "/home/user/project2": {
+                    "history": [
+                        {
+                            "display": "Another conversation"
+                        }
+                    ]
+                }
+            }
         }
 
         result = get_conversations_by_directory(config)
@@ -103,26 +104,23 @@ class TestGetConversationsByDirectory:
         session1 = result["/home/user/project1"]
         assert session1.directory == "/home/user/project1"
         assert len(session1.conversations) == 1
-        assert session1.last_conversation.conversation_id == "conv1"
-        assert session1.last_conversation.name == "Test conversation"
+        assert session1.last_conversation.display == "Test conversation"
 
     def test_multiple_conversations_same_directory(self):
         """Test multiple conversations in the same directory."""
         config = {
-            "conversations": [
-                {
-                    "id": "conv1",
-                    "directory": "/home/user/project",
-                    "name": "Old conversation",
-                    "last_activity": "2024-01-01T12:00:00Z",
-                },
-                {
-                    "id": "conv2",
-                    "directory": "/home/user/project",
-                    "name": "New conversation",
-                    "last_activity": "2024-01-02T12:00:00Z",
-                },
-            ]
+            "projects": {
+                "/home/user/project": {
+                    "history": [
+                        {
+                            "display": "New conversation"
+                        },
+                        {
+                            "display": "Old conversation"
+                        }
+                    ]
+                }
+            }
         }
 
         result = get_conversations_by_directory(config)
@@ -130,9 +128,8 @@ class TestGetConversationsByDirectory:
         assert len(result) == 1
         session = result["/home/user/project"]
         assert len(session.conversations) == 2
-        # Should be sorted by last activity (most recent first)
-        assert session.last_conversation.conversation_id == "conv2"
-        assert session.last_conversation.name == "New conversation"
+        # First item in history is the most recent
+        assert session.last_conversation.display == "New conversation"
 
 
 class TestGetLastConversationForDirectory:
@@ -142,9 +139,7 @@ class TestGetLastConversationForDirectory:
     def test_exact_match(self, mock_get_conversations):
         """Test exact directory match."""
         conv = ConversationInfo(
-            conversation_id="conv1",
-            last_activity=datetime.now(),
-            name="Test conversation",
+            display="Test conversation"
         )
         session = ClaudeSession(
             directory="/home/user/project",
@@ -160,9 +155,7 @@ class TestGetLastConversationForDirectory:
     def test_substring_match(self, mock_get_conversations):
         """Test substring directory match."""
         conv = ConversationInfo(
-            conversation_id="conv1",
-            last_activity=datetime.now(),
-            name="Test conversation",
+            display="Test conversation"
         )
         session = ClaudeSession(
             directory="/home/user/my-project",
@@ -191,42 +184,26 @@ class TestFormatConversationPreview:
         result = format_conversation_preview(None)
         assert result == "No conversation"
 
-    def test_conversation_with_name(self):
-        """Test conversation with name."""
+    def test_conversation_with_display(self):
+        """Test conversation with display."""
         conv = ConversationInfo(
-            conversation_id="conv1",
-            last_activity=datetime.now(),
-            name="Short name",
+            display="Short name"
         )
         result = format_conversation_preview(conv)
         assert result == "Short name"
 
-    def test_conversation_with_long_name(self):
-        """Test conversation with long name (should be truncated)."""
+    def test_conversation_with_long_display(self):
+        """Test conversation with long display (should be truncated)."""
         conv = ConversationInfo(
-            conversation_id="conv1",
-            last_activity=datetime.now(),
-            name="This is a very long conversation name that should be truncated",
+            display="This is a very long conversation name that should be truncated"
         )
         result = format_conversation_preview(conv)
         assert result == "This is a very long convers..."
         assert len(result) == 30  # 27 chars + "..."
 
-    def test_conversation_with_summary(self):
-        """Test conversation with summary but no name."""
-        conv = ConversationInfo(
-            conversation_id="conv1",
-            last_activity=datetime.now(),
-            summary="Short summary",
-        )
-        result = format_conversation_preview(conv)
-        assert result == "Short summary"
 
-    def test_conversation_with_id_only(self):
-        """Test conversation with only ID."""
-        conv = ConversationInfo(
-            conversation_id="conv123456789",
-            last_activity=datetime.now(),
-        )
+    def test_conversation_with_no_content(self):
+        """Test conversation with no display."""
+        conv = ConversationInfo()
         result = format_conversation_preview(conv)
-        assert result == "Conv conv1234"
+        assert result == "No conversation"

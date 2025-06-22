@@ -31,9 +31,7 @@ def test_find_claude_processes(mock_process_iter, mock_get_conversation):
 
     # Mock conversation info
     mock_conversation = ConversationInfo(
-        conversation_id="conv123",
-        last_activity=datetime.now(),
-        name="Test conversation",
+        display="Test conversation"
     )
     mock_get_conversation.return_value = mock_conversation
 
@@ -90,9 +88,7 @@ def test_process_info_dataclass():
     elapsed = timedelta(hours=1)
 
     conv = ConversationInfo(
-        conversation_id="conv123",
-        last_activity=now,
-        name="Test conversation",
+        display="Test conversation"
     )
 
     process_info = ProcessInfo(
