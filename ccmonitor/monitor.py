@@ -104,8 +104,6 @@ class RealTimeMonitor:
         table.add_column("PID", justify="right", style="cyan", no_wrap=True)
         table.add_column("Directory", justify="left", style="blue", min_width=20)
         table.add_column("CPU Time", justify="right", style="green")
-        table.add_column("Elapsed", justify="right", style="yellow")
-        table.add_column("Operating Rate", justify="right", style="magenta")
         table.add_column("Last Conversation", justify="left", style="bright_cyan", min_width=25)
 
         for proc in processes:
@@ -122,8 +120,6 @@ class RealTimeMonitor:
                 str(proc.pid),
                 directory,
                 format_time_duration(proc.cpu_time),
-                format_time_duration(proc.elapsed_time.total_seconds()),
-                f"{proc.cpu_usage_percent:.1f}%",
                 conversation_text,
             )
 

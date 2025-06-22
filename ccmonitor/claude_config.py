@@ -86,11 +86,6 @@ def get_last_conversation_for_directory(directory: str) -> str | None:
     if directory in sessions:
         return sessions[directory].last_conversation
 
-    # Try to find a session that contains the directory as a substring
-    for session_dir, session in sessions.items():
-        if directory in session_dir or session_dir in directory:
-            return session.last_conversation
-
     return None
 
 
