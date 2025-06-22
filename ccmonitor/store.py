@@ -3,7 +3,7 @@
 import csv
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import ClassVar
 
 from .process import ProcessInfo
 
@@ -12,7 +12,7 @@ class ProcessStore:
     """Store manager for persisting Claude process information."""
 
     # CSV column headers
-    HEADERS = [
+    HEADERS: ClassVar[list[str]] = [
         "pid",
         "name",
         "cpu_time",
@@ -24,7 +24,7 @@ class ProcessStore:
         "status",
     ]
 
-    def __init__(self, data_path: Optional[str] = None):
+    def __init__(self, data_path: str | None = None):
         """Initialize the store.
 
         Args:

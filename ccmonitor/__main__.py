@@ -2,8 +2,8 @@
 
 import click
 
-from .store import ProcessStore
 from .monitor import RealTimeMonitor
+from .store import ProcessStore
 
 
 @click.command()

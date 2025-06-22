@@ -111,10 +111,11 @@ class RealTimeMonitor:
         table.add_column("Last Conversation", justify="left", style="bright_cyan", min_width=25)
 
         for proc in processes:
-            # Format directory name (show basename if too long)
-            directory = proc.cwd
-            if len(directory) > 30:
-                directory = "..." + directory[-27:]
+            # Format directory name (show only the deepest directory name)
+            if proc.cwd == "unknown":
+                directory = "unknown"
+            else:
+                directory = proc.cwd.rstrip("/").split("/")[-1] or "/"
 
             # Format conversation info
             conversation_text = format_conversation_preview(proc.last_conversation)
