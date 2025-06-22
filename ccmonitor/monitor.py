@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .claude_config import format_conversation_preview
-from .database import ProcessDatabase
+from .store import ProcessStore
 from .process import ProcessInfo, find_claude_processes
 from .util import format_time_duration
 
@@ -21,11 +21,11 @@ from .util import format_time_duration
 class RealTimeMonitor:
     """Real-time process monitor with live updating display."""
 
-    def __init__(self, db: Optional[ProcessDatabase] = None):
+    def __init__(self, db: Optional[ProcessStore] = None):
         """Initialize the real-time monitor.
 
         Args:
-            db: Database instance for persistence
+            db: Store instance for persistence
         """
         self.db = db
         self.update_interval = 1.0
@@ -142,7 +142,7 @@ class RealTimeMonitor:
                     # Find current processes
                     processes = find_claude_processes()
 
-                    # Save to database if enabled
+                    # Save to store if enabled
                     if self.db and processes:
                         with contextlib.suppress(Exception):
                             self.db.save_processes(processes)

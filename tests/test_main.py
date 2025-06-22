@@ -7,7 +7,7 @@ from click.testing import CliRunner
 from ccmonitor.__main__ import main
 
 
-@patch("ccmonitor.__main__.ProcessDatabase")
+@patch("ccmonitor.__main__.ProcessStore")
 @patch("ccmonitor.__main__.RealTimeMonitor")
 def test_main_default(mock_monitor_class, mock_db_class) -> None:
     """Test main command (real-time mode)."""

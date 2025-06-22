@@ -2,7 +2,7 @@
 
 import click
 
-from .database import ProcessDatabase
+from .store import ProcessStore
 from .monitor import RealTimeMonitor
 
 
@@ -10,7 +10,7 @@ from .monitor import RealTimeMonitor
 def main() -> None:
     """Claude Code Monitor - Claude Codeのプロセス監視とリアルタイム可視化ツール."""
     try:
-        db = ProcessDatabase()
+        db = ProcessStore()
         monitor = RealTimeMonitor(db=db)
         monitor.run()
 

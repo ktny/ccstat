@@ -1,34 +1,38 @@
-"""Tests for database functionality."""
+"""Tests for store functionality."""
 
-import json
+import csv
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from ccmonitor.database import ProcessDatabase
+from ccmonitor.store import ProcessStore
 from ccmonitor.process import ProcessInfo
 
 
-def test_database_initialization():
-    """Test database initialization."""
+def test_store_initialization():
+    """Test store initialization."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
+        db_path = Path(temp_dir) / "test.csv"
+        db = ProcessStore(str(db_path))
 
         assert db.data_path == db_path
         assert db_path.exists()
 
-        # Check that it creates an empty JSON array
-        with db_path.open(encoding="utf-8") as f:
-            data = json.load(f)
-        assert data == []
+        # Check that it creates a CSV file with headers
+        with db_path.open("r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            headers = next(reader)
+            assert headers == [
+                "pid", "name", "cpu_time", "start_time", "elapsed_seconds",
+                "cmdline", "cwd", "recorded_at", "status"
+            ]
 
 
 def test_save_single_process():
     """Test saving a single process."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
+        db_path = Path(temp_dir) / "test.csv"
+        db = ProcessStore(str(db_path))
 
         process = ProcessInfo(
             pid=1234,
@@ -49,8 +53,8 @@ def test_save_single_process():
 def test_save_multiple_processes():
     """Test saving multiple processes."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
+        db_path = Path(temp_dir) / "test.csv"
+        db = ProcessStore(str(db_path))
 
         processes = [
             ProcessInfo(
@@ -82,21 +86,21 @@ def test_save_multiple_processes():
 
 def test_default_config_directory():
     """Test default configuration directory creation."""
-    db = ProcessDatabase()
+    db = ProcessStore()
 
     config_path = Path.home() / ".config" / "ccmonitor"
     assert config_path.exists()
     assert config_path.is_dir()
 
-    db_file = config_path / "processes.json"
+    db_file = config_path / "processes.csv"
     assert db.data_path == db_file
 
 
 def test_process_termination_marking():
     """Test that processes not in new list are marked as terminated."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
-        db = ProcessDatabase(str(db_path))
+        db_path = Path(temp_dir) / "test.csv"
+        db = ProcessStore(str(db_path))
 
         # Save initial processes
         initial_processes = [
@@ -133,13 +137,13 @@ def test_process_termination_marking():
 def test_corrupted_json_handling():
     """Test handling of corrupted JSON file."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        db_path = Path(temp_dir) / "test.json"
+        db_path = Path(temp_dir) / "test.csv"
 
-        # Create a corrupted JSON file
+        # Create a corrupted CSV file
         with db_path.open("w", encoding="utf-8") as f:
-            f.write("invalid json content")
+            f.write("invalid,csv,content\nwithout proper headers")
 
-        # Database should handle corruption gracefully
-        ProcessDatabase(str(db_path))
+        # Store should handle corruption gracefully
+        ProcessStore(str(db_path))
 
-        # Database should handle corruption gracefully (no verification needed for this test)
+        # Store should handle corruption gracefully (no verification needed for this test)
