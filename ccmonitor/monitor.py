@@ -52,25 +52,6 @@ class RealTimeMonitor:
             Layout(name="footer", size=3),
         )
 
-        # Header with title and stats
-        header_text = Text.assemble(
-            ("📊 Claude Code Monitor", "bold cyan"),
-            " - ",
-            ("Real-time Process Monitoring", "bold"),
-        )
-
-        # Add current time and update count
-        now = datetime.now()
-        time_text = Text.assemble(
-            "\n",
-            ("Last Update: ", "dim"),
-            (now.strftime("%H:%M:%S"), "yellow"),
-            ("  Updates: ", "dim"),
-            (str(self.update_count), "green"),
-        )
-
-        layout["header"].update(Panel(header_text + time_text, border_style="blue"))
-
         # Main content with process table
         if processes:
             main_table = self._create_process_table(processes)
@@ -79,6 +60,28 @@ class RealTimeMonitor:
             no_processes_text = Text("🔍 No Claude Code processes found", style="yellow", justify="center")
             layout["main"].update(Panel(no_processes_text, border_style="yellow"))
 
+        header_panel = self._create_header()
+        layout["header"].update(header_panel)
+
+        footer_panel = self._create_footer()
+        layout["footer"].update(footer_panel)
+
+        return layout
+
+    def _create_header(self) -> Panel:
+        # Header with title and stats
+        now = datetime.now()
+        header_text = Text.assemble(
+            ("📊 Claude Code Monitor", "bold cyan"),
+            " - ",
+            ("Real-time Process Monitoring", "bold"),
+            " - ",
+            ("Last Update: ", "dim"),
+            (now.strftime("%H:%M:%S"), "yellow"),
+        )
+        return Panel(header_text, border_style="blue")
+
+    def _create_footer(self) -> Panel:
         # Footer with controls and stats
         footer_text = Text.assemble(
             ("Controls: ", "bold"),
@@ -89,10 +92,7 @@ class RealTimeMonitor:
             ("Space", "cyan"),
             (" to force update", ""),
         )
-
-        layout["footer"].update(Panel(footer_text, border_style="green"))
-
-        return layout
+        return Panel(footer_text, border_style="green")
 
     def _create_process_table(self, processes: list[ProcessInfo]) -> Table:
         """Create a table for displaying processes.
@@ -165,9 +165,6 @@ class RealTimeMonitor:
         # Start the live display with single KeyboardInterrupt handler
         try:
             with Live(refresh_per_second=2, screen=True) as live:
-                # Show initial instruction
-                self.console.print("Press Ctrl+C or 'q' to quit", style="dim")
-
                 # Keep the live display running
                 for layout in generate():
                     live.update(layout)

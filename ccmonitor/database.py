@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import Any, ClassVar, Optional
 
 import polars as pl
 
@@ -14,7 +14,7 @@ class ProcessDatabase:
     """Database manager for persisting Claude process information."""
 
     # Common schema for all DataFrames
-    SCHEMA: ClassVar[dict[str, pl.DataType]] = {
+    SCHEMA: ClassVar[dict[str, Any]] = {
         "pid": pl.Int64,
         "name": pl.Utf8,
         "cpu_time": pl.Float64,
