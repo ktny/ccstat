@@ -21,6 +21,7 @@ class ProcessDatabase:
         "start_time": pl.Datetime,
         "elapsed_seconds": pl.Int64,
         "cmdline": pl.Utf8,
+        "cwd": pl.Utf8,
         "recorded_at": pl.Datetime,
         "status": pl.Utf8,
     }
@@ -134,6 +135,7 @@ class ProcessDatabase:
                     "start_time": process.start_time,
                     "elapsed_seconds": int(process.elapsed_time.total_seconds()),
                     "cmdline": " ".join(process.cmdline),
+                    "cwd": process.cwd,
                     "recorded_at": current_time,
                     "status": "running",
                 }
