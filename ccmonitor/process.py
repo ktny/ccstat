@@ -17,6 +17,7 @@ class ProcessInfo:
     cpu_time: float
     start_time: datetime
     cwd: str
+    is_working: bool = False
 
 
 def find_claude_processes() -> list[ProcessInfo]:

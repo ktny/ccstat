@@ -30,6 +30,8 @@ class RealTimeMonitor:
         self.update_interval = 1.0
         self.console = Console()
         self.running = False
+        # Store previous CPU times for working status detection
+        self.previous_cpu_times: dict[int, float] = {}
 
     def create_layout(self, processes: list[ProcessInfo], sessions: dict[str, ClaudeSession] | None = None) -> Layout:
         """Create the layout for real-time display.
@@ -106,10 +108,11 @@ class RealTimeMonitor:
         """
         console_width = self.console.width
         table = Table(title=f"Claude Code Processes ({len(processes)} found)", box=None)
-        table.add_column("PID", justify="right", style="cyan", no_wrap=True, width=6)
+        table.add_column("PID", justify="right", style="cyan", no_wrap=True, min_width=6)
         table.add_column("Directory", style="blue", no_wrap=True, min_width=12, max_width=20)
+        table.add_column("Status", justify="center", style="bright_yellow", width=10)
         table.add_column("CPU Time", justify="right", style="green", no_wrap=True, width=10)
-        table.add_column("Last Conversation", style="bright_cyan", no_wrap=True, max_width=console_width - 36)
+        table.add_column("Last Conversation", style="bright_cyan", no_wrap=True, max_width=console_width - 44)
 
         for proc in processes:
             # Format directory name (show only the deepest directory name)
@@ -125,9 +128,16 @@ class RealTimeMonitor:
 
             conversation_text = format_conversation_preview(last_conversation)
 
+            # Format working status with icon
+            if proc.is_working:
+                status_text = "🟢Working"
+            else:
+                status_text = "⭕Idle"
+
             table.add_row(
                 str(proc.pid),
                 directory,
+                status_text,
                 format_time_duration(proc.cpu_time),
                 conversation_text,
             )
@@ -144,6 +154,27 @@ class RealTimeMonitor:
                 try:
                     # Find current processes
                     processes = find_claude_processes()
+
+                    # Update is_working status based on CPU time changes
+                    for process in processes:
+                        previous_cpu_time = self.previous_cpu_times.get(process.pid, None)
+                        if previous_cpu_time is not None:
+                            # Process existed before, check if CPU time changed
+                            process.is_working = (
+                                process.cpu_time > previous_cpu_time + 0.2
+                            )  # Threshold to avoid flickering
+                        else:
+                            # First time seeing this process, default to False
+                            process.is_working = False
+
+                        # Update previous CPU time for next iteration
+                        self.previous_cpu_times[process.pid] = process.cpu_time
+
+                    # Clean up old PIDs that are no longer active
+                    current_pids = {proc.pid for proc in processes}
+                    self.previous_cpu_times = {
+                        pid: cpu_time for pid, cpu_time in self.previous_cpu_times.items() if pid in current_pids
+                    }
 
                     # Get conversations by directory (once per update)
                     sessions = get_conversations_by_directory()
