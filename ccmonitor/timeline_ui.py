@@ -33,7 +33,7 @@ class TimelineUI:
 
         # Split into header, main content, and footer
         layout.split_column(
-            Layout(name="header", size=3),
+            Layout(name="header", size=4),
             Layout(name="main"),
             Layout(name="footer", size=3),
         )
@@ -62,21 +62,32 @@ class TimelineUI:
         hours = int(duration.total_seconds() / 3600)
         
         header_text = Text.assemble(
-            ("📊 Claude Session Timeline", "bold cyan"),
+            ("📊 Claude Directory Timeline", "bold cyan"),
             " - ",
             (f"{hours} hours", "bold"),
             " - ",
-            (f"{session_count} sessions", "yellow"),
+            (f"{session_count} directories", "yellow"),
+            "\n",
+            ("Time Range: ", "dim"),
+            (start_time.strftime("%m/%d %H:%M"), "cyan"),
+            (" - ", "dim"),
+            (end_time.strftime("%m/%d %H:%M"), "cyan"),
         )
         return Panel(header_text, border_style="blue")
+
 
     def _create_footer(self) -> Panel:
         """Create footer panel with controls."""
         footer_text = Text.assemble(
-            ("Time Range: ", "bold"),
-            ("24 hours", "green"),
-            ("  |  ", "dim"),
-            ("Sessions shown with activity markers", "dim"),
+            ("Legend: ", "bold"),
+            ("█", "white"),
+            (" User  ", ""),
+            ("▓", "white"),
+            (" Assistant  ", ""),
+            ("─", "white"),
+            (" Activity  ", ""),
+            ("·", "dim"),
+            (" Idle", ""),
         )
         return Panel(footer_text, border_style="green")
 
@@ -95,12 +106,15 @@ class TimelineUI:
         table = Table(show_header=True, box=None, padding=(0, 1))
         
         # Add columns
-        table.add_column("Directory", style="blue", no_wrap=True, width=20)
+        table.add_column("Directory", style="blue", no_wrap=True, width=15)
+        table.add_column("Start", style="yellow", justify="center", width=8)
+        table.add_column("End", style="yellow", justify="center", width=8)
         table.add_column("Timeline", style="white", no_wrap=True)
         table.add_column("Events", style="cyan", justify="right", width=6)
+        table.add_column("Duration", style="green", justify="center", width=8)
         
         # Calculate timeline width (console width - other columns)
-        timeline_width = self.console.width - 35  # 20 (dir) + 6 (events) + padding
+        timeline_width = self.console.width - 58  # 15(dir) + 8(start) + 8(end) + 6(events) + 8(duration) + padding
         
         # Add rows for each session
         for timeline in timelines:
@@ -109,13 +123,35 @@ class TimelineUI:
                 timeline, start_time, end_time, timeline_width
             )
             
+            # Calculate session duration
+            duration = timeline.end_time - timeline.start_time
+            duration_str = f"{int(duration.total_seconds() / 60)}m"
+            
+            # Format start and end times
+            start_str = timeline.start_time.strftime("%H:%M")
+            end_str = timeline.end_time.strftime("%H:%M")
+            
             table.add_row(
                 timeline.directory_name,
+                start_str,
+                end_str,
                 timeline_str,
                 str(len(timeline.events)),
+                duration_str,
             )
         
-        return Panel(table, title="Session Activity", border_style="cyan")
+        # Add time axis row at the bottom
+        time_axis_str = self._create_time_axis(start_time, end_time, timeline_width)
+        table.add_row(
+            "",  # Directory column
+            "",  # Start column
+            "",  # End column
+            time_axis_str,  # Timeline column with time markers
+            "",  # Events column
+            "",  # Duration column
+        )
+        
+        return Panel(table, title="Directory Activity", border_style="cyan")
 
     def _create_timeline_string(self, timeline: SessionTimeline, start_time: datetime, end_time: datetime, width: int) -> str:
         """Create a visual timeline string for a session.
@@ -172,7 +208,7 @@ class TimelineUI:
         
         return timeline_str
 
-    def create_time_axis(self, start_time: datetime, end_time: datetime, width: int) -> str:
+    def _create_time_axis(self, start_time: datetime, end_time: datetime, width: int) -> str:
         """Create a time axis string for reference.
 
         Args:
@@ -181,7 +217,7 @@ class TimelineUI:
             width: Width in characters
 
         Returns:
-            Time axis string
+            Time axis string with hour markers
         """
         # Create hour markers
         axis_chars = [" "] * width
@@ -189,17 +225,29 @@ class TimelineUI:
         total_duration = (end_time - start_time).total_seconds()
         hours_count = int(total_duration / 3600)
         
-        # Place hour markers
-        for hour in range(0, hours_count + 1, 3):  # Every 3 hours
-            position = int((hour * 3600 / total_duration) * (width - 1))
-            if 0 <= position < width:
-                # Format hour
-                current_time = start_time + timedelta(hours=hour)
-                hour_str = current_time.strftime("%H")
-                
-                # Place the hour marker
-                for i, char in enumerate(hour_str):
-                    if position + i < width:
-                        axis_chars[position + i] = char
+        # Place markers only on even hours for cleaner display
+        start_hour = start_time.hour
+        for hour_offset in range(0, hours_count + 1, 2):  # Every 2 hours
+            hour = hour_offset
+            current_time = start_time + timedelta(hours=hour)
+            
+            # Only show even hours
+            if current_time.hour % 2 == 0:
+                position = int((hour * 3600 / total_duration) * (width - 1))
+                if 0 <= position < width - 3:  # Leave space for hour string
+                    # Format hour (just HH format for cleaner look)
+                    hour_str = current_time.strftime("%H")
+                    
+                    # Clear the area first to avoid overlaps
+                    for i in range(3):
+                        if position + i < width:
+                            axis_chars[position + i] = " "
+                    
+                    # Place the hour marker
+                    for i, char in enumerate(hour_str):
+                        if position + i < width:
+                            axis_chars[position + i] = char
         
-        return " " + "".join(axis_chars) + " "
+        # Add start and end markers
+        result = "|" + "".join(axis_chars) + "|"
+        return result

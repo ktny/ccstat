@@ -119,14 +119,14 @@ def get_all_session_files() -> list[Path]:
 
 
 def load_sessions_in_timerange(start_time: datetime, end_time: datetime) -> list[SessionTimeline]:
-    """Load all Claude sessions within a time range.
+    """Load all Claude sessions within a time range, grouped by directory.
 
     Args:
         start_time: Start of time range
         end_time: End of time range
 
     Returns:
-        List of SessionTimeline objects
+        List of SessionTimeline objects grouped by directory
     """
     all_events = []
     
@@ -147,26 +147,29 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime) -> list
     # Sort events by timestamp
     filtered_events.sort(key=lambda e: e.timestamp)
     
-    # Group events by session ID
-    sessions_dict = {}
+    # Group events by directory instead of session ID
+    directories_dict = {}
     for event in filtered_events:
-        session_id = event.session_id
-        if session_id not in sessions_dict:
-            sessions_dict[session_id] = []
-        sessions_dict[session_id].append(event)
+        directory = event.directory
+        if directory not in directories_dict:
+            directories_dict[directory] = []
+        directories_dict[directory].append(event)
     
-    # Create SessionTimeline objects
+    # Create SessionTimeline objects for each directory
     timelines = []
-    for session_id, events in sessions_dict.items():
+    for directory, events in directories_dict.items():
         if not events:
             continue
         
         # Extract directory name for display
-        directory = events[0].directory
         directory_name = directory.rstrip("/").split("/")[-1] or "/"
         
+        # Use directory as session_id for unified representation
+        # Sort events by timestamp within this directory
+        events.sort(key=lambda e: e.timestamp)
+        
         timeline = SessionTimeline(
-            session_id=session_id,
+            session_id=f"dir_{directory_name}",  # Unique identifier for directory
             directory=directory,
             directory_name=directory_name,
             events=events,

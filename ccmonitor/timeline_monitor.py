@@ -23,8 +23,11 @@ class TimelineMonitor:
 
     def run(self) -> None:
         """Display the timeline visualization."""
-        # Calculate time range
-        end_time = datetime.now()
+        # Calculate time range with clean hour boundaries
+        now = datetime.now()
+        # Round down to the nearest hour for end_time
+        end_time = now.replace(minute=0, second=0, microsecond=0)
+        # Calculate start_time as exactly N hours before end_time
         start_time = end_time - timedelta(hours=self.hours)
         
         try:
@@ -69,10 +72,8 @@ class TimelineMonitor:
         
         # Create summary text
         self.console.print("\n[bold cyan]Summary Statistics:[/bold cyan]")
-        self.console.print(f"  • Total Sessions: [yellow]{total_sessions}[/yellow]")
+        self.console.print(f"  • Total Directories: [yellow]{total_sessions}[/yellow]")
         self.console.print(f"  • Total Events: [yellow]{total_events}[/yellow]")
-        self.console.print(f"  • Average Session Duration: [yellow]{avg_duration:.1f} minutes[/yellow]")
-        self.console.print(f"  • Most Active Session: [yellow]{most_active.directory_name}[/yellow] ({len(most_active.events)} events)")
+        self.console.print(f"  • Average Directory Duration: [yellow]{avg_duration:.1f} minutes[/yellow]")
+        self.console.print(f"  • Most Active Directory: [yellow]{most_active.directory_name}[/yellow] ({len(most_active.events)} events)")
         
-        # Add time range info
-        self.console.print(f"\n[dim]Time Range: {start_time.strftime('%Y-%m-%d %H:%M')} - {end_time.strftime('%Y-%m-%d %H:%M')}[/dim]")
