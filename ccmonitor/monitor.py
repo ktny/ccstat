@@ -117,21 +117,10 @@ class RealTimeMonitor:
 
             # Format conversation info from sessions
             last_conversation = None
-            if proc.cwd != "unknown":
-                # Try exact match first
-                if proc.cwd in sessions:
-                    last_conversation = sessions[proc.cwd].last_conversation
-                else:
-                    # Try to find a session that contains the directory as a substring
-                    for session_dir, session in sessions.items():
-                        if proc.cwd in session_dir or session_dir in proc.cwd:
-                            last_conversation = session.last_conversation
-                            break
+            if proc.cwd in sessions:
+                last_conversation = sessions[proc.cwd].last_conversation
 
             conversation_text = format_conversation_preview(last_conversation)
-            # Truncate if too long to fit in the column
-            if len(conversation_text) > 47:  # Leave space for "..."
-                conversation_text = conversation_text[:47] + "..."
 
             table.add_row(
                 str(proc.pid),
