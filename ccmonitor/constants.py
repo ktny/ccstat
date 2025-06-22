@@ -1,0 +1,1 @@
+CLAUDE_COMMAND = "claude"

@@ -79,14 +79,9 @@ def test_create_process_table_empty() -> None:
     assert "Claude Code Processes (0 found)" in str(table.title)
 
 
-
-
-
 @patch("ccmonitor.monitor.find_claude_processes")
 @patch("ccmonitor.monitor.time.sleep")
-def test_run_with_keyboard_interrupt(
-    mock_sleep, mock_find_processes, sample_process: ProcessInfo
-) -> None:
+def test_run_with_keyboard_interrupt(mock_sleep, mock_find_processes, sample_process: ProcessInfo) -> None:
     """Test run method with keyboard interrupt."""
     mock_find_processes.return_value = [sample_process]
 
@@ -99,10 +94,6 @@ def test_run_with_keyboard_interrupt(
     monitor.run()
 
     assert not monitor.running
-
-
-
-
 
 
 def test_create_layout_truncates_long_commands() -> None:

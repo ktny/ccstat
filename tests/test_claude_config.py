@@ -230,4 +230,3 @@ class TestFormatConversationPreview:
         )
         result = format_conversation_preview(conv)
         assert result == "Conv conv1234"
-

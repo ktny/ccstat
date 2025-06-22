@@ -80,9 +80,6 @@ def test_save_multiple_processes():
         # Processes were saved (no verification needed for this test)
 
 
-
-
-
 def test_default_config_directory():
     """Test default configuration directory creation."""
     db = ProcessDatabase()
@@ -93,8 +90,6 @@ def test_default_config_directory():
 
     db_file = config_path / "processes.json"
     assert db.data_path == db_file
-
-
 
 
 def test_process_termination_marking():

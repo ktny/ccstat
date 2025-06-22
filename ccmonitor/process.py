@@ -7,6 +7,7 @@ from typing import Optional
 import psutil
 
 from .claude_config import ConversationInfo, get_last_conversation_for_directory
+from .constants import CLAUDE_COMMAND
 
 
 @dataclass
@@ -40,7 +41,7 @@ def find_claude_processes() -> list[ProcessInfo]:
             name = pinfo.get("name", "")
 
             # Check if this is a Claude Code process
-            if is_claude_process(name, cmdline):
+            if name == CLAUDE_COMMAND:
                 # Get additional process information
                 cpu_times = proc.cpu_times()
                 create_time = datetime.fromtimestamp(pinfo["create_time"])
@@ -80,41 +81,3 @@ def find_claude_processes() -> list[ProcessInfo]:
             continue
 
     return claude_processes
-
-
-def is_claude_process(name: str, cmdline: list[str]) -> bool:
-    """Determine if a process is related to Claude Code.
-
-    Args:
-        name: Process name
-        cmdline: Command line arguments (unused but kept for compatibility)
-
-    Returns:
-        True if this appears to be a Claude Code process
-    """
-    if not name:
-        return False
-
-    # Check if process name contains "claude"
-    return "claude" in name.lower()
-
-
-def format_time_duration(total_seconds: float) -> str:
-    """Format time duration in hh:mm:ss format.
-
-    Args:
-        total_seconds: Total time in seconds
-
-    Returns:
-        Formatted time string (e.g., "1:23:45", "0:23:45", "0:00:12")
-    """
-    total_seconds = int(total_seconds)
-
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    seconds = total_seconds % 60
-
-    if hours > 0:
-        return f"{hours}:{minutes:02d}:{seconds:02d}"
-    else:
-        return f"{minutes}:{seconds:02d}"

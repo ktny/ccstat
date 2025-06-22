@@ -97,7 +97,6 @@ class ProcessDatabase:
         with self.data_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
-
     def save_processes(self, processes: list[ProcessInfo]) -> None:
         """Save multiple processes to the database.
 
@@ -114,10 +113,7 @@ class ProcessDatabase:
         current_pids = [p.pid for p in processes]
         if not df.is_empty():
             df = df.with_columns(
-                pl.when(
-                    (pl.col("status") == "running")
-                    & (~pl.col("pid").is_in(current_pids))
-                )
+                pl.when((pl.col("status") == "running") & (~pl.col("pid").is_in(current_pids)))
                 .then(pl.lit("terminated"))
                 .otherwise(pl.col("status"))
                 .alias("status")
@@ -148,7 +144,3 @@ class ProcessDatabase:
 
         # Save updated data
         self._save_data(df)
-
-
-
-

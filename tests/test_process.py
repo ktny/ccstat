@@ -4,41 +4,7 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
 from ccmonitor.claude_config import ConversationInfo
-from ccmonitor.process import (
-    ProcessInfo,
-    find_claude_processes,
-    format_time_duration,
-    is_claude_process,
-)
-
-
-def test_is_claude_process():
-    """Test Claude process detection logic."""
-    # Test positive cases (only name matters now)
-    assert is_claude_process("claude", ["claude", "--some-arg"])
-    assert is_claude_process("claude-code", ["./claude-code"])
-    assert is_claude_process("Claude", [])  # Case insensitive
-    assert is_claude_process("some-claude-app", [])
-
-    # Test negative cases
-    assert not is_claude_process("python", ["python", "/path/to/.claude/script.py"])
-    assert not is_claude_process("node", ["node", "claude.ai/app.js"])
-    assert not is_claude_process("anthropic-cli", ["anthropic-cli", "run"])
-    assert not is_claude_process("", [])
-    assert not is_claude_process("vim", ["vim", "file.txt"])
-
-
-def test_format_time_duration():
-    """Test time duration formatting."""
-    assert format_time_duration(30) == "0:30"
-    assert format_time_duration(90) == "1:30"
-    assert format_time_duration(300) == "5:00"
-    assert format_time_duration(9000) == "2:30:00"
-    assert format_time_duration(3600) == "1:00:00"
-    assert format_time_duration(97200) == "27:00:00"
-    assert format_time_duration(172800) == "48:00:00"
-
-
+from ccmonitor.process import ProcessInfo, find_claude_processes
 
 
 @patch("ccmonitor.process.get_last_conversation_for_directory")
@@ -105,6 +71,7 @@ def test_find_claude_processes_no_cwd_access(mock_process_iter, mock_get_convers
 
     # Mock cwd access denied
     from psutil import AccessDenied
+
     mock_proc.cwd.side_effect = AccessDenied("Access denied")
 
     mock_get_conversation.return_value = None

@@ -160,4 +160,3 @@ def format_conversation_preview(conv: Optional[ConversationInfo]) -> str:
         return conv.summary
     else:
         return f"Conv {conv.conversation_id[:8]}"
-

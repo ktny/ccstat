@@ -14,11 +14,8 @@ from rich.text import Text
 
 from .claude_config import format_conversation_preview
 from .database import ProcessDatabase
-from .process import (
-    ProcessInfo,
-    find_claude_processes,
-    format_time_duration,
-)
+from .process import ProcessInfo, find_claude_processes
+from .util import format_time_duration
 
 
 class RealTimeMonitor:
@@ -79,9 +76,7 @@ class RealTimeMonitor:
             main_table = self._create_process_table(processes)
             layout["main"].update(main_table)
         else:
-            no_processes_text = Text(
-                "🔍 No Claude Code processes found", style="yellow", justify="center"
-            )
+            no_processes_text = Text("🔍 No Claude Code processes found", style="yellow", justify="center")
             layout["main"].update(Panel(no_processes_text, border_style="yellow"))
 
         # Footer with controls and stats
@@ -94,7 +89,6 @@ class RealTimeMonitor:
             ("Space", "cyan"),
             (" to force update", ""),
         )
-
 
         layout["footer"].update(Panel(footer_text, border_style="green"))
 
@@ -136,7 +130,6 @@ class RealTimeMonitor:
             )
 
         return table
-
 
     def run(self) -> None:
         """Start the real-time monitoring loop."""
@@ -186,4 +179,3 @@ class RealTimeMonitor:
 
         # Clean exit message
         self.console.print("\n👋 [bold green]Monitoring stopped.[/bold green]")
-
