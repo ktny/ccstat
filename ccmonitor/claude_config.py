@@ -101,4 +101,5 @@ def format_conversation_preview(display: str | None) -> str:
     if not display:
         return "No conversation"
 
-    return display
+    # Remove newlines and replace with spaces to keep single line
+    return display.replace("\n", " ").replace("\r", " ")

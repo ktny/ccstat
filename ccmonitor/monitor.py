@@ -105,10 +105,10 @@ class RealTimeMonitor:
             Rich Table object
         """
         table = Table(title=f"Claude Code Processes ({len(processes)} found)", box=None)
-        table.add_column("PID", justify="right", style="cyan")
-        table.add_column("Directory", justify="left", style="blue")
-        table.add_column("CPU Time", justify="right", style="green")
-        table.add_column("Last Conversation", justify="left", style="bright_cyan", no_wrap=True)
+        table.add_column("PID", justify="right", style="cyan", no_wrap=True, width=8)
+        table.add_column("Directory", justify="left", style="blue", no_wrap=True, min_width=12, max_width=20)
+        table.add_column("CPU Time", justify="right", style="green", no_wrap=True, width=10)
+        table.add_column("Last Conversation", justify="left", style="bright_cyan", no_wrap=True, max_width=50)
 
         for proc in processes:
             # Format directory name (show only the deepest directory name)
@@ -131,6 +131,9 @@ class RealTimeMonitor:
                             break
 
             conversation_text = format_conversation_preview(last_conversation)
+            # Truncate if too long to fit in the column
+            if len(conversation_text) > 47:  # Leave space for "..."
+                conversation_text = conversation_text[:47] + "..."
 
             table.add_row(
                 str(proc.pid),
