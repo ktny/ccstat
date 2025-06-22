@@ -30,8 +30,6 @@ class RealTimeMonitor:
         self.update_interval = 1.0
         self.console = Console()
         self.running = False
-        self.last_update = datetime.now()
-        self.update_count = 0
 
     def create_layout(self, processes: list[ProcessInfo]) -> Layout:
         """Create the layout for real-time display.
@@ -146,10 +144,6 @@ class RealTimeMonitor:
                     if self.db and processes:
                         with contextlib.suppress(Exception):
                             self.db.save_processes(processes)
-
-                    # Update counters
-                    self.last_update = datetime.now()
-                    self.update_count += 1
 
                     # Yield the layout
                     yield self.create_layout(processes)
