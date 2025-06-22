@@ -105,7 +105,7 @@ class RealTimeMonitor:
             Rich Table object
         """
         table = Table(title=f"Claude Code Processes ({len(processes)} found)", box=None)
-        table.add_column("PID", justify="right", style="cyan", no_wrap=True)
+        table.add_column("PID", justify="right", style="cyan")
         table.add_column("Directory", justify="left", style="blue")
         table.add_column("CPU Time", justify="right", style="green")
         table.add_column("Last Conversation", justify="left", style="bright_cyan", no_wrap=True)

@@ -101,6 +101,4 @@ def format_conversation_preview(display: str | None) -> str:
     if not display:
         return "No conversation"
 
-    if len(display) > 30:
-        return display[:27] + "..."
     return display
