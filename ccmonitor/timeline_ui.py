@@ -106,15 +106,14 @@ class TimelineUI:
         table = Table(show_header=True, box=None, padding=(0, 1))
         
         # Add columns
-        table.add_column("Directory", style="blue", no_wrap=True, width=15)
-        table.add_column("Start", style="yellow", justify="center", width=8)
-        table.add_column("End", style="yellow", justify="center", width=8)
+        table.add_column("Directory", style="blue", no_wrap=True, width=20)
         table.add_column("Timeline", style="white", no_wrap=True)
         table.add_column("Events", style="cyan", justify="right", width=6)
         table.add_column("Duration", style="green", justify="center", width=8)
         
-        # Calculate timeline width (console width - other columns)
-        timeline_width = self.console.width - 58  # 15(dir) + 8(start) + 8(end) + 6(events) + 8(duration) + padding
+        # Calculate timeline width (console width - other columns - margins)
+        # 20(dir) + 6(events) + 8(duration) + 2(padding per column) * 4 + 8(extra margin for safety)
+        timeline_width = max(20, self.console.width - 50)
         
         # Add rows for each session
         for timeline in timelines:
@@ -127,14 +126,8 @@ class TimelineUI:
             duration = timeline.end_time - timeline.start_time
             duration_str = f"{int(duration.total_seconds() / 60)}m"
             
-            # Format start and end times
-            start_str = timeline.start_time.strftime("%H:%M")
-            end_str = timeline.end_time.strftime("%H:%M")
-            
             table.add_row(
                 timeline.directory_name,
-                start_str,
-                end_str,
                 timeline_str,
                 str(len(timeline.events)),
                 duration_str,
@@ -144,8 +137,6 @@ class TimelineUI:
         time_axis_str = self._create_time_axis(start_time, end_time, timeline_width)
         table.add_row(
             "",  # Directory column
-            "",  # Start column
-            "",  # End column
             time_axis_str,  # Timeline column with time markers
             "",  # Events column
             "",  # Duration column
@@ -225,25 +216,18 @@ class TimelineUI:
         total_duration = (end_time - start_time).total_seconds()
         hours_count = int(total_duration / 3600)
         
-        # Place markers only on even hours for cleaner display
-        start_hour = start_time.hour
-        for hour_offset in range(0, hours_count + 1, 2):  # Every 2 hours
-            hour = hour_offset
-            current_time = start_time + timedelta(hours=hour)
+        # Place markers on even hours only for cleaner display
+        for hour_offset in range(0, hours_count + 1):
+            current_time = start_time + timedelta(hours=hour_offset)
             
-            # Only show even hours
+            # Only show even hours (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22)
             if current_time.hour % 2 == 0:
-                position = int((hour * 3600 / total_duration) * (width - 1))
-                if 0 <= position < width - 3:  # Leave space for hour string
+                position = int((hour_offset * 3600 / total_duration) * (width - 1))
+                if 0 <= position < width - 2:  # Leave space for hour string
                     # Format hour (just HH format for cleaner look)
                     hour_str = current_time.strftime("%H")
                     
-                    # Clear the area first to avoid overlaps
-                    for i in range(3):
-                        if position + i < width:
-                            axis_chars[position + i] = " "
-                    
-                    # Place the hour marker
+                    # Place the hour marker (2 characters)
                     for i, char in enumerate(hour_str):
                         if position + i < width:
                             axis_chars[position + i] = char

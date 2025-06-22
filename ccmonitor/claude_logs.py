@@ -52,11 +52,11 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
                     if not timestamp_str:
                         continue
                     
-                    # Parse ISO format timestamp
+                    # Parse ISO format timestamp and convert to local time
                     timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-                    # Convert to local timezone for comparison
+                    # Convert UTC to local timezone
                     if timestamp.tzinfo is not None:
-                        timestamp = timestamp.replace(tzinfo=None)
+                        timestamp = timestamp.astimezone().replace(tzinfo=None)
                     
                     # Extract message content
                     message = data.get("message", {})

@@ -23,7 +23,7 @@ class TimelineMonitor:
 
     def run(self) -> None:
         """Display the timeline visualization."""
-        # Calculate time range with clean hour boundaries
+        # Calculate time range with clean hour boundaries in local time
         now = datetime.now()
         # Round down to the nearest hour for end_time
         end_time = now.replace(minute=0, second=0, microsecond=0)
