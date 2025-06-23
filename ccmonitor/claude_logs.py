@@ -12,7 +12,7 @@ class SessionEvent:
 
     timestamp: datetime
     session_id: str
-    directory: str
+    directory: str  # Keep as directory since it's the actual cwd from logs
     message_type: str  # "user", "assistant", etc.
     content_preview: str
     uuid: str
@@ -23,8 +23,8 @@ class SessionTimeline:
     """Timeline of events for a single Claude session."""
 
     session_id: str
-    directory: str
-    directory_name: str  # short name for display
+    directory: str  # Full path from logs
+    project_name: str  # short name for display
     events: list[SessionEvent]
     start_time: datetime
     end_time: datetime
@@ -119,14 +119,14 @@ def get_all_session_files() -> list[Path]:
 
 
 def load_sessions_in_timerange(start_time: datetime, end_time: datetime) -> list[SessionTimeline]:
-    """Load all Claude sessions within a time range, grouped by directory.
+    """Load all Claude sessions within a time range, grouped by project directory.
 
     Args:
         start_time: Start of time range
         end_time: End of time range
 
     Returns:
-        List of SessionTimeline objects grouped by directory
+        List of SessionTimeline objects grouped by project
     """
     all_events = []
     
@@ -147,31 +147,31 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime) -> list
     # Sort events by timestamp
     filtered_events.sort(key=lambda e: e.timestamp)
     
-    # Group events by directory instead of session ID
-    directories_dict = {}
+    # Group events by project directory
+    projects_dict = {}
     for event in filtered_events:
         directory = event.directory
-        if directory not in directories_dict:
-            directories_dict[directory] = []
-        directories_dict[directory].append(event)
+        if directory not in projects_dict:
+            projects_dict[directory] = []
+        projects_dict[directory].append(event)
     
-    # Create SessionTimeline objects for each directory
+    # Create SessionTimeline objects for each project
     timelines = []
-    for directory, events in directories_dict.items():
+    for directory, events in projects_dict.items():
         if not events:
             continue
         
-        # Extract directory name for display
-        directory_name = directory.rstrip("/").split("/")[-1] or "/"
+        # Extract project name for display
+        project_name = directory.rstrip("/").split("/")[-1] or "/"
         
-        # Use directory as session_id for unified representation
-        # Sort events by timestamp within this directory
+        # Use project directory as session_id for unified representation
+        # Sort events by timestamp within this project
         events.sort(key=lambda e: e.timestamp)
         
         timeline = SessionTimeline(
-            session_id=f"dir_{directory_name}",  # Unique identifier for directory
+            session_id=f"proj_{project_name}",  # Unique identifier for project
             directory=directory,
-            directory_name=directory_name,
+            project_name=project_name,
             events=events,
             start_time=events[0].timestamp,
             end_time=events[-1].timestamp,

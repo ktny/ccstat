@@ -64,11 +64,11 @@ class TimelineUI:
         hours = int(duration.total_seconds() / 3600)
 
         header_text = Text.assemble(
-            ("📊 Claude Directory Timeline", "bold cyan"),
+            ("📊 Claude Project Timeline", "bold cyan"),
             " - ",
             (f"{hours} hours", "bold"),
             " - ",
-            (f"{session_count} directories", "yellow"),
+            (f"{session_count} projects", "yellow"),
             "\n",
             ("Time Range: ", "dim"),
             (start_time.strftime("%m/%d %H:%M"), "cyan"),
@@ -111,7 +111,7 @@ class TimelineUI:
         table = Table(show_header=True, box=None, padding=(0, 1))
 
         # Add columns
-        table.add_column("Directory", style="blue", no_wrap=True, width=20)
+        table.add_column("Project", style="blue", no_wrap=True, width=20)
         table.add_column("Timeline", no_wrap=True)  # Remove style to let individual chars control color
         table.add_column("Events", style="cyan", justify="right", width=6)
         table.add_column("Duration", style="yellow", justify="center", width=8)
@@ -123,14 +123,17 @@ class TimelineUI:
         # Add time axis row at the top
         time_axis_str = self._create_time_axis(start_time, end_time, timeline_width)
         table.add_row(
-            "",  # Directory column
+            "",  # Project column
             time_axis_str,  # Timeline column with time markers
             "",  # Events column
             "",  # Duration column
         )
 
+        # Sort timelines by number of events (descending)
+        sorted_timelines = sorted(timelines, key=lambda t: len(t.events), reverse=True)
+        
         # Add rows for each session
-        for timeline in timelines:
+        for timeline in sorted_timelines:
             # Create visual timeline string
             timeline_str = self._create_timeline_string(timeline, start_time, end_time, timeline_width)
 
@@ -139,14 +142,14 @@ class TimelineUI:
             duration_str = f"{int(duration.total_seconds() / 60)}m"
 
             table.add_row(
-                timeline.directory_name,
+                timeline.project_name,
                 timeline_str,
                 str(len(timeline.events)),
                 duration_str,
             )
 
 
-        return Panel(table, title="Directory Activity", border_style="cyan")
+        return Panel(table, title="Project Activity", border_style="cyan")
 
     def _create_timeline_string(
         self, timeline: SessionTimeline, start_time: datetime, end_time: datetime, width: int

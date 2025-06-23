@@ -61,19 +61,19 @@ class TimelineMonitor:
         
         # Calculate statistics
         total_events = sum(len(t.events) for t in timelines)
-        total_sessions = len(timelines)
+        total_projects = len(timelines)
         
-        # Find most active session
+        # Find most active project
         most_active = max(timelines, key=lambda t: len(t.events))
         
-        # Calculate average session duration
+        # Calculate average project duration
         durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
         avg_duration = sum(durations) / len(durations) if durations else 0
         
         # Create summary text
         self.console.print("\n[bold cyan]Summary Statistics:[/bold cyan]")
-        self.console.print(f"  • Total Directories: [yellow]{total_sessions}[/yellow]")
+        self.console.print(f"  • Total Projects: [yellow]{total_projects}[/yellow]")
         self.console.print(f"  • Total Events: [yellow]{total_events}[/yellow]")
-        self.console.print(f"  • Average Directory Duration: [yellow]{avg_duration:.1f} minutes[/yellow]")
-        self.console.print(f"  • Most Active Directory: [yellow]{most_active.directory_name}[/yellow] ({len(most_active.events)} events)")
+        self.console.print(f"  • Average Project Duration: [yellow]{avg_duration:.1f} minutes[/yellow]")
+        self.console.print(f"  • Most Active Project: [yellow]{most_active.project_name}[/yellow] ({len(most_active.events)} events)")
         
