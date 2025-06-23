@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from .git_utils import get_repository_name
+
 
 @dataclass
 class SessionEvent:
@@ -28,6 +30,7 @@ class SessionTimeline:
     events: list[SessionEvent]
     start_time: datetime
     end_time: datetime
+    parent_project: str | None = None  # Parent project name for thread display
 
 
 def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
@@ -118,12 +121,13 @@ def get_all_session_files() -> list[Path]:
     return jsonl_files
 
 
-def load_sessions_in_timerange(start_time: datetime, end_time: datetime) -> list[SessionTimeline]:
+def load_sessions_in_timerange(start_time: datetime, end_time: datetime, threads: bool = False) -> list[SessionTimeline]:
     """Load all Claude sessions within a time range, grouped by project directory.
 
     Args:
         start_time: Start of time range
         end_time: End of time range
+        threads: If True, separate projects with same repo name; if False, group them
 
     Returns:
         List of SessionTimeline objects grouped by project
@@ -147,36 +151,104 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime) -> list
     # Sort events by timestamp
     filtered_events.sort(key=lambda e: e.timestamp)
     
-    # Group events by project directory
-    projects_dict = {}
-    for event in filtered_events:
-        directory = event.directory
-        if directory not in projects_dict:
-            projects_dict[directory] = []
-        projects_dict[directory].append(event)
+    # Group events by project directory or repository name
+    if threads:
+        # When threads=True, keep each directory separate
+        projects_dict = {}
+        for event in filtered_events:
+            directory = event.directory
+            if directory not in projects_dict:
+                projects_dict[directory] = []
+            projects_dict[directory].append(event)
+    else:
+        # When threads=False, group by repository name
+        projects_dict = {}
+        repo_names = {}  # Cache for directory -> repo name mapping
+        
+        for event in filtered_events:
+            directory = event.directory
+            
+            # Get repository name if not cached
+            if directory not in repo_names:
+                repo_name = get_repository_name(directory)
+                if repo_name:
+                    repo_names[directory] = repo_name
+                else:
+                    # Use directory name as fallback
+                    repo_names[directory] = directory.rstrip("/").split("/")[-1] or "/"
+            
+            group_key = repo_names[directory]
+            if group_key not in projects_dict:
+                projects_dict[group_key] = []
+            projects_dict[group_key].append(event)
     
-    # Create SessionTimeline objects for each project
+    # Create SessionTimeline objects
     timelines = []
-    for directory, events in projects_dict.items():
-        if not events:
-            continue
+    if threads:
+        # Create timeline for each directory with parent-child relationship
+        repo_to_dirs = {}  # Map repository name to list of directories
         
-        # Extract project name for display
-        project_name = directory.rstrip("/").split("/")[-1] or "/"
+        # First pass: group directories by repository
+        for directory, events in projects_dict.items():
+            if not events:
+                continue
+            
+            repo_name = get_repository_name(directory)
+            key = repo_name if repo_name else directory.rstrip("/").split("/")[-1] or "/"
+            
+            if key not in repo_to_dirs:
+                repo_to_dirs[key] = []
+            repo_to_dirs[key].append((directory, events))
         
-        # Use project directory as session_id for unified representation
-        # Sort events by timestamp within this project
-        events.sort(key=lambda e: e.timestamp)
-        
-        timeline = SessionTimeline(
-            session_id=f"proj_{project_name}",  # Unique identifier for project
-            directory=directory,
-            project_name=project_name,
-            events=events,
-            start_time=events[0].timestamp,
-            end_time=events[-1].timestamp,
-        )
-        timelines.append(timeline)
+        # Second pass: create timelines with parent information
+        for repo_name, dir_list in repo_to_dirs.items():
+            # Sort directories by first event time to determine parent
+            dir_list.sort(key=lambda x: x[1][0].timestamp)
+            
+            for idx, (directory, events) in enumerate(dir_list):
+                # Sort events by timestamp
+                events.sort(key=lambda e: e.timestamp)
+                
+                # First directory is parent, others are children
+                parent_project = None
+                display_name = repo_name
+                
+                if idx > 0:
+                    # Child thread: show as "repo_name (N)"
+                    parent_project = repo_name
+                    display_name = f"{repo_name} ({idx + 1})"
+                
+                timeline = SessionTimeline(
+                    session_id=f"dir_{directory}",  # Unique identifier
+                    directory=directory,
+                    project_name=display_name,
+                    events=events,
+                    start_time=events[0].timestamp,
+                    end_time=events[-1].timestamp,
+                    parent_project=parent_project,
+                )
+                timelines.append(timeline)
+    else:
+        # Create timeline for each repository group
+        for group_key, events in projects_dict.items():
+            if not events:
+                continue
+            
+            # Use the first directory as representative
+            directory = events[0].directory
+            
+            # Sort events by timestamp
+            events.sort(key=lambda e: e.timestamp)
+            
+            timeline = SessionTimeline(
+                session_id=f"repo_{group_key}",  # Unique identifier
+                directory=directory,
+                project_name=group_key,
+                events=events,
+                start_time=events[0].timestamp,
+                end_time=events[-1].timestamp,
+            )
+            timelines.append(timeline)
     
     # Sort by start time
     timelines.sort(key=lambda t: t.start_time)

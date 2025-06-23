@@ -17,14 +17,19 @@ from .timeline_monitor import TimelineMonitor
     help="Filter by specific project",
     type=str,
 )
-def main(days: int, project: str | None) -> None:
+@click.option(
+    "--threads",
+    is_flag=True,
+    help="Show projects as threads (separate similar repos)",
+)
+def main(days: int, project: str | None, threads: bool) -> None:
     """Claude Session Timeline - Claudeセッションの時系列可視化ツール."""
     try:
         # Note: project filtering will be implemented later
         if project:
             click.echo("Project filtering is not yet implemented")
             
-        monitor = TimelineMonitor(days=days)
+        monitor = TimelineMonitor(days=days, threads=threads)
         monitor.run()
 
     except KeyboardInterrupt:

@@ -129,8 +129,17 @@ class TimelineUI:
             "",  # Duration column
         )
 
-        # Sort timelines by number of events (descending)
-        sorted_timelines = sorted(timelines, key=lambda t: len(t.events), reverse=True)
+        # Sort timelines - for thread display, keep parent-child order
+        if any(t.parent_project for t in timelines):
+            # Thread mode: sort by parent project first, then by start time
+            sorted_timelines = sorted(timelines, key=lambda t: (
+                t.parent_project or t.project_name,  # Parent project name for grouping
+                t.parent_project is not None,         # Children after parent
+                t.start_time                          # Then by start time
+            ))
+        else:
+            # Normal mode: sort by number of events (descending)
+            sorted_timelines = sorted(timelines, key=lambda t: len(t.events), reverse=True)
         
         # Add rows for each session
         for timeline in sorted_timelines:
@@ -141,8 +150,13 @@ class TimelineUI:
             duration = timeline.end_time - timeline.start_time
             duration_str = f"{int(duration.total_seconds() / 60)}m"
 
+            # Add indent for child threads
+            project_display = timeline.project_name
+            if timeline.parent_project:
+                project_display = f"  └─ {timeline.project_name}"
+
             table.add_row(
-                timeline.project_name,
+                project_display,
                 timeline_str,
                 str(len(timeline.events)),
                 duration_str,
