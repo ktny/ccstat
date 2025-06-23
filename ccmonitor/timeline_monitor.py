@@ -11,13 +11,13 @@ from .timeline_ui import TimelineUI
 class TimelineMonitor:
     """Monitor for displaying Claude session timelines."""
 
-    def __init__(self, hours: int = 24):
+    def __init__(self, days: int = 1):
         """Initialize the timeline monitor.
 
         Args:
-            hours: Number of hours to look back (default: 24)
+            days: Number of days to look back (default: 1)
         """
-        self.hours = hours
+        self.days = days
         self.console = Console()
         self.ui = TimelineUI()
 
@@ -27,12 +27,12 @@ class TimelineMonitor:
         now = datetime.now()
         # Round down to the nearest hour for end_time
         end_time = now.replace(minute=0, second=0, microsecond=0)
-        # Calculate start_time as exactly N hours before end_time
-        start_time = end_time - timedelta(hours=self.hours)
+        # Calculate start_time as exactly N days before end_time
+        start_time = end_time - timedelta(days=self.days)
         
         try:
             # Load sessions in the time range
-            self.console.print(f"[dim]Loading Claude sessions from the last {self.hours} hours...[/dim]")
+            self.console.print(f"[dim]Loading Claude sessions from the last {self.days} days...[/dim]")
             timelines = load_sessions_in_timerange(start_time, end_time)
             
             # Clear and display the timeline

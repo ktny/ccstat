@@ -7,9 +7,9 @@ from .timeline_monitor import TimelineMonitor
 
 @click.command()
 @click.option(
-    "--hours",
-    default=24,
-    help="Number of hours to look back (default: 24)",
+    "--days",
+    default=1,
+    help="Number of days to look back (default: 1)",
     type=int,
 )
 @click.option(
@@ -17,14 +17,14 @@ from .timeline_monitor import TimelineMonitor
     help="Filter by specific directory",
     type=str,
 )
-def main(hours: int, directory: str | None) -> None:
+def main(days: int, directory: str | None) -> None:
     """Claude Session Timeline - Claudeセッションの時系列可視化ツール."""
     try:
         # Note: directory filtering will be implemented later
         if directory:
             click.echo("Directory filtering is not yet implemented")
             
-        monitor = TimelineMonitor(hours=hours)
+        monitor = TimelineMonitor(days=days)
         monitor.run()
 
     except KeyboardInterrupt:
