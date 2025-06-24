@@ -121,17 +121,8 @@ class TimelineUI:
             "",  # Duration column
         )
 
-        # Sort timelines - for thread display, keep parent-child order
-        if any(t.parent_project for t in timelines):
-            # Thread mode: sort by parent project first, then by start time
-            sorted_timelines = sorted(timelines, key=lambda t: (
-                t.parent_project or t.project_name,  # Parent project name for grouping
-                t.parent_project is not None,         # Children after parent
-                t.start_time                          # Then by start time
-            ))
-        else:
-            # Normal mode: sort by number of events (descending)
-            sorted_timelines = sorted(timelines, key=lambda t: len(t.events), reverse=True)
+        # Keep the sorting order from claude_logs.py (already sorted by event count with proper grouping)
+        sorted_timelines = timelines
 
         # Add rows for each session
         for timeline in sorted_timelines:

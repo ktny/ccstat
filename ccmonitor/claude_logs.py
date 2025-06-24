@@ -319,8 +319,46 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
             )
             timelines.append(timeline)
 
-    # Sort by start time
-    timelines.sort(key=lambda t: t.start_time)
+    # Sort by group event count (descending), then group timelines together
+    if threads:
+        # For threads mode, group timelines by parent project and sort groups by total events
+        group_timelines = {}  # parent_project -> list of timelines
+        standalone_timelines = []  # timelines without parent
+        
+        for timeline in timelines:
+            if timeline.parent_project:
+                if timeline.parent_project not in group_timelines:
+                    group_timelines[timeline.parent_project] = []
+                group_timelines[timeline.parent_project].append(timeline)
+            else:
+                standalone_timelines.append(timeline)
+        
+        # Calculate total events for each group (including parent)
+        group_totals = {}
+        for parent_timeline in standalone_timelines:
+            total_events = len(parent_timeline.events)
+            if parent_timeline.project_name in group_timelines:
+                for child_timeline in group_timelines[parent_timeline.project_name]:
+                    total_events += len(child_timeline.events)
+            group_totals[parent_timeline.project_name] = total_events
+        
+        # Sort standalone timelines by their group total events (descending)
+        standalone_timelines.sort(key=lambda t: group_totals.get(t.project_name, 0), reverse=True)
+        
+        # Rebuild timelines list with groups together
+        sorted_timelines = []
+        for parent_timeline in standalone_timelines:
+            sorted_timelines.append(parent_timeline)
+            # Add child timelines for this group, sorted by event count (descending)
+            if parent_timeline.project_name in group_timelines:
+                child_timelines = group_timelines[parent_timeline.project_name]
+                child_timelines.sort(key=lambda t: len(t.events), reverse=True)
+                sorted_timelines.extend(child_timelines)
+        
+        timelines = sorted_timelines
+    else:
+        # For non-threads mode, sort by event count (descending)
+        timelines.sort(key=lambda t: len(t.events), reverse=True)
 
     # Apply project filter if specified
     if project_filter:
