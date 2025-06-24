@@ -140,7 +140,7 @@ class TimelineUI:
         else:
             # Normal mode: sort by number of events (descending)
             sorted_timelines = sorted(timelines, key=lambda t: len(t.events), reverse=True)
-        
+
         # Add rows for each session
         for timeline in sorted_timelines:
             # Create visual timeline string

@@ -11,14 +11,16 @@ from .timeline_ui import TimelineUI
 class TimelineMonitor:
     """Monitor for displaying Claude session timelines."""
 
-    def __init__(self, days: int = 1, threads: bool = False):
+    def __init__(self, days: int = 1, project: str | None = None, threads: bool = False):
         """Initialize the timeline monitor.
 
         Args:
             days: Number of days to look back (default: 1)
+            project: Filter by specific project name (default: None)
             threads: Show projects as threads (default: False)
         """
         self.days = days
+        self.project = project
         self.threads = threads
         self.console = Console()
         self.ui = TimelineUI()
@@ -31,22 +33,26 @@ class TimelineMonitor:
         end_time = now.replace(minute=0, second=0, microsecond=0)
         # Calculate start_time as exactly N days before end_time
         start_time = end_time - timedelta(days=self.days)
-        
+
         try:
             # Load sessions in the time range
-            self.console.print(f"[dim]Loading Claude sessions from the last {self.days} days...[/dim]")
-            timelines = load_sessions_in_timerange(start_time, end_time, threads=self.threads)
-            
+            loading_msg = f"[dim]Loading Claude sessions from the last {self.days} days"
+            if self.project:
+                loading_msg += f" (filtered by project: {self.project})"
+            loading_msg += "...[/dim]"
+            self.console.print(loading_msg)
+            timelines = load_sessions_in_timerange(start_time, end_time, project_filter=self.project, threads=self.threads)
+
             # Clear and display the timeline
             self.console.clear()
-            
+
             # Create and display the layout
             layout = self.ui.create_layout(timelines, start_time, end_time)
             self.console.print(layout)
-            
+
             # Display summary statistics
             self._display_summary(timelines, start_time, end_time)
-            
+
         except Exception as e:
             self.console.print(f"[red]Error loading sessions: {e}[/red]")
 
@@ -60,22 +66,22 @@ class TimelineMonitor:
         """
         if not timelines:
             return
-        
+
         # Calculate statistics
         total_events = sum(len(t.events) for t in timelines)
         total_projects = len(timelines)
-        
+
         # Find most active project
         most_active = max(timelines, key=lambda t: len(t.events))
-        
+
         # Calculate average project duration
         durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
         avg_duration = sum(durations) / len(durations) if durations else 0
-        
+
         # Create summary text
         self.console.print("\n[bold cyan]Summary Statistics:[/bold cyan]")
         self.console.print(f"  • Total Projects: [yellow]{total_projects}[/yellow]")
         self.console.print(f"  • Total Events: [yellow]{total_events}[/yellow]")
         self.console.print(f"  • Average Project Duration: [yellow]{avg_duration:.1f} minutes[/yellow]")
         self.console.print(f"  • Most Active Project: [yellow]{most_active.project_name}[/yellow] ({len(most_active.events)} events)")
-        
+

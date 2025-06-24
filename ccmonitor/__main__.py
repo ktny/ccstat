@@ -25,11 +25,7 @@ from .timeline_monitor import TimelineMonitor
 def main(days: int, project: str | None, threads: bool) -> None:
     """Claude Session Timeline - Claudeセッションの時系列可視化ツール."""
     try:
-        # Note: project filtering will be implemented later
-        if project:
-            click.echo("Project filtering is not yet implemented")
-            
-        monitor = TimelineMonitor(days=days, threads=threads)
+        monitor = TimelineMonitor(days=days, project=project, threads=threads)
         monitor.run()
 
     except KeyboardInterrupt:
