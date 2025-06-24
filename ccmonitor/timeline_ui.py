@@ -109,6 +109,10 @@ class TimelineUI:
         """
         # Create a table for the timeline
         table = Table(show_header=True, box=None, padding=(0, 1))
+        
+        # Calculate dynamic height based on number of projects
+        # Border (2) + header row (1) + time axis row (1) + project rows + padding (1)
+        panel_height = min(20, len(timelines) + 5)  # Cap at 20 for readability
 
         # Add columns
         table.add_column("Project", style="blue", no_wrap=True, width=20)
@@ -163,7 +167,7 @@ class TimelineUI:
             )
 
 
-        return Panel(table, title="Project Activity", border_style="cyan")
+        return Panel(table, title="Project Activity", border_style="cyan", height=panel_height)
 
     def _create_timeline_string(
         self, timeline: SessionTimeline, start_time: datetime, end_time: datetime, width: int
