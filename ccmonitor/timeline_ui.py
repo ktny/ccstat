@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta
 
 from rich.console import Console
-from rich.layout import Layout
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -43,7 +42,7 @@ class TimelineUI:
         # Footer
         footer_panel = self._create_footer()
         self.console.print(footer_panel)
-        
+
         # Summary statistics (if there are timelines)
         if timelines:
             summary_text = self.create_summary_text(timelines)
@@ -100,17 +99,16 @@ class TimelineUI:
         """
         # Create a table for the timeline
         table = Table(show_header=True, box=None, padding=(0, 1))
-        
 
         # Add columns
-        table.add_column("Project", style="blue", no_wrap=True, width=20)
+        table.add_column("Project", style="blue", no_wrap=True, width=30)
         table.add_column("Timeline", no_wrap=True)  # Remove style to let individual chars control color
         table.add_column("Events", style="cyan", justify="right", width=6)
         table.add_column("Duration", style="yellow", justify="center", width=8)
 
         # Calculate timeline width (console width - other columns - margins)
-        # 20(dir) + 6(events) + 8(duration) + 2(padding per column) * 4 + 8(extra margin for safety)
-        timeline_width = max(20, self.console.width - 50)
+        # 30(dir) + 6(events) + 8(duration) + 2(padding per column) * 4 + 8(extra margin for safety)
+        timeline_width = max(20, self.console.width - 60)
 
         # Add time axis row at the top
         time_axis_str = self._create_time_axis(start_time, end_time, timeline_width)
@@ -144,7 +142,6 @@ class TimelineUI:
                 str(len(timeline.events)),
                 duration_str,
             )
-
 
         return Panel(table, title="Project Activity", border_style="cyan")
 
@@ -263,13 +260,13 @@ class TimelineUI:
         # Create summary text
         summary_text = Text()
         summary_text.append("\nSummary Statistics:\n", style="bold cyan")
-        summary_text.append(f"  • Total Projects: ", style="")
+        summary_text.append("  • Total Projects: ", style="")
         summary_text.append(f"{total_projects}\n", style="yellow")
-        summary_text.append(f"  • Total Events: ", style="")
+        summary_text.append("  • Total Events: ", style="")
         summary_text.append(f"{total_events}\n", style="yellow")
-        summary_text.append(f"  • Average Project Duration: ", style="")
+        summary_text.append("  • Average Project Duration: ", style="")
         summary_text.append(f"{avg_duration:.1f} minutes\n", style="yellow")
-        summary_text.append(f"  • Most Active Project: ", style="")
+        summary_text.append("  • Most Active Project: ", style="")
         summary_text.append(f"{most_active.project_name}", style="yellow")
         summary_text.append(f" ({len(most_active.events)} events)", style="")
 
