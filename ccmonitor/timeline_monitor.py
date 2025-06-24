@@ -43,12 +43,11 @@ class TimelineMonitor:
             self.console.print(loading_msg)
             timelines = load_sessions_in_timerange(start_time, end_time, project_filter=self.project, threads=self.threads)
 
-            # Clear and display the timeline
+            # Clear console
             self.console.clear()
 
-            # Create and display the layout with summary
-            layout = self.ui.create_layout_with_summary(timelines, start_time, end_time)
-            self.console.print(layout)
+            # Display components separately for better control
+            self.ui.display_timeline(timelines, start_time, end_time)
 
         except Exception as e:
             self.console.print(f"[red]Error loading sessions: {e}[/red]")

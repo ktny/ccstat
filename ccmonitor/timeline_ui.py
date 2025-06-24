@@ -18,70 +18,36 @@ class TimelineUI:
         """Initialize the timeline UI."""
         self.console = Console()
 
-    def create_layout_with_summary(self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime) -> Layout:
-        """Create the main layout for timeline display.
+    def display_timeline(self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime) -> None:
+        """Display the timeline components directly to console.
 
         Args:
             timelines: List of session timelines to display
             start_time: Start of the time range
             end_time: End of the time range
-
-        Returns:
-            Rich Layout object
         """
-        layout = Layout()
-
-        # Calculate dynamic size for project activity panel
-        # Border (2) + header row (1) + time axis row (1) + project rows + padding (1)
-        project_panel_size = min(20, len(timelines) + 5) if timelines else 5
-
-        # Get console height to check if we have space for all elements
-        console_height = self.console.height
-        total_needed = 4 + project_panel_size + 3 + 6  # header + main + footer + summary
-        
-        if total_needed > console_height:
-            # If not enough space, use the entire console with fixed proportions
-            layout.split_column(
-                Layout(name="header", ratio=1),
-                Layout(name="main", ratio=4),
-                Layout(name="footer", ratio=1),
-                Layout(name="summary", ratio=2),
-            )
-        else:
-            # If enough space, use fixed sizes
-            layout.split_column(
-                Layout(name="header", size=4),
-                Layout(name="main", size=project_panel_size),
-                Layout(name="footer", size=3),
-                Layout(name="summary", size=6),
-            )
-
         # Header
         header_panel = self._create_header(start_time, end_time, len(timelines))
-        layout["header"].update(header_panel)
+        self.console.print(header_panel)
 
         # Main content with timeline visualization
         if timelines:
             timeline_panel = self._create_timeline_panel(timelines, start_time, end_time)
-            layout["main"].update(timeline_panel)
+            self.console.print(timeline_panel)
         else:
             no_sessions_text = Text(
                 "🔍 No Claude sessions found in the specified time range", style="yellow", justify="center"
             )
-            layout["main"].update(Panel(no_sessions_text, border_style="yellow"))
+            self.console.print(Panel(no_sessions_text, border_style="yellow"))
 
         # Footer
         footer_panel = self._create_footer()
-        layout["footer"].update(footer_panel)
-
-        # Summary statistics
+        self.console.print(footer_panel)
+        
+        # Summary statistics (if there are timelines)
         if timelines:
-            summary_text = self._create_summary_text(timelines)
-            layout["summary"].update(summary_text)
-        else:
-            layout["summary"].update(Text(""))
-
-        return layout
+            summary_text = self.create_summary_text(timelines)
+            self.console.print(summary_text)
 
     def _create_header(self, start_time: datetime, end_time: datetime, session_count: int) -> Panel:
         """Create header panel with title and time range info."""
@@ -280,7 +246,7 @@ class TimelineUI:
         # Return time axis without borders (GitHub style)
         return "".join(axis_chars)
 
-    def _create_summary_text(self, timelines: list[SessionTimeline]) -> Text:
+    def create_summary_text(self, timelines: list[SessionTimeline]) -> Text:
         """Create summary statistics text.
 
         Args:
@@ -303,9 +269,9 @@ class TimelineUI:
         durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
         avg_duration = sum(durations) / len(durations) if durations else 0
 
-        # Create summary text with a blank line at the top for spacing
-        summary_text = Text("\n")
-        summary_text.append("Summary Statistics:\n", style="bold cyan")
+        # Create summary text
+        summary_text = Text()
+        summary_text.append("\nSummary Statistics:\n", style="bold cyan")
         summary_text.append(f"  • Total Projects: ", style="")
         summary_text.append(f"{total_projects}\n", style="yellow")
         summary_text.append(f"  • Total Events: ", style="")
