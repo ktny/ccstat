@@ -27,10 +27,10 @@ class TimelineMonitor:
 
     def run(self) -> None:
         """Display the timeline visualization."""
-        # Calculate time range with clean hour boundaries in local time
+        # Calculate time range in local time
         now = datetime.now()
-        # Round down to the nearest hour for end_time
-        end_time = now.replace(minute=0, second=0, microsecond=0)
+        # Use current time as end_time to include all recent events
+        end_time = now
         # Calculate start_time as exactly N days before end_time
         start_time = end_time - timedelta(days=self.days)
 
