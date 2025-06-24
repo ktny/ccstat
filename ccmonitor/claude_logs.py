@@ -165,19 +165,38 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
         # When threads=False, group by repository name
         projects_dict = {}
         repo_names = {}  # Cache for directory -> repo name mapping
-
-        for event in filtered_events:
-            directory = event.directory
-
-            # Get repository name if not cached
-            if directory not in repo_names:
-                repo_name = get_repository_name(directory)
-                if repo_name:
-                    repo_names[directory] = repo_name
+        
+        # First pass: collect all directories and identify git repositories
+        all_directories = list(set(event.directory for event in filtered_events))
+        git_repo_dirs = {}  # directory -> repo_name mapping for existing git repos
+        
+        for directory in all_directories:
+            repo_name = get_repository_name(directory)
+            if repo_name:
+                git_repo_dirs[directory] = repo_name
+        
+        # Second pass: resolve repository names for all directories
+        for directory in all_directories:
+            if directory in git_repo_dirs:
+                # Direct git repository
+                repo_names[directory] = git_repo_dirs[directory]
+            else:
+                # Check if directory is under any git repository (prefix match)
+                matched_repo = None
+                for git_dir, git_repo_name in git_repo_dirs.items():
+                    if directory.startswith(git_dir + "/"):
+                        matched_repo = git_repo_name
+                        break
+                
+                if matched_repo:
+                    repo_names[directory] = matched_repo
                 else:
                     # Use directory name as fallback
                     repo_names[directory] = directory.rstrip("/").split("/")[-1] or "/"
 
+        # Group events by resolved repository name
+        for event in filtered_events:
+            directory = event.directory
             group_key = repo_names[directory]
             if group_key not in projects_dict:
                 projects_dict[group_key] = []
@@ -188,36 +207,85 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
     if threads:
         # Create timeline for each directory with parent-child relationship
         repo_to_dirs = {}  # Map repository name to list of directories
+        
+        # Apply same integration logic as non-threads mode
+        all_directories = list(projects_dict.keys())
+        git_repo_dirs = {}  # directory -> repo_name mapping for existing git repos
+        
+        for directory in all_directories:
+            repo_name = get_repository_name(directory)
+            if repo_name:
+                git_repo_dirs[directory] = repo_name
+        
+        # Resolve repository names for all directories using integration logic
+        repo_names = {}
+        for directory in all_directories:
+            if directory in git_repo_dirs:
+                # Direct git repository
+                repo_names[directory] = git_repo_dirs[directory]
+            else:
+                # Check if directory is under any git repository (prefix match)
+                matched_repo = None
+                for git_dir, git_repo_name in git_repo_dirs.items():
+                    if directory.startswith(git_dir + "/"):
+                        matched_repo = git_repo_name
+                        break
+                
+                if matched_repo:
+                    repo_names[directory] = matched_repo
+                else:
+                    # Use directory name as fallback
+                    repo_names[directory] = directory.rstrip("/").split("/")[-1] or "/"
 
-        # First pass: group directories by repository
+        # Group directories by resolved repository name
         for directory, events in projects_dict.items():
             if not events:
                 continue
 
-            repo_name = get_repository_name(directory)
-            key = repo_name if repo_name else directory.rstrip("/").split("/")[-1] or "/"
-
+            key = repo_names[directory]
             if key not in repo_to_dirs:
                 repo_to_dirs[key] = []
             repo_to_dirs[key].append((directory, events))
 
-        # Second pass: create timelines with parent information
+        # Create timelines with parent information
         for repo_name, dir_list in repo_to_dirs.items():
-            # Sort directories by first event time to determine parent
-            dir_list.sort(key=lambda x: x[1][0].timestamp)
+            # Sort directories: main repo first, then by first event time
+            def sort_key(item):
+                directory, events = item
+                # Main repository comes first (exact match)
+                is_main_repo = directory in git_repo_dirs and git_repo_dirs[directory] == repo_name
+                return (not is_main_repo, events[0].timestamp)
+            
+            dir_list.sort(key=sort_key)
 
             for idx, (directory, events) in enumerate(dir_list):
                 # Sort events by timestamp
                 events.sort(key=lambda e: e.timestamp)
 
-                # First directory is parent, others are children
+                # First directory (main repo) is parent, others are children
                 parent_project = None
-                display_name = repo_name
-
-                if idx > 0:
-                    # Child thread: show as "repo_name (N)"
+                
+                if idx == 0:
+                    # Main repository - use repo name as is
+                    display_name = repo_name
+                else:
+                    # Child directory - show as subdirectory name with parent
                     parent_project = repo_name
-                    display_name = f"{repo_name} ({idx + 1})"
+                    
+                    # Find the main repo directory this subdirectory belongs to
+                    main_repo_dir = None
+                    for git_dir, git_repo_name in git_repo_dirs.items():
+                        if directory.startswith(git_dir + "/") and git_repo_name == repo_name:
+                            main_repo_dir = git_dir
+                            break
+                    
+                    if main_repo_dir:
+                        # Extract relative path from main repo
+                        relative_path = directory[len(main_repo_dir):].lstrip("/")
+                        display_name = relative_path.replace("/", "-")
+                    else:
+                        # Fallback to directory name
+                        display_name = directory.rstrip("/").split("/")[-1]
 
                 timeline = SessionTimeline(
                     session_id=f"dir_{directory}",  # Unique identifier

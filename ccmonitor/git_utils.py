@@ -13,15 +13,40 @@ def get_repository_name(directory: str) -> str | None:
     Returns:
         Repository name if found, None otherwise
     """
-    git_dir = Path(directory) / ".git"
-    if not git_dir.exists():
-        return None
-
-    config_file = git_dir / "config"
-    if not config_file.exists():
+    git_path = Path(directory) / ".git"
+    if not git_path.exists():
         return None
 
     try:
+        # Handle git worktree case where .git is a file
+        if git_path.is_file():
+            # Read gitdir path from .git file
+            with git_path.open("r") as f:
+                git_content = f.read().strip()
+            
+            # Extract gitdir path (format: "gitdir: /path/to/actual/git/dir")
+            if git_content.startswith("gitdir: "):
+                actual_git_dir = Path(git_content[8:])  # Remove "gitdir: " prefix
+                
+                # For worktree, check if commondir exists to find main git dir
+                commondir_file = actual_git_dir / "commondir"
+                if commondir_file.exists():
+                    with commondir_file.open("r") as f:
+                        common_path = f.read().strip()
+                    # Resolve relative path from worktree git dir
+                    main_git_dir = actual_git_dir / common_path
+                    config_file = main_git_dir / "config"
+                else:
+                    config_file = actual_git_dir / "config"
+            else:
+                return None
+        else:
+            # Regular git repository
+            config_file = git_path / "config"
+
+        if not config_file.exists():
+            return None
+
         with config_file.open("r") as f:
             content = f.read()
 
