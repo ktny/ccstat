@@ -46,42 +46,11 @@ class TimelineMonitor:
             # Clear and display the timeline
             self.console.clear()
 
-            # Create and display the layout
-            layout = self.ui.create_layout(timelines, start_time, end_time)
+            # Create and display the layout with summary
+            layout = self.ui.create_layout_with_summary(timelines, start_time, end_time)
             self.console.print(layout)
-
-            # Display summary statistics
-            self._display_summary(timelines, start_time, end_time)
 
         except Exception as e:
             self.console.print(f"[red]Error loading sessions: {e}[/red]")
 
-    def _display_summary(self, timelines, start_time: datetime, end_time: datetime) -> None:
-        """Display summary statistics below the timeline.
-
-        Args:
-            timelines: List of session timelines
-            start_time: Start of the time range
-            end_time: End of the time range
-        """
-        if not timelines:
-            return
-
-        # Calculate statistics
-        total_events = sum(len(t.events) for t in timelines)
-        total_projects = len(timelines)
-
-        # Find most active project
-        most_active = max(timelines, key=lambda t: len(t.events))
-
-        # Calculate average project duration
-        durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
-        avg_duration = sum(durations) / len(durations) if durations else 0
-
-        # Create summary text
-        self.console.print("\n[bold cyan]Summary Statistics:[/bold cyan]")
-        self.console.print(f"  • Total Projects: [yellow]{total_projects}[/yellow]")
-        self.console.print(f"  • Total Events: [yellow]{total_events}[/yellow]")
-        self.console.print(f"  • Average Project Duration: [yellow]{avg_duration:.1f} minutes[/yellow]")
-        self.console.print(f"  • Most Active Project: [yellow]{most_active.project_name}[/yellow] ({len(most_active.events)} events)")
 

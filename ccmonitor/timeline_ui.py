@@ -18,7 +18,7 @@ class TimelineUI:
         """Initialize the timeline UI."""
         self.console = Console()
 
-    def create_layout(self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime) -> Layout:
+    def create_layout_with_summary(self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime) -> Layout:
         """Create the main layout for timeline display.
 
         Args:
@@ -31,12 +31,30 @@ class TimelineUI:
         """
         layout = Layout()
 
-        # Split into header, main content, and footer
-        layout.split_column(
-            Layout(name="header", size=4),
-            Layout(name="main"),
-            Layout(name="footer", size=3),
-        )
+        # Calculate dynamic size for project activity panel
+        # Border (2) + header row (1) + time axis row (1) + project rows + padding (1)
+        project_panel_size = min(20, len(timelines) + 5) if timelines else 5
+
+        # Get console height to check if we have space for all elements
+        console_height = self.console.height
+        total_needed = 4 + project_panel_size + 3 + 6  # header + main + footer + summary
+        
+        if total_needed > console_height:
+            # If not enough space, use the entire console with fixed proportions
+            layout.split_column(
+                Layout(name="header", ratio=1),
+                Layout(name="main", ratio=4),
+                Layout(name="footer", ratio=1),
+                Layout(name="summary", ratio=2),
+            )
+        else:
+            # If enough space, use fixed sizes
+            layout.split_column(
+                Layout(name="header", size=4),
+                Layout(name="main", size=project_panel_size),
+                Layout(name="footer", size=3),
+                Layout(name="summary", size=6),
+            )
 
         # Header
         header_panel = self._create_header(start_time, end_time, len(timelines))
@@ -55,6 +73,13 @@ class TimelineUI:
         # Footer
         footer_panel = self._create_footer()
         layout["footer"].update(footer_panel)
+
+        # Summary statistics
+        if timelines:
+            summary_text = self._create_summary_text(timelines)
+            layout["summary"].update(summary_text)
+        else:
+            layout["summary"].update(Text(""))
 
         return layout
 
@@ -110,9 +135,6 @@ class TimelineUI:
         # Create a table for the timeline
         table = Table(show_header=True, box=None, padding=(0, 1))
         
-        # Calculate dynamic height based on number of projects
-        # Border (2) + header row (1) + time axis row (1) + project rows + padding (1)
-        panel_height = min(20, len(timelines) + 5)  # Cap at 20 for readability
 
         # Add columns
         table.add_column("Project", style="blue", no_wrap=True, width=20)
@@ -167,7 +189,7 @@ class TimelineUI:
             )
 
 
-        return Panel(table, title="Project Activity", border_style="cyan", height=panel_height)
+        return Panel(table, title="Project Activity", border_style="cyan")
 
     def _create_timeline_string(
         self, timeline: SessionTimeline, start_time: datetime, end_time: datetime, width: int
@@ -257,3 +279,41 @@ class TimelineUI:
 
         # Return time axis without borders (GitHub style)
         return "".join(axis_chars)
+
+    def _create_summary_text(self, timelines: list[SessionTimeline]) -> Text:
+        """Create summary statistics text.
+
+        Args:
+            timelines: List of session timelines
+
+        Returns:
+            Text containing summary statistics
+        """
+        if not timelines:
+            return Text("")
+
+        # Calculate statistics
+        total_events = sum(len(t.events) for t in timelines)
+        total_projects = len(timelines)
+
+        # Find most active project
+        most_active = max(timelines, key=lambda t: len(t.events))
+
+        # Calculate average project duration
+        durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
+        avg_duration = sum(durations) / len(durations) if durations else 0
+
+        # Create summary text with a blank line at the top for spacing
+        summary_text = Text("\n")
+        summary_text.append("Summary Statistics:\n", style="bold cyan")
+        summary_text.append(f"  • Total Projects: ", style="")
+        summary_text.append(f"{total_projects}\n", style="yellow")
+        summary_text.append(f"  • Total Events: ", style="")
+        summary_text.append(f"{total_events}\n", style="yellow")
+        summary_text.append(f"  • Average Project Duration: ", style="")
+        summary_text.append(f"{avg_duration:.1f} minutes\n", style="yellow")
+        summary_text.append(f"  • Most Active Project: ", style="")
+        summary_text.append(f"{most_active.project_name}", style="yellow")
+        summary_text.append(f" ({len(most_active.events)} events)", style="")
+
+        return summary_text
