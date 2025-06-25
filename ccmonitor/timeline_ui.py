@@ -217,11 +217,24 @@ class TimelineUI:
         total_days = duration.days
 
         # Estimate label width based on format
-        # For MM/DD format, we need at least 6 characters (5 for date + 1 for spacing)
-        min_spacing = 6
+        # For hour format (HH), we need at least 3 characters (2 for hour + 1 for spacing)
+        # For date format (MM/DD), we need at least 6 characters (5 for date + 1 for spacing)
+        if total_days <= 2:
+            min_spacing = 3  # For hour display
+        else:
+            min_spacing = 6  # For date display
         max_markers = width // min_spacing
 
-        if total_days <= 2:  # 1-2 days
+        if total_days <= 1:  # 1 day
+            # Use 3-hour intervals: 00, 03, 06, 09, 12, 15, 18, 21
+            intervals_needed = int(total_hours / 3) + 1
+            if intervals_needed <= max_markers:
+                return ("hour", 3, "%H")
+            else:
+                # Fall back to 6-hour intervals
+                return ("hour", 6, "%H")
+
+        elif total_days <= 2:  # 2 days
             # Use 6-hour intervals: 00, 06, 12, 18
             intervals_needed = int(total_hours / 6) + 1
             if intervals_needed <= max_markers:
@@ -244,13 +257,13 @@ class TimelineUI:
                 interval = 5
             else:  # 46-60 days
                 interval = 7
-            
+
             # Check if it fits within the available width
             intervals_needed = int(total_days / interval) + 1
             if intervals_needed > max_markers:
                 # Increase interval if needed
                 interval = max(interval, int(total_days / max_markers) + 1)
-            
+
             return ("day", interval, "%m/%d")
 
         elif total_days <= 365:  # 60-365 days
@@ -261,7 +274,7 @@ class TimelineUI:
             else:
                 # Use 2-month intervals
                 return ("month", 60, "%b")
-                
+
         else:  # 366+ days
             # Use yearly intervals
             years_needed = int(total_days / 365) + 1
@@ -374,22 +387,22 @@ class TimelineUI:
                         current_time = current_time.replace(year=current_time.year + 1, month=1)
                     else:
                         current_time = current_time.replace(month=current_time.month + 1)
-                        
+
         elif unit == "year":
             # Year-based markers
             current_time = start_time.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            
+
             while current_time <= end_time:
                 if current_time >= start_time:
                     time_offset = (current_time - start_time).total_seconds()
                     position = int((time_offset / total_duration) * (width - 1))
-                    
+
                     if 0 <= position < width - 4:  # Leave space for year format
                         label = current_time.strftime(format_string)
                         for i, char in enumerate(label):
                             if position + i < width:
                                 axis_chars[position + i] = char
-                
+
                 # Move to next year(s) based on interval
                 years_to_add = max(1, interval_value // 365)
                 current_time = current_time.replace(year=current_time.year + years_to_add)
