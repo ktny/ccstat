@@ -39,10 +39,6 @@ class TimelineUI:
             )
             self.console.print(Panel(no_sessions_text, border_style="yellow"))
 
-        # Footer
-        footer_panel = self._create_footer()
-        self.console.print(footer_panel)
-
         # Summary statistics (if there are timelines)
         if timelines:
             summary_text = self.create_summary_text(timelines)
@@ -100,7 +96,17 @@ class TimelineUI:
 
         # Add columns
         table.add_column("Project", style="blue", no_wrap=True, width=30)
-        table.add_column("Timeline", no_wrap=True)  # Remove style to let individual chars control color
+
+        # Create timeline column header with activity density legend
+        timeline_header = Text.assemble(
+            ("Timeline ", ""),
+            ("■", "bright_black"),
+            ("■", "color(22)"),
+            ("■", "color(28)"),
+            ("■", "color(34)"),
+            ("■", "color(40)"),
+        )
+        table.add_column(timeline_header, no_wrap=True)  # Remove style to let individual chars control color
         table.add_column("Events", style="cyan", justify="right", width=6)
         table.add_column("Duration", style="yellow", justify="right", width=8)
 
