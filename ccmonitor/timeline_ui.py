@@ -216,8 +216,9 @@ class TimelineUI:
         total_hours = duration.total_seconds() / 3600
         total_days = duration.days
 
-        # Estimate label width (roughly 2-4 characters + spacing)
-        min_spacing = 4
+        # Estimate label width based on format
+        # For MM/DD format, we need at least 6 characters (5 for date + 1 for spacing)
+        min_spacing = 6
         max_markers = width // min_spacing
 
         if total_days <= 2:  # 1-2 days
@@ -229,24 +230,30 @@ class TimelineUI:
                 # Fall back to 12-hour intervals
                 return ("hour", 12, "%H")
 
-        elif total_days <= 14:  # 3-14 days
-            # Use daily intervals
-            if total_days <= max_markers:
-                return ("day", 1, "%m/%d")
-            else:
-                # Use 2-day intervals
-                return ("day", 2, "%m/%d")
+        elif total_days <= 60:  # 3-60 days - gradual interval increase
+            # Determine interval based on total days
+            if total_days <= 7:  # 3-7 days
+                interval = 1
+            elif total_days <= 14:  # 8-14 days
+                interval = 2
+            elif total_days <= 21:  # 15-21 days
+                interval = 3
+            elif total_days <= 30:  # 22-30 days
+                interval = 4
+            elif total_days <= 45:  # 31-45 days
+                interval = 5
+            else:  # 46-60 days
+                interval = 7
+            
+            # Check if it fits within the available width
+            intervals_needed = int(total_days / interval) + 1
+            if intervals_needed > max_markers:
+                # Increase interval if needed
+                interval = max(interval, int(total_days / max_markers) + 1)
+            
+            return ("day", interval, "%m/%d")
 
-        elif total_days <= 60:  # 15-60 days
-            # Use weekly intervals
-            weeks_needed = int(total_days / 7) + 1
-            if weeks_needed <= max_markers:
-                return ("week", 7, "%m/%d")
-            else:
-                # Use 2-week intervals
-                return ("week", 14, "%m/%d")
-
-        else:  # 60+ days
+        elif total_days <= 365:  # 60-365 days
             # Use monthly intervals
             months_needed = int(total_days / 30) + 1
             if months_needed <= max_markers:
@@ -254,6 +261,16 @@ class TimelineUI:
             else:
                 # Use 2-month intervals
                 return ("month", 60, "%b")
+                
+        else:  # 366+ days
+            # Use yearly intervals
+            years_needed = int(total_days / 365) + 1
+            if years_needed <= max_markers:
+                return ("year", 365, "%Y")
+            else:
+                # Use 2-year intervals or more
+                interval_years = max(2, int(years_needed / max_markers) + 1)
+                return ("year", interval_years * 365, "%Y")
 
     def _create_time_axis(self, start_time: datetime, end_time: datetime, width: int) -> str:
         """Create a time axis string for reference with appropriate time units.
@@ -357,6 +374,25 @@ class TimelineUI:
                         current_time = current_time.replace(year=current_time.year + 1, month=1)
                     else:
                         current_time = current_time.replace(month=current_time.month + 1)
+                        
+        elif unit == "year":
+            # Year-based markers
+            current_time = start_time.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            while current_time <= end_time:
+                if current_time >= start_time:
+                    time_offset = (current_time - start_time).total_seconds()
+                    position = int((time_offset / total_duration) * (width - 1))
+                    
+                    if 0 <= position < width - 4:  # Leave space for year format
+                        label = current_time.strftime(format_string)
+                        for i, char in enumerate(label):
+                            if position + i < width:
+                                axis_chars[position + i] = char
+                
+                # Move to next year(s) based on interval
+                years_to_add = max(1, interval_value // 365)
+                current_time = current_time.replace(year=current_time.year + years_to_add)
 
         return "".join(axis_chars)
 
