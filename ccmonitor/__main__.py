@@ -2,7 +2,7 @@
 
 import click
 
-from .timeline_monitor import TimelineMonitor
+from ccmonitor.timeline_monitor import TimelineMonitor
 
 
 @click.command()

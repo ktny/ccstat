@@ -56,14 +56,12 @@ class TimelineUI:
         header_text = Text.assemble(
             ("📊 Claude Project Timeline", "bold cyan"),
             " - ",
-            (f"{hours} hours", "bold"),
+            (start_time.strftime("%m/%d %H:%M"), "cyan"),
+            " - ",
+            (end_time.strftime("%m/%d %H:%M"), "cyan"),
+            (f" ({hours} hours)", "bold"),
             " - ",
             (f"{session_count} projects", "yellow"),
-            "\n",
-            ("Time Range: ", "dim"),
-            (start_time.strftime("%m/%d %H:%M"), "cyan"),
-            (" - ", "dim"),
-            (end_time.strftime("%m/%d %H:%M"), "cyan"),
         )
         return Panel(header_text, border_style="blue")
 
@@ -198,7 +196,9 @@ class TimelineUI:
 
         return timeline_str
 
-    def _determine_time_unit_and_interval(self, start_time: datetime, end_time: datetime, width: int) -> tuple[str, int, str]:
+    def _determine_time_unit_and_interval(
+        self, start_time: datetime, end_time: datetime, width: int
+    ) -> tuple[str, int, str]:
         """Determine the appropriate time unit and interval based on the time range.
 
         Args:
@@ -224,36 +224,36 @@ class TimelineUI:
             # Use 6-hour intervals: 00, 06, 12, 18
             intervals_needed = int(total_hours / 6) + 1
             if intervals_needed <= max_markers:
-                return ('hour', 6, '%H')
+                return ("hour", 6, "%H")
             else:
                 # Fall back to 12-hour intervals
-                return ('hour', 12, '%H')
+                return ("hour", 12, "%H")
 
         elif total_days <= 14:  # 3-14 days
             # Use daily intervals
             if total_days <= max_markers:
-                return ('day', 1, '%m/%d')
+                return ("day", 1, "%m/%d")
             else:
                 # Use 2-day intervals
-                return ('day', 2, '%m/%d')
+                return ("day", 2, "%m/%d")
 
         elif total_days <= 60:  # 15-60 days
             # Use weekly intervals
             weeks_needed = int(total_days / 7) + 1
             if weeks_needed <= max_markers:
-                return ('week', 7, '%m/%d')
+                return ("week", 7, "%m/%d")
             else:
                 # Use 2-week intervals
-                return ('week', 14, '%m/%d')
+                return ("week", 14, "%m/%d")
 
         else:  # 60+ days
             # Use monthly intervals
             months_needed = int(total_days / 30) + 1
             if months_needed <= max_markers:
-                return ('month', 30, '%b')
+                return ("month", 30, "%b")
             else:
                 # Use 2-month intervals
-                return ('month', 60, '%b')
+                return ("month", 60, "%b")
 
     def _create_time_axis(self, start_time: datetime, end_time: datetime, width: int) -> str:
         """Create a time axis string for reference with appropriate time units.
@@ -273,7 +273,7 @@ class TimelineUI:
         axis_chars = [" "] * width
         total_duration = (end_time - start_time).total_seconds()
 
-        if unit == 'hour':
+        if unit == "hour":
             # Hour-based markers
             current_time = start_time.replace(minute=0, second=0, microsecond=0)
             # Align to interval boundaries (e.g., 00:00, 06:00, 12:00, 18:00)
@@ -293,7 +293,7 @@ class TimelineUI:
 
                 current_time += timedelta(hours=interval_value)
 
-        elif unit == 'day':
+        elif unit == "day":
             # Day-based markers
             current_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -310,7 +310,7 @@ class TimelineUI:
 
                 current_time += timedelta(days=interval_value)
 
-        elif unit == 'week':
+        elif unit == "week":
             # Week-based markers (show at start of each week)
             current_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
             # Move to start of week (Monday)
@@ -330,7 +330,7 @@ class TimelineUI:
 
                 current_time += timedelta(days=interval_value)
 
-        elif unit == 'month':
+        elif unit == "month":
             # Month-based markers
             current_time = start_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
