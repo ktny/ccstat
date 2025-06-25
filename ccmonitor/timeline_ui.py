@@ -102,7 +102,7 @@ class TimelineUI:
         table.add_column("Project", style="blue", no_wrap=True, width=30)
         table.add_column("Timeline", no_wrap=True)  # Remove style to let individual chars control color
         table.add_column("Events", style="cyan", justify="right", width=6)
-        table.add_column("Duration", style="yellow", justify="center", width=8)
+        table.add_column("Duration", style="yellow", justify="right", width=8)
 
         # Calculate timeline width (console width - other columns - margins)
         # 30(dir) + 6(events) + 8(duration) + 2(padding per column) * 4 + 8(extra margin for safety)
