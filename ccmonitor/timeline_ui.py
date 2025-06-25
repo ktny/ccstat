@@ -132,7 +132,7 @@ class TimelineUI:
             # Add indent for child threads
             project_display = timeline.project_name
             if timeline.parent_project:
-                project_display = f"  └─ {timeline.project_name}"
+                project_display = f" └─{timeline.project_name}"
 
             table.add_row(
                 project_display,
@@ -167,7 +167,10 @@ class TimelineUI:
         # Count events per time position
         for event in timeline.events:
             event_offset = (event.timestamp - start_time).total_seconds()
-            position = int((event_offset / total_duration) * (width - 1))
+            # Use width instead of (width - 1) to ensure the last position can be used
+            position = int((event_offset / total_duration) * width)
+            # Clamp position to valid range [0, width-1]
+            position = min(position, width - 1)
 
             if 0 <= position < width:
                 activity_counts[position] += 1
