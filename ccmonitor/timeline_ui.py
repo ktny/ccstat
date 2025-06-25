@@ -55,12 +55,12 @@ class TimelineUI:
 
         header_text = Text.assemble(
             ("📊 Claude Project Timeline", "bold cyan"),
+            " | ",
+            (start_time.strftime("%m/%d/%Y %H:%M")),
             " - ",
-            (start_time.strftime("%m/%d %H:%M"), "cyan"),
-            " - ",
-            (end_time.strftime("%m/%d %H:%M"), "cyan"),
+            (end_time.strftime("%m/%d/%Y %H:%M")),
             (f" ({hours} hours)", "bold"),
-            " - ",
+            " | ",
             (f"{session_count} projects", "yellow"),
         )
         return Panel(header_text, border_style="blue")
