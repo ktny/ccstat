@@ -165,16 +165,16 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
         # When threads=False, group by repository name
         projects_dict = {}
         repo_names = {}  # Cache for directory -> repo name mapping
-        
+
         # First pass: collect all directories and identify git repositories
         all_directories = list(set(event.directory for event in filtered_events))
         git_repo_dirs = {}  # directory -> repo_name mapping for existing git repos
-        
+
         for directory in all_directories:
             repo_name = get_repository_name(directory)
             if repo_name:
                 git_repo_dirs[directory] = repo_name
-        
+
         # Second pass: resolve repository names for all directories
         for directory in all_directories:
             if directory in git_repo_dirs:
@@ -187,7 +187,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                     if directory.startswith(git_dir + "/"):
                         matched_repo = git_repo_name
                         break
-                
+
                 if matched_repo:
                     repo_names[directory] = matched_repo
                 else:
@@ -207,16 +207,16 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
     if threads:
         # Create timeline for each directory with parent-child relationship
         repo_to_dirs = {}  # Map repository name to list of directories
-        
+
         # Apply same integration logic as non-threads mode
         all_directories = list(projects_dict.keys())
         git_repo_dirs = {}  # directory -> repo_name mapping for existing git repos
-        
+
         for directory in all_directories:
             repo_name = get_repository_name(directory)
             if repo_name:
                 git_repo_dirs[directory] = repo_name
-        
+
         # Resolve repository names for all directories using integration logic
         repo_names = {}
         for directory in all_directories:
@@ -230,7 +230,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                     if directory.startswith(git_dir + "/"):
                         matched_repo = git_repo_name
                         break
-                
+
                 if matched_repo:
                     repo_names[directory] = matched_repo
                 else:
@@ -255,7 +255,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                 # Main repository comes first (exact match)
                 is_main_repo = directory in git_repo_dirs and git_repo_dirs[directory] == repo_name
                 return (not is_main_repo, events[0].timestamp)
-            
+
             dir_list.sort(key=sort_key)
 
             for idx, (directory, events) in enumerate(dir_list):
@@ -264,21 +264,21 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
 
                 # First directory (main repo) is parent, others are children
                 parent_project = None
-                
+
                 if idx == 0:
                     # Main repository - use repo name as is
                     display_name = repo_name
                 else:
                     # Child directory - show as subdirectory name with parent
                     parent_project = repo_name
-                    
+
                     # Find the main repo directory this subdirectory belongs to
                     main_repo_dir = None
                     for git_dir, git_repo_name in git_repo_dirs.items():
                         if directory.startswith(git_dir + "/") and git_repo_name == repo_name:
                             main_repo_dir = git_dir
                             break
-                    
+
                     if main_repo_dir:
                         # Extract relative path from main repo
                         relative_path = directory[len(main_repo_dir):].lstrip("/")
@@ -324,7 +324,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
         # For threads mode, group timelines by parent project and sort groups by total events
         group_timelines = {}  # parent_project -> list of timelines
         standalone_timelines = []  # timelines without parent
-        
+
         for timeline in timelines:
             if timeline.parent_project:
                 if timeline.parent_project not in group_timelines:
@@ -332,7 +332,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                 group_timelines[timeline.parent_project].append(timeline)
             else:
                 standalone_timelines.append(timeline)
-        
+
         # Calculate total events for each group (including parent)
         group_totals = {}
         for parent_timeline in standalone_timelines:
@@ -341,10 +341,10 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                 for child_timeline in group_timelines[parent_timeline.project_name]:
                     total_events += len(child_timeline.events)
             group_totals[parent_timeline.project_name] = total_events
-        
+
         # Sort standalone timelines by their group total events (descending)
         standalone_timelines.sort(key=lambda t: group_totals.get(t.project_name, 0), reverse=True)
-        
+
         # Rebuild timelines list with groups together
         sorted_timelines = []
         for parent_timeline in standalone_timelines:
@@ -354,7 +354,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                 child_timelines = group_timelines[parent_timeline.project_name]
                 child_timelines.sort(key=lambda t: len(t.events), reverse=True)
                 sorted_timelines.extend(child_timelines)
-        
+
         timelines = sorted_timelines
     else:
         # For non-threads mode, sort by event count (descending)

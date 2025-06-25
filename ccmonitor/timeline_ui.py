@@ -198,8 +198,65 @@ class TimelineUI:
 
         return timeline_str
 
+    def _determine_time_unit_and_interval(self, start_time: datetime, end_time: datetime, width: int) -> tuple[str, int, str]:
+        """Determine the appropriate time unit and interval based on the time range.
+
+        Args:
+            start_time: Start time
+            end_time: End time
+            width: Available character width for timeline
+
+        Returns:
+            Tuple of (unit, interval_value, format_string)
+            - unit: 'hour', 'day', 'week', 'month'
+            - interval_value: numeric interval (e.g., 6 for 6-hour intervals)
+            - format_string: strftime format for display
+        """
+        duration = end_time - start_time
+        total_hours = duration.total_seconds() / 3600
+        total_days = duration.days
+
+        # Estimate label width (roughly 2-4 characters + spacing)
+        min_spacing = 4
+        max_markers = width // min_spacing
+
+        if total_days <= 2:  # 1-2 days
+            # Use 6-hour intervals: 00, 06, 12, 18
+            intervals_needed = int(total_hours / 6) + 1
+            if intervals_needed <= max_markers:
+                return ('hour', 6, '%H')
+            else:
+                # Fall back to 12-hour intervals
+                return ('hour', 12, '%H')
+
+        elif total_days <= 14:  # 3-14 days
+            # Use daily intervals
+            if total_days <= max_markers:
+                return ('day', 1, '%m/%d')
+            else:
+                # Use 2-day intervals
+                return ('day', 2, '%m/%d')
+
+        elif total_days <= 60:  # 15-60 days
+            # Use weekly intervals
+            weeks_needed = int(total_days / 7) + 1
+            if weeks_needed <= max_markers:
+                return ('week', 7, '%m/%d')
+            else:
+                # Use 2-week intervals
+                return ('week', 14, '%m/%d')
+
+        else:  # 60+ days
+            # Use monthly intervals
+            months_needed = int(total_days / 30) + 1
+            if months_needed <= max_markers:
+                return ('month', 30, '%b')
+            else:
+                # Use 2-month intervals
+                return ('month', 60, '%b')
+
     def _create_time_axis(self, start_time: datetime, end_time: datetime, width: int) -> str:
-        """Create a time axis string for reference.
+        """Create a time axis string for reference with appropriate time units.
 
         Args:
             start_time: Start time
@@ -207,31 +264,100 @@ class TimelineUI:
             width: Width in characters
 
         Returns:
-            Time axis string with hour markers
+            Time axis string with appropriate time markers
         """
-        # Create hour markers
+        # Determine appropriate time unit and interval
+        unit, interval_value, format_string = self._determine_time_unit_and_interval(start_time, end_time, width)
+
+        # Create time markers
         axis_chars = [" "] * width
-
         total_duration = (end_time - start_time).total_seconds()
-        hours_count = int(total_duration / 3600)
 
-        # Place markers on even hours only for cleaner display
-        for hour_offset in range(0, hours_count + 1):
-            current_time = start_time + timedelta(hours=hour_offset)
+        if unit == 'hour':
+            # Hour-based markers
+            current_time = start_time.replace(minute=0, second=0, microsecond=0)
+            # Align to interval boundaries (e.g., 00:00, 06:00, 12:00, 18:00)
+            hour_offset = (current_time.hour // interval_value) * interval_value
+            current_time = current_time.replace(hour=hour_offset)
 
-            # Only show even hours (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22)
-            if current_time.hour % 2 == 0:
-                position = int((hour_offset * 3600 / total_duration) * (width - 1))
-                if 0 <= position < width - 2:  # Leave space for hour string
-                    # Format hour (just HH format for cleaner look)
-                    hour_str = current_time.strftime("%H")
+            while current_time <= end_time:
+                if current_time >= start_time:
+                    time_offset = (current_time - start_time).total_seconds()
+                    position = int((time_offset / total_duration) * (width - 1))
 
-                    # Place the hour marker (2 characters)
-                    for i, char in enumerate(hour_str):
-                        if position + i < width:
-                            axis_chars[position + i] = char
+                    if 0 <= position < width - 2:  # Leave space for label
+                        label = current_time.strftime(format_string)
+                        for i, char in enumerate(label):
+                            if position + i < width:
+                                axis_chars[position + i] = char
 
-        # Return time axis without borders (GitHub style)
+                current_time += timedelta(hours=interval_value)
+
+        elif unit == 'day':
+            # Day-based markers
+            current_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            while current_time <= end_time:
+                if current_time >= start_time:
+                    time_offset = (current_time - start_time).total_seconds()
+                    position = int((time_offset / total_duration) * (width - 1))
+
+                    if 0 <= position < width - 4:  # Leave space for MM/DD format
+                        label = current_time.strftime(format_string)
+                        for i, char in enumerate(label):
+                            if position + i < width:
+                                axis_chars[position + i] = char
+
+                current_time += timedelta(days=interval_value)
+
+        elif unit == 'week':
+            # Week-based markers (show at start of each week)
+            current_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Move to start of week (Monday)
+            days_since_monday = current_time.weekday()
+            current_time -= timedelta(days=days_since_monday)
+
+            while current_time <= end_time:
+                if current_time >= start_time:
+                    time_offset = (current_time - start_time).total_seconds()
+                    position = int((time_offset / total_duration) * (width - 1))
+
+                    if 0 <= position < width - 4:  # Leave space for MM/DD format
+                        label = current_time.strftime(format_string)
+                        for i, char in enumerate(label):
+                            if position + i < width:
+                                axis_chars[position + i] = char
+
+                current_time += timedelta(days=interval_value)
+
+        elif unit == 'month':
+            # Month-based markers
+            current_time = start_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+            while current_time <= end_time:
+                if current_time >= start_time:
+                    time_offset = (current_time - start_time).total_seconds()
+                    position = int((time_offset / total_duration) * (width - 1))
+
+                    if 0 <= position < width - 3:  # Leave space for month format
+                        label = current_time.strftime(format_string)
+                        for i, char in enumerate(label):
+                            if position + i < width:
+                                axis_chars[position + i] = char
+
+                # Move to next month (handle year rollover)
+                if current_time.month == 12:
+                    current_time = current_time.replace(year=current_time.year + 1, month=1)
+                else:
+                    current_time = current_time.replace(month=current_time.month + 1)
+
+                # Handle 2-month intervals
+                if interval_value >= 60:  # 2+ month intervals
+                    if current_time.month == 12:
+                        current_time = current_time.replace(year=current_time.year + 1, month=1)
+                    else:
+                        current_time = current_time.replace(month=current_time.month + 1)
+
         return "".join(axis_chars)
 
     def create_summary_text(self, timelines: list[SessionTimeline]) -> Text:

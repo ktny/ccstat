@@ -23,11 +23,11 @@ def get_repository_name(directory: str) -> str | None:
             # Read gitdir path from .git file
             with git_path.open("r") as f:
                 git_content = f.read().strip()
-            
+
             # Extract gitdir path (format: "gitdir: /path/to/actual/git/dir")
             if git_content.startswith("gitdir: "):
                 actual_git_dir = Path(git_content[8:])  # Remove "gitdir: " prefix
-                
+
                 # For worktree, check if commondir exists to find main git dir
                 commondir_file = actual_git_dir / "commondir"
                 if commondir_file.exists():
