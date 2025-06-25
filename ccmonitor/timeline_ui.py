@@ -131,9 +131,8 @@ class TimelineUI:
             # Create visual timeline string
             timeline_str = self._create_timeline_string(timeline, start_time, end_time, timeline_width)
 
-            # Calculate session duration
-            duration = timeline.end_time - timeline.start_time
-            duration_str = f"{int(duration.total_seconds() / 60)}m"
+            # Calculate session duration (active time only)
+            duration_str = f"{timeline.active_duration_minutes}m"
 
             # Add indent for child threads
             project_display = timeline.project_name
@@ -437,9 +436,11 @@ class TimelineUI:
         # Find most active project
         most_active = max(timelines, key=lambda t: len(t.events))
 
-        # Calculate average project duration
-        durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
-        avg_duration = sum(durations) / len(durations) if durations else 0
+        # Calculate average project duration (both active and total)
+        active_durations = [t.active_duration_minutes for t in timelines]
+        total_durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
+        avg_active_duration = sum(active_durations) / len(active_durations) if active_durations else 0
+        avg_total_duration = sum(total_durations) / len(total_durations) if total_durations else 0
 
         # Create summary text
         summary_text = Text()
@@ -448,8 +449,8 @@ class TimelineUI:
         summary_text.append(f"{total_projects}\n", style="yellow")
         summary_text.append("  • Total Events: ", style="")
         summary_text.append(f"{total_events}\n", style="yellow")
-        summary_text.append("  • Average Project Duration: ", style="")
-        summary_text.append(f"{avg_duration:.1f} minutes\n", style="yellow")
+        summary_text.append("  • Average Duration: ", style="")
+        summary_text.append(f"{avg_active_duration:.1f} minutes\n", style="yellow")
         summary_text.append("  • Most Active Project: ", style="")
         summary_text.append(f"{most_active.project_name}", style="yellow")
         summary_text.append(f" ({len(most_active.events)} events)", style="")

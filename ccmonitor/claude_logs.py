@@ -30,6 +30,7 @@ class SessionTimeline:
     events: list[SessionEvent]
     start_time: datetime
     end_time: datetime
+    active_duration_minutes: int = 0  # Active work time in minutes
     parent_project: str | None = None  # Parent project name for thread display
 
 
@@ -97,6 +98,39 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
         pass
 
     return events
+
+
+def calculate_active_duration(events: list[SessionEvent]) -> int:
+    """Calculate active work duration based on event intervals.
+    
+    Args:
+        events: List of session events
+        
+    Returns:
+        Active work time in minutes
+    """
+    if len(events) <= 1:
+        return 5  # Minimum 5 minutes for single event
+    
+    # Sort events by timestamp
+    sorted_events = sorted(events, key=lambda e: e.timestamp)
+    
+    active_minutes = 0
+    inactive_threshold = 5  # 5 minutes threshold for inactive periods
+    
+    for i in range(1, len(sorted_events)):
+        prev_event = sorted_events[i-1]
+        curr_event = sorted_events[i]
+        
+        interval_minutes = (curr_event.timestamp - prev_event.timestamp).total_seconds() / 60
+        
+        # Only count intervals up to the threshold as active time
+        if interval_minutes <= inactive_threshold:
+            active_minutes += interval_minutes
+        # If interval is longer than threshold, don't add any time
+        # (this represents an inactive period)
+    
+    return int(active_minutes)
 
 
 def get_all_session_files() -> list[Path]:
@@ -294,6 +328,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                     events=events,
                     start_time=events[0].timestamp,
                     end_time=events[-1].timestamp,
+                    active_duration_minutes=calculate_active_duration(events),
                     parent_project=parent_project,
                 )
                 timelines.append(timeline)
@@ -316,6 +351,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
                 events=events,
                 start_time=events[0].timestamp,
                 end_time=events[-1].timestamp,
+                active_duration_minutes=calculate_active_duration(events),
             )
             timelines.append(timeline)
 
