@@ -433,9 +433,6 @@ class TimelineUI:
         total_events = sum(len(t.events) for t in timelines)
         total_projects = len(timelines)
 
-        # Find most active project
-        most_active = max(timelines, key=lambda t: len(t.events))
-
         # Calculate total project duration
         active_durations = [t.active_duration_minutes for t in timelines]
         total_active_duration = sum(active_durations)
@@ -449,8 +446,5 @@ class TimelineUI:
         summary_text.append(f"{total_events}\n", style="yellow")
         summary_text.append("  • Total Duration: ", style="")
         summary_text.append(f"{total_active_duration} minutes\n", style="yellow")
-        summary_text.append("  • Most Active Project: ", style="")
-        summary_text.append(f"{most_active.project_name}", style="yellow")
-        summary_text.append(f" ({len(most_active.events)} events)", style="")
 
         return summary_text
