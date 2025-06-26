@@ -70,7 +70,11 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
                     # Handle different content types
                     if isinstance(content, list):
                         # Content is a list, extract text from first text item
-                        text_parts = [item.get("text", "") for item in content if isinstance(item, dict) and item.get("type") == "text"]
+                        text_parts = [
+                            item.get("text", "")
+                            for item in content
+                            if isinstance(item, dict) and item.get("type") == "text"
+                        ]
                         content = " ".join(text_parts) if text_parts else str(content)
                     elif not isinstance(content, str):
                         content = str(content)
@@ -102,34 +106,34 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
 
 def calculate_active_duration(events: list[SessionEvent]) -> int:
     """Calculate active work duration based on event intervals.
-    
+
     Args:
         events: List of session events
-        
+
     Returns:
         Active work time in minutes
     """
     if len(events) <= 1:
         return 5  # Minimum 5 minutes for single event
-    
+
     # Sort events by timestamp
     sorted_events = sorted(events, key=lambda e: e.timestamp)
-    
+
     active_minutes = 0
     inactive_threshold = 5  # 5 minutes threshold for inactive periods
-    
+
     for i in range(1, len(sorted_events)):
-        prev_event = sorted_events[i-1]
+        prev_event = sorted_events[i - 1]
         curr_event = sorted_events[i]
-        
+
         interval_minutes = (curr_event.timestamp - prev_event.timestamp).total_seconds() / 60
-        
+
         # Only count intervals up to the threshold as active time
         if interval_minutes <= inactive_threshold:
             active_minutes += interval_minutes
         # If interval is longer than threshold, don't add any time
         # (this represents an inactive period)
-    
+
     return int(active_minutes)
 
 
@@ -155,7 +159,9 @@ def get_all_session_files() -> list[Path]:
     return jsonl_files
 
 
-def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project_filter: str | None = None, threads: bool = False) -> list[SessionTimeline]:
+def load_sessions_in_timerange(
+    start_time: datetime, end_time: datetime, project_filter: str | None = None, threads: bool = False
+) -> list[SessionTimeline]:
     """Load all Claude sessions within a time range, grouped by project directory.
 
     Args:
@@ -178,10 +184,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
         all_events.extend(events)
 
     # Filter events by time range
-    filtered_events = [
-        event for event in all_events
-        if start_time <= event.timestamp <= end_time
-    ]
+    filtered_events = [event for event in all_events if start_time <= event.timestamp <= end_time]
 
     # Sort events by timestamp
     filtered_events.sort(key=lambda e: e.timestamp)
@@ -315,7 +318,7 @@ def load_sessions_in_timerange(start_time: datetime, end_time: datetime, project
 
                     if main_repo_dir:
                         # Extract relative path from main repo
-                        relative_path = directory[len(main_repo_dir):].lstrip("/")
+                        relative_path = directory[len(main_repo_dir) :].lstrip("/")
                         display_name = relative_path.replace("/", "-")
                     else:
                         # Fallback to directory name

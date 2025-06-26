@@ -41,7 +41,9 @@ class TimelineMonitor:
                 loading_msg += f" (filtered by project: {self.project})"
             loading_msg += "...[/dim]"
             self.console.print(loading_msg)
-            timelines = load_sessions_in_timerange(start_time, end_time, project_filter=self.project, threads=self.threads)
+            timelines = load_sessions_in_timerange(
+                start_time, end_time, project_filter=self.project, threads=self.threads
+            )
 
             # Clear console
             self.console.clear()
@@ -51,5 +53,3 @@ class TimelineMonitor:
 
         except Exception as e:
             self.console.print(f"[red]Error loading sessions: {e}[/red]")
-
-

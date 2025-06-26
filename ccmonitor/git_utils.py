@@ -53,7 +53,7 @@ def get_repository_name(directory: str) -> str | None:
         # Look for remote origin URL
         # Pattern matches lines like: url = git@github.com:user/repo.git
         # or: url = https://github.com/user/repo.git
-        url_pattern = r'url\s*=\s*(.+)'
+        url_pattern = r"url\s*=\s*(.+)"
         url_match = re.search(url_pattern, content)
 
         if url_match:
@@ -61,9 +61,9 @@ def get_repository_name(directory: str) -> str | None:
 
             # Extract repo name from various URL formats
             # SSH format: git@github.com:user/repo.git
-            ssh_pattern = r'[^:/]+/([^/]+?)(?:\.git)?$'
+            ssh_pattern = r"[^:/]+/([^/]+?)(?:\.git)?$"
             # HTTPS format: https://github.com/user/repo.git
-            https_pattern = r'/([^/]+?)(?:\.git)?$'
+            https_pattern = r"/([^/]+?)(?:\.git)?$"
 
             repo_match = re.search(ssh_pattern, url) or re.search(https_pattern, url)
             if repo_match:
