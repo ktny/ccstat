@@ -59,15 +59,23 @@ ccmonitor
 
 # 過去7日間の活動を表示
 ccmonitor --days 7
+ccmonitor -d 7
 
 # 特定プロジェクトのみフィルタ表示
 ccmonitor --project myproject
+ccmonitor -p myproject
 
 # スレッド表示（同一リポジトリの異なるディレクトリを分離表示）
 ccmonitor --threads
+ccmonitor -t
 
 # 複数オプションの組み合わせ
 ccmonitor --days 3 --project myproject --threads
+ccmonitor -d 3 -p myproject -t
+
+# ヘルプ表示
+ccmonitor --help
+ccmonitor -h
 ```
 
 ### 表示内容の説明
@@ -115,7 +123,7 @@ uv run pytest tests/test_claude_logs.py
 
 # 開発環境でのccmonitor実行
 uv run ccmonitor
-uv run ccmonitor --days 7 --threads
+uv run ccmonitor -d 7 -t
 ```
 
 ### アーキテクチャ

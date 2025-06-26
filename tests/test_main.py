@@ -36,6 +36,19 @@ class TestMain:
             mock_monitor_class.assert_called_once_with(days=7, project=None, threads=False)
             mock_monitor.run.assert_called_once()
 
+    def test_main_with_days_shorthand(self):
+        """Test main with days shorthand parameter."""
+        runner = CliRunner()
+
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+            mock_monitor = mock_monitor_class.return_value
+
+            result = runner.invoke(main, ["-d", "7"])
+
+            assert result.exit_code == 0
+            mock_monitor_class.assert_called_once_with(days=7, project=None, threads=False)
+            mock_monitor.run.assert_called_once()
+
     def test_main_with_project_parameter(self):
         """Test main with project filter."""
         runner = CliRunner()
@@ -44,6 +57,19 @@ class TestMain:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["--project", "myproject"])
+
+            assert result.exit_code == 0
+            mock_monitor_class.assert_called_once_with(days=1, project="myproject", threads=False)
+            mock_monitor.run.assert_called_once()
+
+    def test_main_with_project_shorthand(self):
+        """Test main with project shorthand parameter."""
+        runner = CliRunner()
+
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+            mock_monitor = mock_monitor_class.return_value
+
+            result = runner.invoke(main, ["-p", "myproject"])
 
             assert result.exit_code == 0
             mock_monitor_class.assert_called_once_with(days=1, project="myproject", threads=False)
@@ -62,6 +88,19 @@ class TestMain:
             mock_monitor_class.assert_called_once_with(days=1, project=None, threads=True)
             mock_monitor.run.assert_called_once()
 
+    def test_main_with_threads_shorthand(self):
+        """Test main with threads shorthand parameter."""
+        runner = CliRunner()
+
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+            mock_monitor = mock_monitor_class.return_value
+
+            result = runner.invoke(main, ["-t"])
+
+            assert result.exit_code == 0
+            mock_monitor_class.assert_called_once_with(days=1, project=None, threads=True)
+            mock_monitor.run.assert_called_once()
+
     def test_main_with_all_parameters(self):
         """Test main with all parameters."""
         runner = CliRunner()
@@ -73,6 +112,19 @@ class TestMain:
 
             assert result.exit_code == 0
             mock_monitor_class.assert_called_once_with(days=14, project="testproj", threads=True)
+            mock_monitor.run.assert_called_once()
+
+    def test_main_with_all_shorthands(self):
+        """Test main with all shorthand parameters."""
+        runner = CliRunner()
+
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+            mock_monitor = mock_monitor_class.return_value
+
+            result = runner.invoke(main, ["-d", "5", "-p", "testproj", "-t"])
+
+            assert result.exit_code == 0
+            mock_monitor_class.assert_called_once_with(days=5, project="testproj", threads=True)
             mock_monitor.run.assert_called_once()
 
     def test_main_keyboard_interrupt(self):
@@ -112,6 +164,19 @@ class TestMain:
         assert "--days" in result.output
         assert "--project" in result.output
         assert "--threads" in result.output
+
+    def test_main_help_shorthand(self):
+        """Test main help shorthand command."""
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["-h"])
+
+        assert result.exit_code == 0
+        assert "Claude Session Timeline" in result.output
+        assert "-d, --days" in result.output
+        assert "-p, --project" in result.output
+        assert "-t, --threads" in result.output
+        assert "-h, --help" in result.output
 
     def test_main_invalid_days_parameter(self):
         """Test main with invalid days parameter."""
