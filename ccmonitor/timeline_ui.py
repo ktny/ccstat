@@ -108,13 +108,11 @@ class TimelineUI:
         )
         table.add_column(timeline_header, no_wrap=True)  # Remove style to let individual chars control color
         table.add_column("Events", style="cyan", justify="right", width=6)
-        table.add_column("Input", style="green", justify="right", width=8)
-        table.add_column("Output", style="magenta", justify="right", width=8)
         table.add_column("Duration", style="yellow", justify="right", width=8)
 
         # Calculate timeline width (console width - other columns - margins)
-        # 30(dir) + 6(events) + 8(input) + 8(output) + 8(duration) + 2(padding per column) * 6 + 8(extra margin for safety)
-        timeline_width = max(20, self.console.width - 80)
+        # 30(dir) + 6(events) + 8(duration) + 2(padding per column) * 4 + 8(extra margin for safety)
+        timeline_width = max(20, self.console.width - 60)
 
         # Add time axis row at the top
         time_axis_str = self._create_time_axis(start_time, end_time, timeline_width)
@@ -122,8 +120,6 @@ class TimelineUI:
             "",  # Project column
             time_axis_str,  # Timeline column with time markers
             "",  # Events column
-            "",  # Input tokens column
-            "",  # Output tokens column
             "",  # Duration column
         )
 
@@ -138,10 +134,6 @@ class TimelineUI:
             # Calculate session duration (active time only)
             duration_str = f"{timeline.active_duration_minutes}m"
 
-            # Format token counts with units
-            input_tokens_str = f"{timeline.total_input_tokens:,}" if timeline.total_input_tokens > 0 else "-"
-            output_tokens_str = f"{timeline.total_output_tokens:,}" if timeline.total_output_tokens > 0 else "-"
-
             # Add indent for child threads
             project_display = timeline.project_name
             if timeline.parent_project:
@@ -151,8 +143,6 @@ class TimelineUI:
                 project_display,
                 timeline_str,
                 str(len(timeline.events)),
-                input_tokens_str,
-                output_tokens_str,
                 duration_str,
             )
 
