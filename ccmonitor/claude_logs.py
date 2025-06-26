@@ -18,6 +18,8 @@ class SessionEvent:
     message_type: str  # "user", "assistant", etc.
     content_preview: str
     uuid: str
+    input_tokens: int = 0  # Input tokens used (for assistant messages)
+    output_tokens: int = 0  # Output tokens generated (for assistant messages)
 
 
 @dataclass
@@ -32,6 +34,8 @@ class SessionTimeline:
     end_time: datetime
     active_duration_minutes: int = 0  # Active work time in minutes
     parent_project: str | None = None  # Parent project name for thread display
+    total_input_tokens: int = 0  # Total input tokens used in this session
+    total_output_tokens: int = 0  # Total output tokens generated in this session
 
 
 def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
@@ -83,6 +87,15 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
                     content_preview = content[:100] + "..." if len(content) > 100 else content
                     content_preview = content_preview.replace("\n", " ")
 
+                    # Extract token information from usage field (for assistant messages)
+                    input_tokens = 0
+                    output_tokens = 0
+                    if role == "assistant" and "usage" in message:
+                        usage = message.get("usage", {})
+                        # Only include regular input tokens (exclude cache tokens)
+                        input_tokens = usage.get("input_tokens", 0)
+                        output_tokens = usage.get("output_tokens", 0)
+
                     event = SessionEvent(
                         timestamp=timestamp,
                         session_id=data.get("sessionId", ""),
@@ -90,6 +103,8 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
                         message_type=role,
                         content_preview=content_preview,
                         uuid=data.get("uuid", ""),
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
                     )
                     events.append(event)
 
@@ -135,6 +150,20 @@ def calculate_active_duration(events: list[SessionEvent]) -> int:
         # (this represents an inactive period)
 
     return int(active_minutes)
+
+
+def calculate_token_totals(events: list[SessionEvent]) -> tuple[int, int]:
+    """Calculate total input and output tokens from events.
+
+    Args:
+        events: List of session events
+
+    Returns:
+        Tuple of (total_input_tokens, total_output_tokens)
+    """
+    total_input_tokens = sum(event.input_tokens for event in events)
+    total_output_tokens = sum(event.output_tokens for event in events)
+    return total_input_tokens, total_output_tokens
 
 
 def get_all_session_files() -> list[Path]:
@@ -324,6 +353,9 @@ def load_sessions_in_timerange(
                         # Fallback to directory name
                         display_name = directory.rstrip("/").split("/")[-1]
 
+                # Calculate token totals
+                total_input_tokens, total_output_tokens = calculate_token_totals(events)
+
                 timeline = SessionTimeline(
                     session_id=f"dir_{directory}",  # Unique identifier
                     directory=directory,
@@ -333,6 +365,8 @@ def load_sessions_in_timerange(
                     end_time=events[-1].timestamp,
                     active_duration_minutes=calculate_active_duration(events),
                     parent_project=parent_project,
+                    total_input_tokens=total_input_tokens,
+                    total_output_tokens=total_output_tokens,
                 )
                 timelines.append(timeline)
     else:
@@ -347,6 +381,9 @@ def load_sessions_in_timerange(
             # Sort events by timestamp
             events.sort(key=lambda e: e.timestamp)
 
+            # Calculate token totals
+            total_input_tokens, total_output_tokens = calculate_token_totals(events)
+
             timeline = SessionTimeline(
                 session_id=f"repo_{group_key}",  # Unique identifier
                 directory=directory,
@@ -355,6 +392,8 @@ def load_sessions_in_timerange(
                 start_time=events[0].timestamp,
                 end_time=events[-1].timestamp,
                 active_duration_minutes=calculate_active_duration(events),
+                total_input_tokens=total_input_tokens,
+                total_output_tokens=total_output_tokens,
             )
             timelines.append(timeline)
 

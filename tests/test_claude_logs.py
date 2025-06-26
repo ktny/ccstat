@@ -11,6 +11,7 @@ from ccmonitor.claude_logs import (
     SessionEvent,
     SessionTimeline,
     calculate_active_duration,
+    calculate_token_totals,
     load_sessions_in_timerange,
     parse_jsonl_file,
 )
@@ -37,6 +38,25 @@ class TestSessionEvent:
         assert event.message_type == "user"
         assert event.content_preview == "Test message"
         assert event.uuid == "test-uuid-123"
+        assert event.input_tokens == 0  # Default value
+        assert event.output_tokens == 0  # Default value
+
+    def test_session_event_with_tokens(self):
+        """Test creating a SessionEvent object with token information."""
+        timestamp = datetime.now()
+        event = SessionEvent(
+            timestamp=timestamp,
+            session_id="test_session",
+            directory="/test/dir",
+            message_type="assistant",
+            content_preview="AI response",
+            uuid="test-uuid-456",
+            input_tokens=100,
+            output_tokens=50,
+        )
+
+        assert event.input_tokens == 100
+        assert event.output_tokens == 50
 
 
 class TestSessionTimeline:
@@ -65,6 +85,79 @@ class TestSessionTimeline:
         assert timeline.start_time == start_time
         assert timeline.end_time == end_time
         assert timeline.active_duration_minutes == 60
+        assert timeline.total_input_tokens == 0  # Default value
+        assert timeline.total_output_tokens == 0  # Default value
+
+    def test_session_timeline_with_tokens(self):
+        """Test creating a SessionTimeline object with token information."""
+        start_time = datetime.now()
+        end_time = start_time + timedelta(hours=1)
+        events = []
+
+        timeline = SessionTimeline(
+            session_id="test_session",
+            directory="/test/dir",
+            project_name="test_project",
+            events=events,
+            start_time=start_time,
+            end_time=end_time,
+            active_duration_minutes=60,
+            total_input_tokens=1000,
+            total_output_tokens=500,
+        )
+
+        assert timeline.total_input_tokens == 1000
+        assert timeline.total_output_tokens == 500
+
+
+class TestCalculateTokenTotals:
+    """Test token totals calculation."""
+
+    def test_calculate_token_totals_empty_events(self):
+        """Test token calculation with empty events list."""
+        input_total, output_total = calculate_token_totals([])
+        assert input_total == 0
+        assert output_total == 0
+
+    def test_calculate_token_totals_with_events(self):
+        """Test token calculation with multiple events."""
+        base_time = datetime.now()
+        events = [
+            SessionEvent(
+                timestamp=base_time,
+                session_id="test",
+                directory="/test",
+                message_type="user",
+                content_preview="user message",
+                uuid="uuid-1",
+                input_tokens=0,
+                output_tokens=0,
+            ),
+            SessionEvent(
+                timestamp=base_time + timedelta(minutes=1),
+                session_id="test",
+                directory="/test",
+                message_type="assistant",
+                content_preview="assistant response",
+                uuid="uuid-2",
+                input_tokens=100,
+                output_tokens=50,
+            ),
+            SessionEvent(
+                timestamp=base_time + timedelta(minutes=2),
+                session_id="test",
+                directory="/test",
+                message_type="assistant",
+                content_preview="another response",
+                uuid="uuid-3",
+                input_tokens=200,
+                output_tokens=150,
+            ),
+        ]
+
+        input_total, output_total = calculate_token_totals(events)
+        assert input_total == 300  # 0 + 100 + 200
+        assert output_total == 200  # 0 + 50 + 150
 
 
 class TestCalculateActiveDuration:
@@ -91,14 +184,16 @@ class TestCalculateActiveDuration:
 
         # Create events 30 seconds apart (within 1-minute threshold)
         for i in range(4):
-            events.append(SessionEvent(
-                timestamp=base_time + timedelta(seconds=i * 30),
-                session_id="test",
-                directory="/test",
-                message_type="user" if i % 2 == 0 else "assistant",
-                content_preview=f"message {i}",
-                uuid=f"uuid-{i}",
-            ))
+            events.append(
+                SessionEvent(
+                    timestamp=base_time + timedelta(seconds=i * 30),
+                    session_id="test",
+                    directory="/test",
+                    message_type="user" if i % 2 == 0 else "assistant",
+                    content_preview=f"message {i}",
+                    uuid=f"uuid-{i}",
+                )
+            )
 
         duration = calculate_active_duration(events)
         # 3 intervals of 30 seconds each = 1.5 minutes
@@ -110,41 +205,49 @@ class TestCalculateActiveDuration:
         events = []
 
         # First cluster: 2 events 30 seconds apart
-        events.append(SessionEvent(
-            timestamp=base_time,
-            session_id="test",
-            directory="/test",
-            message_type="user",
-            content_preview="message 1",
-            uuid="uuid-1",
-        ))
-        events.append(SessionEvent(
-            timestamp=base_time + timedelta(seconds=30),
-            session_id="test",
-            directory="/test",
-            message_type="assistant",
-            content_preview="message 2",
-            uuid="uuid-2",
-        ))
+        events.append(
+            SessionEvent(
+                timestamp=base_time,
+                session_id="test",
+                directory="/test",
+                message_type="user",
+                content_preview="message 1",
+                uuid="uuid-1",
+            )
+        )
+        events.append(
+            SessionEvent(
+                timestamp=base_time + timedelta(seconds=30),
+                session_id="test",
+                directory="/test",
+                message_type="assistant",
+                content_preview="message 2",
+                uuid="uuid-2",
+            )
+        )
 
         # Long gap (3 minutes - exceeds 1-minute threshold)
         # Second cluster: 2 events 45 seconds apart
-        events.append(SessionEvent(
-            timestamp=base_time + timedelta(minutes=3, seconds=30),
-            session_id="test",
-            directory="/test",
-            message_type="user",
-            content_preview="message 3",
-            uuid="uuid-3",
-        ))
-        events.append(SessionEvent(
-            timestamp=base_time + timedelta(minutes=4, seconds=15),
-            session_id="test",
-            directory="/test",
-            message_type="assistant",
-            content_preview="message 4",
-            uuid="uuid-4",
-        ))
+        events.append(
+            SessionEvent(
+                timestamp=base_time + timedelta(minutes=3, seconds=30),
+                session_id="test",
+                directory="/test",
+                message_type="user",
+                content_preview="message 3",
+                uuid="uuid-3",
+            )
+        )
+        events.append(
+            SessionEvent(
+                timestamp=base_time + timedelta(minutes=4, seconds=15),
+                session_id="test",
+                directory="/test",
+                message_type="assistant",
+                content_preview="message 4",
+                uuid="uuid-4",
+            )
+        )
 
         duration = calculate_active_duration(events)
         # Only intervals <= 1 minute: 0.5 + 0.75 = 1.25 minutes
@@ -161,18 +264,15 @@ class TestParseJsonlFile:
 
     def test_parse_valid_jsonl(self):
         """Test parsing a valid JSONL file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             # Write test JSONL data
             test_data = [
                 {
                     "timestamp": "2024-01-01T10:00:00Z",
                     "sessionId": "session1",
                     "cwd": "/test/project",
-                    "message": {
-                        "role": "user",
-                        "content": "Hello Claude"
-                    },
-                    "uuid": "uuid-1"
+                    "message": {"role": "user", "content": "Hello Claude"},
+                    "uuid": "uuid-1",
                 },
                 {
                     "timestamp": "2024-01-01T10:01:00Z",
@@ -180,14 +280,14 @@ class TestParseJsonlFile:
                     "cwd": "/test/project",
                     "message": {
                         "role": "assistant",
-                        "content": [{"type": "text", "text": "Hello! How can I help you?"}]
+                        "content": [{"type": "text", "text": "Hello! How can I help you?"}],
                     },
-                    "uuid": "uuid-2"
-                }
+                    "uuid": "uuid-2",
+                },
             ]
 
             for data in test_data:
-                f.write(json.dumps(data) + '\n')
+                f.write(json.dumps(data) + "\n")
             f.flush()
 
             try:
@@ -208,12 +308,64 @@ class TestParseJsonlFile:
             finally:
                 Path(f.name).unlink()
 
+    def test_parse_jsonl_with_tokens(self):
+        """Test parsing JSONL file with token usage information."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+            # Write test JSONL data with usage information
+            test_data = [
+                {
+                    "timestamp": "2024-01-01T10:00:00Z",
+                    "sessionId": "session1",
+                    "cwd": "/test/project",
+                    "message": {"role": "user", "content": "Hello Claude"},
+                    "uuid": "uuid-1",
+                },
+                {
+                    "timestamp": "2024-01-01T10:01:00Z",
+                    "sessionId": "session1",
+                    "cwd": "/test/project",
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "Hello! How can I help you?"}],
+                        "usage": {
+                            "input_tokens": 50,
+                            "cache_creation_input_tokens": 100,  # Not counted in input
+                            "cache_read_input_tokens": 25,       # Not counted in input
+                            "output_tokens": 30,
+                        },
+                    },
+                    "uuid": "uuid-2",
+                },
+            ]
+
+            for data in test_data:
+                f.write(json.dumps(data) + "\n")
+            f.flush()
+
+            try:
+                events = parse_jsonl_file(Path(f.name))
+
+                assert len(events) == 2
+
+                # Check first event (user message - no tokens)
+                assert events[0].message_type == "user"
+                assert events[0].input_tokens == 0
+                assert events[0].output_tokens == 0
+
+                # Check second event (assistant message with tokens)
+                assert events[1].message_type == "assistant"
+                assert events[1].input_tokens == 50  # Only regular input tokens
+                assert events[1].output_tokens == 30
+
+            finally:
+                Path(f.name).unlink()
+
     def test_parse_malformed_jsonl(self):
         """Test parsing JSONL file with malformed lines."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             # Write mix of valid and invalid JSON
             f.write('{"valid": "json"}\n')
-            f.write('invalid json line\n')  # This should be skipped
+            f.write("invalid json line\n")  # This should be skipped
             f.write('{"another": "valid", "timestamp": "2024-01-01T10:00:00Z", "role": "user"}\n')
             f.flush()
 
@@ -251,18 +403,18 @@ class TestLoadSessionsInTimerange:
             project_dir.mkdir()
 
             jsonl_file = project_dir / f"session_{i}.jsonl"
-            with jsonl_file.open('w') as f:
+            with jsonl_file.open("w") as f:
                 # Write events for this project
                 for j in range(3):
                     event_data = {
-                        "timestamp": (base_time + timedelta(minutes=i*60 + j*10)).isoformat() + "Z",
+                        "timestamp": (base_time + timedelta(minutes=i * 60 + j * 10)).isoformat() + "Z",
                         "sessionId": f"session_{i}",
                         "cwd": str(project_dir),
                         "role": "user" if j % 2 == 0 else "assistant",
                         "content": f"Message {j} in project {i}",
-                        "uuid": f"uuid-{i}-{j}"
+                        "uuid": f"uuid-{i}-{j}",
                     }
-                    f.write(json.dumps(event_data) + '\n')
+                    f.write(json.dumps(event_data) + "\n")
 
             files.append(jsonl_file)
 
@@ -270,6 +422,7 @@ class TestLoadSessionsInTimerange:
 
         # Cleanup
         import shutil
+
         shutil.rmtree(temp_dir)
 
     def test_load_sessions_basic(self, sample_jsonl_files):
@@ -278,6 +431,7 @@ class TestLoadSessionsInTimerange:
 
         # Mock the get_all_session_files function to return our test files
         import ccmonitor.claude_logs as claude_logs_module
+
         original_get_files = claude_logs_module.get_all_session_files
 
         def mock_get_files():
@@ -296,10 +450,10 @@ class TestLoadSessionsInTimerange:
 
             # Each timeline should have the required attributes
             for timeline in timelines:
-                assert hasattr(timeline, 'session_id')
-                assert hasattr(timeline, 'project_name')
-                assert hasattr(timeline, 'events')
-                assert hasattr(timeline, 'active_duration_minutes')
+                assert hasattr(timeline, "session_id")
+                assert hasattr(timeline, "project_name")
+                assert hasattr(timeline, "events")
+                assert hasattr(timeline, "active_duration_minutes")
                 assert isinstance(timeline.active_duration_minutes, int)
 
         finally:

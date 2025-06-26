@@ -14,7 +14,7 @@ class TestMain:
         """Test main with default parameters."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, [])
@@ -27,10 +27,10 @@ class TestMain:
         """Test main with custom days parameter."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
-            result = runner.invoke(main, ['--days', '7'])
+            result = runner.invoke(main, ["--days", "7"])
 
             assert result.exit_code == 0
             mock_monitor_class.assert_called_once_with(days=7, project=None, threads=False)
@@ -40,23 +40,23 @@ class TestMain:
         """Test main with project filter."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
-            result = runner.invoke(main, ['--project', 'myproject'])
+            result = runner.invoke(main, ["--project", "myproject"])
 
             assert result.exit_code == 0
-            mock_monitor_class.assert_called_once_with(days=1, project='myproject', threads=False)
+            mock_monitor_class.assert_called_once_with(days=1, project="myproject", threads=False)
             mock_monitor.run.assert_called_once()
 
     def test_main_with_threads_parameter(self):
         """Test main with threads mode enabled."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
-            result = runner.invoke(main, ['--threads'])
+            result = runner.invoke(main, ["--threads"])
 
             assert result.exit_code == 0
             mock_monitor_class.assert_called_once_with(days=1, project=None, threads=True)
@@ -66,20 +66,20 @@ class TestMain:
         """Test main with all parameters."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
-            result = runner.invoke(main, ['--days', '14', '--project', 'testproj', '--threads'])
+            result = runner.invoke(main, ["--days", "14", "--project", "testproj", "--threads"])
 
             assert result.exit_code == 0
-            mock_monitor_class.assert_called_once_with(days=14, project='testproj', threads=True)
+            mock_monitor_class.assert_called_once_with(days=14, project="testproj", threads=True)
             mock_monitor.run.assert_called_once()
 
     def test_main_keyboard_interrupt(self):
         """Test main handling KeyboardInterrupt."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
             mock_monitor.run.side_effect = KeyboardInterrupt()
 
@@ -92,7 +92,7 @@ class TestMain:
         """Test main handling general exceptions."""
         runner = CliRunner()
 
-        with patch('ccmonitor.__main__.TimelineMonitor') as mock_monitor_class:
+        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
             mock_monitor.run.side_effect = Exception("Test error")
 
@@ -105,7 +105,7 @@ class TestMain:
         """Test main help output."""
         runner = CliRunner()
 
-        result = runner.invoke(main, ['--help'])
+        result = runner.invoke(main, ["--help"])
 
         assert result.exit_code == 0
         assert "Claude Session Timeline" in result.output
@@ -117,7 +117,7 @@ class TestMain:
         """Test main with invalid days parameter."""
         runner = CliRunner()
 
-        result = runner.invoke(main, ['--days', 'invalid'])
+        result = runner.invoke(main, ["--days", "invalid"])
 
         assert result.exit_code != 0
         assert "invalid" in result.output.lower()
@@ -126,7 +126,7 @@ class TestMain:
         """Test that CLI options have proper descriptions."""
         runner = CliRunner()
 
-        result = runner.invoke(main, ['--help'])
+        result = runner.invoke(main, ["--help"])
 
         assert result.exit_code == 0
         help_text = result.output

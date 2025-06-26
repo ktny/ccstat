@@ -29,8 +29,8 @@ class TestTimelineMonitor:
         assert monitor.project == "test_project"
         assert monitor.threads is True
 
-    @patch('ccmonitor.timeline_monitor.load_sessions_in_timerange')
-    @patch('ccmonitor.timeline_monitor.TimelineUI')
+    @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")
+    @patch("ccmonitor.timeline_monitor.TimelineUI")
     def test_run_success(self, mock_timeline_ui, mock_load_sessions):
         """Test successful run of timeline monitor."""
         # Setup mocks
@@ -64,42 +64,42 @@ class TestTimelineMonitor:
         # Verify UI display was called
         mock_ui_instance.display_timeline.assert_called_once()
 
-    @patch('ccmonitor.timeline_monitor.load_sessions_in_timerange')
+    @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")
     def test_run_with_project_filter(self, mock_load_sessions):
         """Test run with project filter."""
         mock_load_sessions.return_value = []
 
         monitor = TimelineMonitor(days=3, project="specific_project")
 
-        with patch.object(monitor.console, 'print') as mock_print:
-            with patch.object(monitor.console, 'clear'):
+        with patch.object(monitor.console, "print") as mock_print:
+            with patch.object(monitor.console, "clear"):
                 monitor.run()
 
         # Verify project filter was passed
         call_args = mock_load_sessions.call_args
-        assert call_args[1]['project_filter'] == "specific_project"
+        assert call_args[1]["project_filter"] == "specific_project"
 
         # Verify loading message includes project filter
         mock_print.assert_called()
         loading_call = mock_print.call_args_list[0]
         assert "specific_project" in str(loading_call)
 
-    @patch('ccmonitor.timeline_monitor.load_sessions_in_timerange')
+    @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")
     def test_run_with_threads_mode(self, mock_load_sessions):
         """Test run with threads mode enabled."""
         mock_load_sessions.return_value = []
 
         monitor = TimelineMonitor(days=5, threads=True)
 
-        with patch.object(monitor.console, 'print'):
-            with patch.object(monitor.console, 'clear'):
+        with patch.object(monitor.console, "print"):
+            with patch.object(monitor.console, "clear"):
                 monitor.run()
 
         # Verify threads mode was passed
         call_args = mock_load_sessions.call_args
-        assert call_args[1]['threads'] is True
+        assert call_args[1]["threads"] is True
 
-    @patch('ccmonitor.timeline_monitor.load_sessions_in_timerange')
+    @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")
     def test_run_exception_handling(self, mock_load_sessions):
         """Test exception handling in run method."""
         # Make load_sessions_in_timerange raise an exception
@@ -107,12 +107,11 @@ class TestTimelineMonitor:
 
         monitor = TimelineMonitor()
 
-        with patch.object(monitor.console, 'print') as mock_print:
+        with patch.object(monitor.console, "print") as mock_print:
             monitor.run()
 
         # Verify error message was printed
-        error_calls = [call for call in mock_print.call_args_list
-                      if "Error loading sessions" in str(call)]
+        error_calls = [call for call in mock_print.call_args_list if "Error loading sessions" in str(call)]
         assert len(error_calls) > 0
 
     def test_time_range_calculation(self):
@@ -122,14 +121,14 @@ class TestTimelineMonitor:
         # Patch datetime.now to control the current time
         fixed_now = datetime(2024, 1, 15, 14, 30, 0)
 
-        with patch('ccmonitor.timeline_monitor.datetime') as mock_datetime:
+        with patch("ccmonitor.timeline_monitor.datetime") as mock_datetime:
             mock_datetime.now.return_value = fixed_now
 
-            with patch('ccmonitor.timeline_monitor.load_sessions_in_timerange') as mock_load:
+            with patch("ccmonitor.timeline_monitor.load_sessions_in_timerange") as mock_load:
                 mock_load.return_value = []
 
-                with patch.object(monitor.console, 'print'):
-                    with patch.object(monitor.console, 'clear'):
+                with patch.object(monitor.console, "print"):
+                    with patch.object(monitor.console, "clear"):
                         monitor.run()
 
                 # Check the time range passed to load_sessions_in_timerange
@@ -140,15 +139,15 @@ class TestTimelineMonitor:
                 expected_start = fixed_now - timedelta(days=7)
                 assert start_time == expected_start
 
-    @patch('ccmonitor.timeline_monitor.load_sessions_in_timerange')
+    @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")
     def test_console_clearing(self, mock_load_sessions):
         """Test that console is cleared before displaying results."""
         mock_load_sessions.return_value = []
 
         monitor = TimelineMonitor()
 
-        with patch.object(monitor.console, 'clear') as mock_clear:
-            with patch.object(monitor.console, 'print'):
+        with patch.object(monitor.console, "clear") as mock_clear:
+            with patch.object(monitor.console, "print"):
                 monitor.run()
 
         # Verify console.clear was called
@@ -158,9 +157,9 @@ class TestTimelineMonitor:
         """Test loading message content for different configurations."""
         # Test default message
         monitor1 = TimelineMonitor(days=1)
-        with patch.object(monitor1.console, 'print') as mock_print:
-            with patch('ccmonitor.timeline_monitor.load_sessions_in_timerange', return_value=[]):
-                with patch.object(monitor1.console, 'clear'):
+        with patch.object(monitor1.console, "print") as mock_print:
+            with patch("ccmonitor.timeline_monitor.load_sessions_in_timerange", return_value=[]):
+                with patch.object(monitor1.console, "clear"):
                     monitor1.run()
 
         loading_call = mock_print.call_args_list[0][0][0]
@@ -169,9 +168,9 @@ class TestTimelineMonitor:
 
         # Test with project filter
         monitor2 = TimelineMonitor(days=5, project="myproject")
-        with patch.object(monitor2.console, 'print') as mock_print:
-            with patch('ccmonitor.timeline_monitor.load_sessions_in_timerange', return_value=[]):
-                with patch.object(monitor2.console, 'clear'):
+        with patch.object(monitor2.console, "print") as mock_print:
+            with patch("ccmonitor.timeline_monitor.load_sessions_in_timerange", return_value=[]):
+                with patch.object(monitor2.console, "clear"):
                     monitor2.run()
 
         loading_call = mock_print.call_args_list[0][0][0]

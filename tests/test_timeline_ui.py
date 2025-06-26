@@ -26,14 +26,16 @@ class TestTimelineUI:
 
         # Create some sample events
         for i in range(5):
-            events.append(SessionEvent(
-                timestamp=base_time + timedelta(minutes=i * 10),
-                session_id="test_session",
-                directory="/test/project",
-                message_type="user" if i % 2 == 0 else "assistant",
-                content_preview=f"Test message {i}",
-                uuid=f"uuid-{i}",
-            ))
+            events.append(
+                SessionEvent(
+                    timestamp=base_time + timedelta(minutes=i * 10),
+                    session_id="test_session",
+                    directory="/test/project",
+                    message_type="user" if i % 2 == 0 else "assistant",
+                    content_preview=f"Test message {i}",
+                    uuid=f"uuid-{i}",
+                )
+            )
 
         return SessionTimeline(
             session_id="test_session",
@@ -66,9 +68,7 @@ class TestTimelineUI:
         end_time = sample_timeline.end_time
         width = 20
 
-        timeline_str = timeline_ui._create_timeline_string(
-            sample_timeline, start_time, end_time, width
-        )
+        timeline_str = timeline_ui._create_timeline_string(sample_timeline, start_time, end_time, width)
 
         # Should return a string of the specified width
         # Note: Rich markup tags make the actual length longer than visual width
@@ -91,9 +91,7 @@ class TestTimelineUI:
             active_duration_minutes=0,
         )
 
-        timeline_str = timeline_ui._create_timeline_string(
-            empty_timeline, start_time, end_time, 20
-        )
+        timeline_str = timeline_ui._create_timeline_string(empty_timeline, start_time, end_time, 20)
 
         # Should return string with only idle markers (bright_black)
         assert isinstance(timeline_str, str)
@@ -105,9 +103,7 @@ class TestTimelineUI:
         end_time = start_time + timedelta(days=1)
         width = 60
 
-        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
-            start_time, end_time, width
-        )
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
 
         assert unit == "hour"
         assert interval == 3  # 3-hour intervals for 1 day
@@ -119,9 +115,7 @@ class TestTimelineUI:
         end_time = start_time + timedelta(days=2)
         width = 60
 
-        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
-            start_time, end_time, width
-        )
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
 
         assert unit == "hour"
         assert interval == 6  # 6-hour intervals for 2 days
@@ -133,9 +127,7 @@ class TestTimelineUI:
         end_time = start_time + timedelta(days=7)
         width = 60
 
-        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
-            start_time, end_time, width
-        )
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
 
         assert unit == "day"
         assert interval == 1  # 1-day intervals for 7 days
@@ -147,9 +139,7 @@ class TestTimelineUI:
         end_time = start_time + timedelta(days=30)
         width = 60
 
-        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
-            start_time, end_time, width
-        )
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
 
         assert unit == "day"
         assert interval == 4  # 4-day intervals for 30 days
@@ -161,9 +151,7 @@ class TestTimelineUI:
         end_time = start_time + timedelta(days=400)
         width = 60
 
-        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
-            start_time, end_time, width
-        )
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
 
         assert unit == "year"
         assert interval == 365  # 1-year intervals
@@ -232,7 +220,7 @@ class TestTimelineUI:
         start_time = sample_timeline.start_time
         end_time = sample_timeline.end_time
 
-        with patch.object(timeline_ui.console, 'print') as mock_print:
+        with patch.object(timeline_ui.console, "print") as mock_print:
             # Should not raise any exceptions
             timeline_ui.display_timeline(timelines, start_time, end_time)
 
@@ -244,7 +232,7 @@ class TestTimelineUI:
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=1)
 
-        with patch.object(timeline_ui.console, 'print') as mock_print:
+        with patch.object(timeline_ui.console, "print") as mock_print:
             timeline_ui.display_timeline([], start_time, end_time)
 
             # Should print "no sessions found" message
@@ -258,25 +246,29 @@ class TestTimelineUI:
 
         # Create clustered events (high density area)
         for i in range(10):
-            events.append(SessionEvent(
-                timestamp=base_time + timedelta(seconds=i * 30),  # 30 seconds apart
-                session_id="dense_session",
-                directory="/test",
-                message_type="user" if i % 2 == 0 else "assistant",
-                content_preview=f"Dense message {i}",
-                uuid=f"dense-{i}",
-            ))
+            events.append(
+                SessionEvent(
+                    timestamp=base_time + timedelta(seconds=i * 30),  # 30 seconds apart
+                    session_id="dense_session",
+                    directory="/test",
+                    message_type="user" if i % 2 == 0 else "assistant",
+                    content_preview=f"Dense message {i}",
+                    uuid=f"dense-{i}",
+                )
+            )
 
         # Add sparse events
         for i in range(3):
-            events.append(SessionEvent(
-                timestamp=base_time + timedelta(minutes=30 + i * 20),  # 20 minutes apart
-                session_id="sparse_session",
-                directory="/test",
-                message_type="user",
-                content_preview=f"Sparse message {i}",
-                uuid=f"sparse-{i}",
-            ))
+            events.append(
+                SessionEvent(
+                    timestamp=base_time + timedelta(minutes=30 + i * 20),  # 20 minutes apart
+                    session_id="sparse_session",
+                    directory="/test",
+                    message_type="user",
+                    content_preview=f"Sparse message {i}",
+                    uuid=f"sparse-{i}",
+                )
+            )
 
         dense_timeline = SessionTimeline(
             session_id="mixed_session",
@@ -293,5 +285,9 @@ class TestTimelineUI:
         )
 
         # Should contain different color codes for different density levels
-        assert "color(22)" in timeline_str or "color(28)" in timeline_str or \
-               "color(34)" in timeline_str or "color(40)" in timeline_str
+        assert (
+            "color(22)" in timeline_str
+            or "color(28)" in timeline_str
+            or "color(34)" in timeline_str
+            or "color(40)" in timeline_str
+        )
