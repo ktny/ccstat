@@ -2,7 +2,7 @@ use crate::{claude_logs::load_sessions_in_timerange, timeline_ui::TimelineUI};
 use anyhow::Result;
 use chrono::{DateTime, Duration, Local};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -51,24 +51,49 @@ impl TimelineMonitor {
             return Ok(());
         }
 
-        // Setup terminal
-        enable_raw_mode()?;
+        // Check if we're in a proper terminal environment
+        if std::env::var("TERM").is_err() {
+            return Err(anyhow::anyhow!("No terminal environment detected. Use --simple flag for text output."));
+        }
+
+        // Setup terminal with error handling
+        let setup_result = || -> Result<()> {
+            enable_raw_mode()?;
+            Ok(())
+        };
+
+        if let Err(e) = setup_result() {
+            return Err(anyhow::anyhow!("Failed to setup terminal: {}. Use --simple flag for text output.", e));
+        }
+
         let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        
+        // Try to setup crossterm without mouse capture initially
+        if let Err(e) = execute!(stdout, EnterAlternateScreen) {
+            disable_raw_mode().ok(); // Try to cleanup
+            return Err(anyhow::anyhow!("Failed to enter alternate screen: {}. Use --simple flag for text output.", e));
+        }
+
         let backend = CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
+        let mut terminal = match Terminal::new(backend) {
+            Ok(term) => term,
+            Err(e) => {
+                disable_raw_mode().ok();
+                execute!(io::stdout(), LeaveAlternateScreen).ok();
+                return Err(anyhow::anyhow!("Failed to create terminal: {}. Use --simple flag for text output.", e));
+            }
+        };
 
         // Run the TUI
         let result = self.run_tui(&mut terminal, timelines, start_time, end_time).await;
 
         // Restore terminal
-        disable_raw_mode()?;
+        disable_raw_mode().ok();
         execute!(
             terminal.backend_mut(),
-            LeaveAlternateScreen,
-            DisableMouseCapture
-        )?;
-        terminal.show_cursor()?;
+            LeaveAlternateScreen
+        ).ok();
+        terminal.show_cursor().ok();
 
         result
     }

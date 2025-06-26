@@ -85,8 +85,9 @@ impl SessionEvent {
                 );
                 
                 let content = Self::extract_content_text(&message.content);
-                let content_preview = if content.len() > 100 {
-                    format!("{}...", &content[..100])
+                let content_preview = if content.chars().count() > 100 {
+                    let truncated: String = content.chars().take(100).collect();
+                    format!("{}...", truncated)
                 } else {
                     content
                 }.replace('\n', " ");
