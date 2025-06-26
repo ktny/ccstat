@@ -193,7 +193,7 @@ class TestTimelineUI:
         assert "Summary Statistics" in summary_str
         assert "Total Projects" in summary_str
         assert "Total Events" in summary_str
-        assert "Average Duration" in summary_str
+        assert "Total Duration" in summary_str
 
     def test_create_summary_text_empty(self, timeline_ui):
         """Test summary text creation with empty timeline list."""
