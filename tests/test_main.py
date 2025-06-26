@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
+from ccmonitor import __version__
 from ccmonitor.__main__ import main
 
 
@@ -177,6 +178,26 @@ class TestMain:
         assert "-p, --project" in result.output
         assert "-t, --threads" in result.output
         assert "-h, --help" in result.output
+
+    def test_main_version(self):
+        """Test main version command."""
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["--version"])
+
+        assert result.exit_code == 0
+        assert "ccmonitor" in result.output
+        assert __version__ in result.output
+
+    def test_main_version_shorthand(self):
+        """Test main version shorthand command."""
+        runner = CliRunner()
+
+        result = runner.invoke(main, ["-v"])
+
+        assert result.exit_code == 0
+        assert "ccmonitor" in result.output
+        assert __version__ in result.output
 
     def test_main_invalid_days_parameter(self):
         """Test main with invalid days parameter."""

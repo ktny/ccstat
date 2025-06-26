@@ -2,6 +2,7 @@
 
 import click
 
+from ccmonitor import __version__
 from ccmonitor.timeline_monitor import TimelineMonitor
 
 
@@ -25,6 +26,7 @@ from ccmonitor.timeline_monitor import TimelineMonitor
     is_flag=True,
     help="Show projects as threads (separate similar repos)",
 )
+@click.version_option(__version__, "-v", "--version", prog_name="ccmonitor")
 @click.help_option("-h", "--help")
 def main(days: int, project: str | None, threads: bool) -> None:
     """Claude Session Timeline - Claudeセッションの時系列可視化ツール."""

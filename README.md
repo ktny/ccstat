@@ -76,6 +76,10 @@ ccmonitor -d 3 -p myproject -t
 # ヘルプ表示
 ccmonitor --help
 ccmonitor -h
+
+# バージョン表示
+ccmonitor --version
+ccmonitor -v
 ```
 
 ### 表示内容の説明
