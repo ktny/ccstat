@@ -161,3 +161,8 @@ ehthumbs.db
 .claude/CLAUDE.md
 .claude/settings.local.json
 .worktree/
+
+
+# Added by cargo
+
+/target
