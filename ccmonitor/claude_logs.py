@@ -1,11 +1,15 @@
 """Claude session log file reading functionality."""
 
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 from .git_utils import get_repository_name
+
+# Configure logger for debug output
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,6 +24,10 @@ class SessionEvent:
     uuid: str
     input_tokens: int = 0  # Input tokens used (for assistant messages)
     output_tokens: int = 0  # Output tokens generated (for assistant messages)
+    cache_creation_input_tokens: int = 0  # Cache creation tokens
+    cache_read_input_tokens: int = 0  # Cache read tokens
+    message_id: str = ""  # Message ID for deduplication
+    request_id: str = ""  # Request ID for deduplication
 
 
 @dataclass
@@ -48,16 +56,21 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
         List of SessionEvent objects
     """
     events = []
+    filtered_count = 0  # Track messages filtered out
+    total_count = 0     # Track total messages processed
 
     try:
         with file_path.open("r", encoding="utf-8") as f:
-            for line in f:
+            for line_num, line in enumerate(f, 1):
                 try:
                     data = json.loads(line.strip())
+                    total_count += 1
 
                     # Extract timestamp
                     timestamp_str = data.get("timestamp")
                     if not timestamp_str:
+                        filtered_count += 1
+                        logger.debug(f"Filtered message at line {line_num}: no timestamp")
                         continue
 
                     # Parse ISO format timestamp and convert to local time
@@ -87,14 +100,41 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
                     content_preview = content[:100] + "..." if len(content) > 100 else content
                     content_preview = content_preview.replace("\n", " ")
 
-                    # Extract token information from usage field (for assistant messages)
+                    # Extract token information from usage field (following ccusage strict validation)
                     input_tokens = 0
                     output_tokens = 0
-                    if role == "assistant" and "usage" in message:
-                        usage = message.get("usage", {})
-                        # Only include regular input tokens (exclude cache tokens)
-                        input_tokens = usage.get("input_tokens", 0)
-                        output_tokens = usage.get("output_tokens", 0)
+                    cache_creation_input_tokens = 0
+                    cache_read_input_tokens = 0
+
+                    # Only include messages with valid usage field (like ccusage Zod schema)
+                    usage = message.get("usage")
+                    if usage is not None and isinstance(usage, dict):
+                        # Validate that all required token fields exist (ccusage requirement)
+                        required_fields = ["input_tokens", "output_tokens"]
+                        if all(field in usage for field in required_fields):
+                            input_tokens = usage.get("input_tokens", 0)
+                            output_tokens = usage.get("output_tokens", 0)
+                            cache_creation_input_tokens = usage.get("cache_creation_input_tokens", 0)
+                            cache_read_input_tokens = usage.get("cache_read_input_tokens", 0)
+                        else:
+                            # Skip messages without required usage fields (like ccusage)
+                            filtered_count += 1
+                            missing_fields = [field for field in required_fields if field not in usage]
+                            logger.debug(f"Filtered message at line {line_num}: missing required usage fields: {missing_fields}")
+                            continue
+                    else:
+                        # Skip messages without usage field entirely (like ccusage Zod validation)
+                        filtered_count += 1
+                        message_role = message.get("role", "unknown")
+                        logger.debug(f"Filtered message at line {line_num}: no usage field (role: {message_role})")
+                        continue
+
+                    # Extract message and request IDs for deduplication
+                    message_id = ""
+                    request_id = ""
+                    if "id" in message:
+                        message_id = message.get("id", "")
+                    request_id = data.get("requestId", "")
 
                     event = SessionEvent(
                         timestamp=timestamp,
@@ -105,16 +145,26 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
                         uuid=data.get("uuid", ""),
                         input_tokens=input_tokens,
                         output_tokens=output_tokens,
+                        cache_creation_input_tokens=cache_creation_input_tokens,
+                        cache_read_input_tokens=cache_read_input_tokens,
+                        message_id=message_id,
+                        request_id=request_id,
                     )
                     events.append(event)
 
-                except (json.JSONDecodeError, KeyError, ValueError):
+                except (json.JSONDecodeError, KeyError, ValueError) as e:
                     # Skip malformed lines
+                    filtered_count += 1
+                    logger.debug(f"Filtered malformed JSON at line {line_num}: {e}")
                     continue
 
     except (OSError, PermissionError):
         # Return empty list if file can't be read
         pass
+
+    # Log parsing summary
+    if total_count > 0:
+        logger.debug(f"Parsed {file_path.name}: {len(events)} events included, {filtered_count} filtered out of {total_count} total messages")
 
     return events
 
@@ -152,8 +202,51 @@ def calculate_active_duration(events: list[SessionEvent]) -> int:
     return int(active_minutes)
 
 
+def create_unique_hash(message_id: str, request_id: str) -> str | None:
+    """Create a unique hash for deduplication using messageId and requestId.
+
+    Args:
+        message_id: Message ID from the log entry
+        request_id: Request ID from the log entry
+
+    Returns:
+        Unique hash string or None if either ID is missing
+    """
+    if not message_id or not request_id:
+        return None
+    return f"{message_id}:{request_id}"
+
+
+def deduplicate_events(events: list[SessionEvent]) -> list[SessionEvent]:
+    """Remove duplicate events based on messageId and requestId combination.
+
+    Args:
+        events: List of session events that may contain duplicates
+
+    Returns:
+        List of deduplicated events, keeping the first occurrence of each unique hash
+    """
+    processed_hashes: set[str] = set()
+    deduplicated_events: list[SessionEvent] = []
+
+    for event in events:
+        unique_hash = create_unique_hash(event.message_id, event.request_id)
+
+        # If hash is None or already processed, skip this event
+        if unique_hash is None or unique_hash in processed_hashes:
+            continue
+
+        # Mark as processed and add to result
+        processed_hashes.add(unique_hash)
+        deduplicated_events.append(event)
+
+    return deduplicated_events
+
+
 def calculate_token_totals(events: list[SessionEvent]) -> tuple[int, int]:
     """Calculate total input and output tokens from events.
+
+    Following ccusage methodology: input tokens and cache tokens are displayed separately.
 
     Args:
         events: List of session events
@@ -161,6 +254,7 @@ def calculate_token_totals(events: list[SessionEvent]) -> tuple[int, int]:
     Returns:
         Tuple of (total_input_tokens, total_output_tokens)
     """
+    # Only count regular input tokens, not cache tokens (following ccusage display)
     total_input_tokens = sum(event.input_tokens for event in events)
     total_output_tokens = sum(event.output_tokens for event in events)
     return total_input_tokens, total_output_tokens
@@ -211,6 +305,9 @@ def load_sessions_in_timerange(
     for file_path in jsonl_files:
         events = parse_jsonl_file(file_path)
         all_events.extend(events)
+
+    # Apply deduplication following ccusage methodology
+    all_events = deduplicate_events(all_events)
 
     # Filter events by time range
     filtered_events = [event for event in all_events if start_time <= event.timestamp <= end_time]
