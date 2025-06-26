@@ -120,7 +120,7 @@ def calculate_active_duration(events: list[SessionEvent]) -> int:
     sorted_events = sorted(events, key=lambda e: e.timestamp)
 
     active_minutes = 0
-    inactive_threshold = 5  # 5 minutes threshold for inactive periods
+    inactive_threshold = 1  # 1 minute threshold for inactive periods
 
     for i in range(1, len(sorted_events)):
         prev_event = sorted_events[i - 1]
@@ -287,10 +287,10 @@ def load_sessions_in_timerange(
         # Create timelines with parent information
         for repo_name, dir_list in repo_to_dirs.items():
             # Sort directories: main repo first, then by first event time
-            def sort_key(item):
+            def sort_key(item, current_repo_name=repo_name):
                 directory, events = item
                 # Main repository comes first (exact match)
-                is_main_repo = directory in git_repo_dirs and git_repo_dirs[directory] == repo_name
+                is_main_repo = directory in git_repo_dirs and git_repo_dirs[directory] == current_repo_name
                 return (not is_main_repo, events[0].timestamp)
 
             dir_list.sort(key=sort_key)

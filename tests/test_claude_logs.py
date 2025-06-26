@@ -30,7 +30,7 @@ class TestSessionEvent:
             content_preview="Test message",
             uuid="test-uuid-123",
         )
-        
+
         assert event.timestamp == timestamp
         assert event.session_id == "test_session"
         assert event.directory == "/test/dir"
@@ -47,17 +47,17 @@ class TestSessionTimeline:
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=1)
         events = []
-        
+
         timeline = SessionTimeline(
             session_id="test_session",
-            directory="/test/dir", 
+            directory="/test/dir",
             project_name="test_project",
             events=events,
             start_time=start_time,
             end_time=end_time,
             active_duration_minutes=60,
         )
-        
+
         assert timeline.session_id == "test_session"
         assert timeline.directory == "/test/dir"
         assert timeline.project_name == "test_project"
@@ -80,57 +80,57 @@ class TestCalculateActiveDuration:
             content_preview="test",
             uuid="test-uuid",
         )
-        
+
         duration = calculate_active_duration([event])
         assert duration == 5  # Minimum 5 minutes for single event
 
     def test_continuous_activity(self):
-        """Test active duration with continuous activity (intervals <= 5 minutes)."""
+        """Test active duration with continuous activity (intervals <= 1 minute)."""
         base_time = datetime.now()
         events = []
-        
-        # Create events 3 minutes apart (within 5-minute threshold)
+
+        # Create events 30 seconds apart (within 1-minute threshold)
         for i in range(4):
             events.append(SessionEvent(
-                timestamp=base_time + timedelta(minutes=i * 3),
+                timestamp=base_time + timedelta(seconds=i * 30),
                 session_id="test",
                 directory="/test",
                 message_type="user" if i % 2 == 0 else "assistant",
                 content_preview=f"message {i}",
                 uuid=f"uuid-{i}",
             ))
-        
+
         duration = calculate_active_duration(events)
-        # 3 intervals of 3 minutes each = 9 minutes
-        assert duration == 9
+        # 3 intervals of 30 seconds each = 1.5 minutes
+        assert duration == 1
 
     def test_with_inactive_periods(self):
-        """Test active duration with inactive periods (intervals > 5 minutes)."""
+        """Test active duration with inactive periods (intervals > 1 minute)."""
         base_time = datetime.now()
         events = []
-        
-        # First cluster: 2 events 3 minutes apart
+
+        # First cluster: 2 events 30 seconds apart
         events.append(SessionEvent(
             timestamp=base_time,
             session_id="test",
-            directory="/test", 
+            directory="/test",
             message_type="user",
             content_preview="message 1",
             uuid="uuid-1",
         ))
         events.append(SessionEvent(
-            timestamp=base_time + timedelta(minutes=3),
+            timestamp=base_time + timedelta(seconds=30),
             session_id="test",
             directory="/test",
-            message_type="assistant", 
+            message_type="assistant",
             content_preview="message 2",
             uuid="uuid-2",
         ))
-        
-        # Long gap (30 minutes - exceeds 5-minute threshold)
-        # Second cluster: 2 events 4 minutes apart
+
+        # Long gap (3 minutes - exceeds 1-minute threshold)
+        # Second cluster: 2 events 45 seconds apart
         events.append(SessionEvent(
-            timestamp=base_time + timedelta(minutes=33),
+            timestamp=base_time + timedelta(minutes=3, seconds=30),
             session_id="test",
             directory="/test",
             message_type="user",
@@ -138,17 +138,17 @@ class TestCalculateActiveDuration:
             uuid="uuid-3",
         ))
         events.append(SessionEvent(
-            timestamp=base_time + timedelta(minutes=37),
+            timestamp=base_time + timedelta(minutes=4, seconds=15),
             session_id="test",
             directory="/test",
             message_type="assistant",
-            content_preview="message 4", 
+            content_preview="message 4",
             uuid="uuid-4",
         ))
-        
+
         duration = calculate_active_duration(events)
-        # Only intervals <= 5 minutes: 3 + 4 = 7 minutes
-        assert duration == 7
+        # Only intervals <= 1 minute: 0.5 + 0.75 = 1.25 minutes
+        assert duration == 1
 
     def test_empty_events(self):
         """Test active duration with empty events list."""
@@ -175,7 +175,7 @@ class TestParseJsonlFile:
                     "uuid": "uuid-1"
                 },
                 {
-                    "timestamp": "2024-01-01T10:01:00Z", 
+                    "timestamp": "2024-01-01T10:01:00Z",
                     "sessionId": "session1",
                     "cwd": "/test/project",
                     "message": {
@@ -185,26 +185,26 @@ class TestParseJsonlFile:
                     "uuid": "uuid-2"
                 }
             ]
-            
+
             for data in test_data:
                 f.write(json.dumps(data) + '\n')
             f.flush()
-            
+
             try:
                 events = parse_jsonl_file(Path(f.name))
-                
+
                 assert len(events) == 2
-                
+
                 # Check first event
                 assert events[0].session_id == "session1"
                 assert events[0].directory == "/test/project"
                 assert events[0].message_type == "user"
                 assert "Hello Claude" in events[0].content_preview
-                
+
                 # Check second event
                 assert events[1].message_type == "assistant"
                 assert "Hello! How can I help you?" in events[1].content_preview
-                
+
             finally:
                 Path(f.name).unlink()
 
@@ -216,12 +216,12 @@ class TestParseJsonlFile:
             f.write('invalid json line\n')  # This should be skipped
             f.write('{"another": "valid", "timestamp": "2024-01-01T10:00:00Z", "role": "user"}\n')
             f.flush()
-            
+
             try:
                 events = parse_jsonl_file(Path(f.name))
                 # Should skip malformed lines and only return valid events with required fields
                 assert isinstance(events, list)
-                
+
             finally:
                 Path(f.name).unlink()
 
@@ -239,17 +239,17 @@ class TestLoadSessionsInTimerange:
         """Create sample JSONL files for testing."""
         files = []
         base_time = datetime.now()
-        
+
         # Create temporary directory structure similar to Claude projects
         temp_dir = Path(tempfile.mkdtemp())
         projects_dir = temp_dir / "projects"
         projects_dir.mkdir()
-        
+
         # Create project directories and JSONL files
         for i in range(2):
             project_dir = projects_dir / f"project_{i}"
             project_dir.mkdir()
-            
+
             jsonl_file = project_dir / f"session_{i}.jsonl"
             with jsonl_file.open('w') as f:
                 # Write events for this project
@@ -263,11 +263,11 @@ class TestLoadSessionsInTimerange:
                         "uuid": f"uuid-{i}-{j}"
                     }
                     f.write(json.dumps(event_data) + '\n')
-            
+
             files.append(jsonl_file)
-        
+
         yield temp_dir, files
-        
+
         # Cleanup
         import shutil
         shutil.rmtree(temp_dir)
@@ -275,25 +275,25 @@ class TestLoadSessionsInTimerange:
     def test_load_sessions_basic(self, sample_jsonl_files):
         """Test basic session loading."""
         temp_dir, files = sample_jsonl_files
-        
+
         # Mock the get_all_session_files function to return our test files
         import ccmonitor.claude_logs as claude_logs_module
         original_get_files = claude_logs_module.get_all_session_files
-        
+
         def mock_get_files():
             return files
-        
+
         claude_logs_module.get_all_session_files = mock_get_files
-        
+
         try:
             start_time = datetime.now() - timedelta(hours=1)
             end_time = datetime.now() + timedelta(hours=1)
-            
+
             timelines = load_sessions_in_timerange(start_time, end_time)
-            
+
             # Should return some timelines
             assert isinstance(timelines, list)
-            
+
             # Each timeline should have the required attributes
             for timeline in timelines:
                 assert hasattr(timeline, 'session_id')
@@ -301,7 +301,7 @@ class TestLoadSessionsInTimerange:
                 assert hasattr(timeline, 'events')
                 assert hasattr(timeline, 'active_duration_minutes')
                 assert isinstance(timeline.active_duration_minutes, int)
-                
+
         finally:
             # Restore original function
             claude_logs_module.get_all_session_files = original_get_files

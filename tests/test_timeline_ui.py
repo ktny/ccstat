@@ -1,8 +1,7 @@
 """Tests for timeline_ui module."""
 
-import io
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from rich.console import Console
@@ -24,7 +23,7 @@ class TestTimelineUI:
         """Create sample timeline for testing."""
         base_time = datetime.now()
         events = []
-        
+
         # Create some sample events
         for i in range(5):
             events.append(SessionEvent(
@@ -35,7 +34,7 @@ class TestTimelineUI:
                 content_preview=f"Test message {i}",
                 uuid=f"uuid-{i}",
             ))
-        
+
         return SessionTimeline(
             session_id="test_session",
             directory="/test/project",
@@ -55,9 +54,9 @@ class TestTimelineUI:
         start_time = datetime(2024, 1, 1, 10, 0, 0)
         end_time = datetime(2024, 1, 1, 14, 0, 0)
         session_count = 3
-        
+
         header = timeline_ui._create_header(start_time, end_time, session_count)
-        
+
         assert header is not None
         assert header.border_style == "blue"
 
@@ -66,11 +65,11 @@ class TestTimelineUI:
         start_time = sample_timeline.start_time
         end_time = sample_timeline.end_time
         width = 20
-        
+
         timeline_str = timeline_ui._create_timeline_string(
             sample_timeline, start_time, end_time, width
         )
-        
+
         # Should return a string of the specified width
         # Note: Rich markup tags make the actual length longer than visual width
         assert isinstance(timeline_str, str)
@@ -81,7 +80,7 @@ class TestTimelineUI:
         """Test timeline string creation with no events."""
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=1)
-        
+
         empty_timeline = SessionTimeline(
             session_id="empty",
             directory="/test",
@@ -91,11 +90,11 @@ class TestTimelineUI:
             end_time=end_time,
             active_duration_minutes=0,
         )
-        
+
         timeline_str = timeline_ui._create_timeline_string(
             empty_timeline, start_time, end_time, 20
         )
-        
+
         # Should return string with only idle markers (bright_black)
         assert isinstance(timeline_str, str)
         assert "bright_black" in timeline_str
@@ -105,11 +104,11 @@ class TestTimelineUI:
         start_time = datetime.now()
         end_time = start_time + timedelta(days=1)
         width = 60
-        
+
         unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
             start_time, end_time, width
         )
-        
+
         assert unit == "hour"
         assert interval == 3  # 3-hour intervals for 1 day
         assert format_str == "%H"
@@ -119,11 +118,11 @@ class TestTimelineUI:
         start_time = datetime.now()
         end_time = start_time + timedelta(days=2)
         width = 60
-        
+
         unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
             start_time, end_time, width
         )
-        
+
         assert unit == "hour"
         assert interval == 6  # 6-hour intervals for 2 days
         assert format_str == "%H"
@@ -133,11 +132,11 @@ class TestTimelineUI:
         start_time = datetime.now()
         end_time = start_time + timedelta(days=7)
         width = 60
-        
+
         unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
             start_time, end_time, width
         )
-        
+
         assert unit == "day"
         assert interval == 1  # 1-day intervals for 7 days
         assert format_str == "%m/%d"
@@ -147,11 +146,11 @@ class TestTimelineUI:
         start_time = datetime.now()
         end_time = start_time + timedelta(days=30)
         width = 60
-        
+
         unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
             start_time, end_time, width
         )
-        
+
         assert unit == "day"
         assert interval == 4  # 4-day intervals for 30 days
         assert format_str == "%m/%d"
@@ -161,11 +160,11 @@ class TestTimelineUI:
         start_time = datetime.now()
         end_time = start_time + timedelta(days=400)
         width = 60
-        
+
         unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(
             start_time, end_time, width
         )
-        
+
         assert unit == "year"
         assert interval == 365  # 1-year intervals
         assert format_str == "%Y"
@@ -175,9 +174,9 @@ class TestTimelineUI:
         start_time = datetime(2024, 1, 1, 0, 0, 0)
         end_time = datetime(2024, 1, 1, 12, 0, 0)
         width = 20
-        
+
         axis_str = timeline_ui._create_time_axis(start_time, end_time, width)
-        
+
         assert isinstance(axis_str, str)
         assert len(axis_str) == width
         # Should contain hour markers
@@ -188,18 +187,18 @@ class TestTimelineUI:
         start_time = datetime(2024, 1, 1, 0, 0, 0)
         end_time = datetime(2024, 1, 7, 0, 0, 0)
         width = 30
-        
+
         axis_str = timeline_ui._create_time_axis(start_time, end_time, width)
-        
+
         assert isinstance(axis_str, str)
         assert len(axis_str) == width
 
     def test_create_summary_text(self, timeline_ui, sample_timeline):
         """Test summary text creation."""
         timelines = [sample_timeline]
-        
+
         summary = timeline_ui.create_summary_text(timelines)
-        
+
         assert summary is not None
         # Convert to string to check content
         summary_str = str(summary)
@@ -211,7 +210,7 @@ class TestTimelineUI:
     def test_create_summary_text_empty(self, timeline_ui):
         """Test summary text creation with empty timeline list."""
         summary = timeline_ui.create_summary_text([])
-        
+
         # Should return empty text for empty list
         assert str(summary) == ""
 
@@ -220,9 +219,9 @@ class TestTimelineUI:
         timelines = [sample_timeline]
         start_time = sample_timeline.start_time
         end_time = sample_timeline.end_time
-        
+
         panel = timeline_ui._create_timeline_panel(timelines, start_time, end_time)
-        
+
         assert panel is not None
         assert panel.title == "Project Activity"
         assert panel.border_style == "cyan"
@@ -232,11 +231,11 @@ class TestTimelineUI:
         timelines = [sample_timeline]
         start_time = sample_timeline.start_time
         end_time = sample_timeline.end_time
-        
+
         with patch.object(timeline_ui.console, 'print') as mock_print:
             # Should not raise any exceptions
             timeline_ui.display_timeline(timelines, start_time, end_time)
-            
+
             # Verify console.print was called
             assert mock_print.called
 
@@ -244,10 +243,10 @@ class TestTimelineUI:
         """Test display_timeline with empty timeline list."""
         start_time = datetime.now()
         end_time = start_time + timedelta(hours=1)
-        
+
         with patch.object(timeline_ui.console, 'print') as mock_print:
             timeline_ui.display_timeline([], start_time, end_time)
-            
+
             # Should print "no sessions found" message
             assert mock_print.called
 
@@ -256,7 +255,7 @@ class TestTimelineUI:
         # Create timeline with varying event densities
         base_time = datetime.now()
         events = []
-        
+
         # Create clustered events (high density area)
         for i in range(10):
             events.append(SessionEvent(
@@ -267,7 +266,7 @@ class TestTimelineUI:
                 content_preview=f"Dense message {i}",
                 uuid=f"dense-{i}",
             ))
-        
+
         # Add sparse events
         for i in range(3):
             events.append(SessionEvent(
@@ -278,7 +277,7 @@ class TestTimelineUI:
                 content_preview=f"Sparse message {i}",
                 uuid=f"sparse-{i}",
             ))
-        
+
         dense_timeline = SessionTimeline(
             session_id="mixed_session",
             directory="/test",
@@ -288,11 +287,11 @@ class TestTimelineUI:
             end_time=base_time + timedelta(hours=2),
             active_duration_minutes=60,
         )
-        
+
         timeline_str = timeline_ui._create_timeline_string(
             dense_timeline, base_time, base_time + timedelta(hours=2), 40
         )
-        
+
         # Should contain different color codes for different density levels
         assert "color(22)" in timeline_str or "color(28)" in timeline_str or \
                "color(34)" in timeline_str or "color(40)" in timeline_str

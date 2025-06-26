@@ -438,9 +438,7 @@ class TimelineUI:
 
         # Calculate average project duration (both active and total)
         active_durations = [t.active_duration_minutes for t in timelines]
-        total_durations = [(t.end_time - t.start_time).total_seconds() / 60 for t in timelines]
         avg_active_duration = sum(active_durations) / len(active_durations) if active_durations else 0
-        avg_total_duration = sum(total_durations) / len(total_durations) if total_durations else 0
 
         # Create summary text
         summary_text = Text()
