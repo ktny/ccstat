@@ -1,0 +1,58 @@
+[package]
+name = "ccmonitor"
+version = "0.1.0"
+edition = "2021"
+authors = ["ktny"]
+description = "Claude Code process monitor with real-time visualization using Rust and ratatui"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/ktny/ccmonitor"
+
+[[bin]]
+name = "ccmonitor"
+path = "src/main.rs"
+
+[dependencies]
+# TUI framework
+ratatui = "0.28"
+crossterm = "0.28"
+
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+
+# Process monitoring
+sysinfo = "0.32"
+
+# Database
+duckdb = { version = "1.1", features = ["bundled"] }
+
+# CLI argument parsing
+clap = { version = "4.5", features = ["derive"] }
+
+# JSON parsing
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Date and time
+chrono = "0.4"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Home directory
+dirs = "5.0"
+
+[dev-dependencies]
+# Testing
+tempfile = "3.13"
+mockall = "0.13"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
