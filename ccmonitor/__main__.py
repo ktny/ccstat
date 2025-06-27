@@ -12,7 +12,7 @@ from ccmonitor.timeline_monitor import TimelineMonitor
     "-d",
     default=1,
     help="Number of days to look back (default: 1)",
-    type=int,
+    type=click.IntRange(min=1),
 )
 @click.option(
     "--hours",
