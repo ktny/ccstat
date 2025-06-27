@@ -49,7 +49,7 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
     """
     events = []
     filtered_count = 0  # Track messages filtered out
-    total_count = 0     # Track total messages processed
+    total_count = 0  # Track total messages processed
 
     try:
         with file_path.open("r", encoding="utf-8") as f:
@@ -114,7 +114,9 @@ def parse_jsonl_file(file_path: Path) -> list[SessionEvent]:
 
     # Log parsing summary
     if total_count > 0:
-        logger.debug(f"Parsed {file_path.name}: {len(events)} events included, {filtered_count} filtered out of {total_count} total messages")
+        logger.debug(
+            f"Parsed {file_path.name}: {len(events)} events included, {filtered_count} filtered out of {total_count} total messages"
+        )
 
     return events
 
@@ -150,8 +152,6 @@ def calculate_active_duration(events: list[SessionEvent]) -> int:
         # (this represents an inactive period)
 
     return int(active_minutes)
-
-
 
 
 def get_all_session_files() -> list[Path]:
@@ -334,9 +334,11 @@ def load_sessions_in_timerange(
                             break
 
                     if main_repo_dir:
-                        # Extract relative path from main repo
+                        # Extract relative path from main repo and use only the leaf directory name
                         relative_path = directory[len(main_repo_dir) :].lstrip("/")
-                        display_name = relative_path.replace("/", "-")
+                        display_name = (
+                            relative_path.split("/")[-1] if relative_path else directory.rstrip("/").split("/")[-1]
+                        )
                     else:
                         # Fallback to directory name
                         display_name = directory.rstrip("/").split("/")[-1]
