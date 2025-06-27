@@ -61,23 +61,6 @@ class TimelineUI:
         )
         return Panel(header_text, border_style="blue")
 
-    def _create_footer(self) -> Panel:
-        """Create footer panel with controls."""
-        footer_text = Text.assemble(
-            ("Activity Density: ", "bold"),
-            ("■", "bright_black"),
-            (" None  ", ""),
-            ("■", "color(22)"),
-            (" Low  ", ""),
-            ("■", "color(28)"),
-            (" Med  ", ""),
-            ("■", "color(34)"),
-            (" High  ", ""),
-            ("■", "color(40)"),
-            (" Max", ""),
-        )
-        return Panel(footer_text, border_style="green")
-
     def _create_timeline_panel(
         self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime
     ) -> Panel:
@@ -95,7 +78,7 @@ class TimelineUI:
         table = Table(show_header=True, box=None, padding=(0, 1))
 
         # Add columns
-        table.add_column("Project", style="blue", no_wrap=True, width=30)
+        table.add_column("Project", style="blue", no_wrap=True, min_width=10, max_width=30)
 
         # Create timeline column header with activity density legend
         timeline_header = Text.assemble(
