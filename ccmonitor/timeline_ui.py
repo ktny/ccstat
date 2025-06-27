@@ -216,7 +216,61 @@ class TimelineUI:
             min_spacing = 6  # For date display
         max_markers = width // min_spacing
 
-        if total_days <= 1:  # 1 day
+        if total_hours <= 2:  # 1-2 hours
+            # Use 15-minute intervals
+            intervals_needed = int(total_hours * 4) + 1  # 4 intervals per hour
+            if intervals_needed <= max_markers:
+                return ("minute", 15, "%H:%M")
+            else:
+                # Fall back to 30-minute intervals
+                return ("minute", 30, "%H:%M")
+        
+        elif total_hours <= 4:  # 3-4 hours
+            # Use 30-minute intervals
+            intervals_needed = int(total_hours * 2) + 1  # 2 intervals per hour
+            if intervals_needed <= max_markers:
+                return ("minute", 30, "%H:%M")
+            else:
+                # Fall back to 1-hour intervals
+                return ("hour", 1, "%H")
+        
+        elif total_hours <= 8:  # 5-8 hours
+            # Use 1-hour intervals
+            intervals_needed = int(total_hours) + 1
+            if intervals_needed <= max_markers:
+                return ("hour", 1, "%H")
+            else:
+                # Fall back to 2-hour intervals
+                return ("hour", 2, "%H")
+        
+        elif total_hours <= 12:  # 9-12 hours
+            # Use 2-hour intervals
+            intervals_needed = int(total_hours / 2) + 1
+            if intervals_needed <= max_markers:
+                return ("hour", 2, "%H")
+            else:
+                # Fall back to 3-hour intervals
+                return ("hour", 3, "%H")
+        
+        elif total_hours <= 18:  # 13-18 hours
+            # Use 3-hour intervals
+            intervals_needed = int(total_hours / 3) + 1
+            if intervals_needed <= max_markers:
+                return ("hour", 3, "%H")
+            else:
+                # Fall back to 4-hour intervals
+                return ("hour", 4, "%H")
+        
+        elif total_hours <= 24:  # 19-24 hours
+            # Use 4-hour intervals
+            intervals_needed = int(total_hours / 4) + 1
+            if intervals_needed <= max_markers:
+                return ("hour", 4, "%H")
+            else:
+                # Fall back to 6-hour intervals
+                return ("hour", 6, "%H")
+        
+        elif total_days <= 1:  # Fallback for exactly 1 day
             # Use 3-hour intervals: 00, 03, 06, 09, 12, 15, 18, 21
             intervals_needed = int(total_hours / 3) + 1
             if intervals_needed <= max_markers:
@@ -294,7 +348,27 @@ class TimelineUI:
         axis_chars = [" "] * width
         total_duration = (end_time - start_time).total_seconds()
 
-        if unit == "hour":
+        if unit == "minute":
+            # Minute-based markers
+            current_time = start_time.replace(second=0, microsecond=0)
+            # Align to interval boundaries (e.g., 14:00, 14:15, 14:30, 14:45)
+            minute_offset = (current_time.minute // interval_value) * interval_value
+            current_time = current_time.replace(minute=minute_offset)
+
+            while current_time <= end_time:
+                if current_time >= start_time:
+                    time_offset = (current_time - start_time).total_seconds()
+                    position = int((time_offset / total_duration) * (width - 1))
+
+                    if 0 <= position < width - 5:  # Leave space for HH:MM format (5 chars)
+                        label = current_time.strftime(format_string)
+                        for i, char in enumerate(label):
+                            if position + i < width:
+                                axis_chars[position + i] = char
+
+                current_time += timedelta(minutes=interval_value)
+
+        elif unit == "hour":
             # Hour-based markers
             current_time = start_time.replace(minute=0, second=0, microsecond=0)
             # Align to interval boundaries (e.g., 00:00, 06:00, 12:00, 18:00)

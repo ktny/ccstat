@@ -98,7 +98,7 @@ class TestTimelineUI:
         assert "bright_black" in timeline_str
 
     def test_determine_time_unit_and_interval_1_day(self, timeline_ui):
-        """Test time unit determination for 1 day."""
+        """Test time unit determination for 1 day (24 hours)."""
         start_time = datetime.now()
         end_time = start_time + timedelta(days=1)
         width = 60
@@ -106,7 +106,43 @@ class TestTimelineUI:
         unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
 
         assert unit == "hour"
-        assert interval == 3  # 3-hour intervals for 1 day
+        assert interval == 4  # 4-hour intervals for 24 hours (19-24 hour range)
+        assert format_str == "%H"
+
+    def test_determine_time_unit_and_interval_2_hours(self, timeline_ui):
+        """Test time unit determination for 2 hours."""
+        start_time = datetime.now()
+        end_time = start_time + timedelta(hours=2)
+        width = 60
+
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
+
+        assert unit == "minute"
+        assert interval == 15  # 15-minute intervals for 1-2 hours
+        assert format_str == "%H:%M"
+
+    def test_determine_time_unit_and_interval_4_hours(self, timeline_ui):
+        """Test time unit determination for 4 hours."""
+        start_time = datetime.now()
+        end_time = start_time + timedelta(hours=4)
+        width = 60
+
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
+
+        assert unit == "minute"
+        assert interval == 30  # 30-minute intervals for 3-4 hours
+        assert format_str == "%H:%M"
+
+    def test_determine_time_unit_and_interval_8_hours(self, timeline_ui):
+        """Test time unit determination for 8 hours."""
+        start_time = datetime.now()
+        end_time = start_time + timedelta(hours=8)
+        width = 60
+
+        unit, interval, format_str = timeline_ui._determine_time_unit_and_interval(start_time, end_time, width)
+
+        assert unit == "hour"
+        assert interval == 1  # 1-hour intervals for 5-8 hours
         assert format_str == "%H"
 
     def test_determine_time_unit_and_interval_2_days(self, timeline_ui):
