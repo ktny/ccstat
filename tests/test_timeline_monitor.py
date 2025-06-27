@@ -17,15 +17,17 @@ class TestTimelineMonitor:
         monitor = TimelineMonitor()
 
         assert monitor.days == 1
+        assert monitor.hours is None
         assert monitor.project is None
         assert monitor.threads is False
         assert isinstance(monitor.console, Console)
 
     def test_timeline_monitor_initialization_custom(self):
         """Test TimelineMonitor initialization with custom parameters."""
-        monitor = TimelineMonitor(days=7, project="test_project", threads=True)
+        monitor = TimelineMonitor(days=7, hours=12, project="test_project", threads=True)
 
         assert monitor.days == 7
+        assert monitor.hours == 12
         assert monitor.project == "test_project"
         assert monitor.threads is True
 
@@ -86,7 +88,7 @@ class TestTimelineMonitor:
 
     @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")
     def test_run_with_threads_mode(self, mock_load_sessions):
-        """Test run with threads mode enabled."""
+        """Test run with worktree mode enabled."""
         mock_load_sessions.return_value = []
 
         monitor = TimelineMonitor(days=5, threads=True)
@@ -137,6 +139,31 @@ class TestTimelineMonitor:
 
                 assert end_time == fixed_now
                 expected_start = fixed_now - timedelta(days=7)
+                assert start_time == expected_start
+
+    def test_time_range_calculation_hours(self):
+        """Test that time range calculation is correct for hours option."""
+        monitor = TimelineMonitor(hours=6)
+
+        # Patch datetime.now to control the current time
+        fixed_now = datetime(2024, 1, 15, 14, 30, 0)
+
+        with patch("ccmonitor.timeline_monitor.datetime") as mock_datetime:
+            mock_datetime.now.return_value = fixed_now
+
+            with patch("ccmonitor.timeline_monitor.load_sessions_in_timerange") as mock_load:
+                mock_load.return_value = []
+
+                with patch.object(monitor.console, "print"):
+                    with patch.object(monitor.console, "clear"):
+                        monitor.run()
+
+                # Check the time range passed to load_sessions_in_timerange
+                call_args = mock_load.call_args[0]
+                start_time, end_time = call_args
+
+                assert end_time == fixed_now
+                expected_start = fixed_now - timedelta(hours=6)
                 assert start_time == expected_start
 
     @patch("ccmonitor.timeline_monitor.load_sessions_in_timerange")

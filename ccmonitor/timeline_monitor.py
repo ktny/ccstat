@@ -11,15 +11,17 @@ from .timeline_ui import TimelineUI
 class TimelineMonitor:
     """Monitor for displaying Claude session timelines."""
 
-    def __init__(self, days: int = 1, project: str | None = None, threads: bool = False):
+    def __init__(self, days: int = 1, hours: int | None = None, project: str | None = None, threads: bool = False):
         """Initialize the timeline monitor.
 
         Args:
             days: Number of days to look back (default: 1)
+            hours: Number of hours to look back (overrides days if specified)
             project: Filter by specific project name (default: None)
-            threads: Show projects as threads (default: False)
+            threads: Show projects as worktree (default: False)
         """
         self.days = days
+        self.hours = hours
         self.project = project
         self.threads = threads
         self.console = Console()
@@ -31,12 +33,18 @@ class TimelineMonitor:
         now = datetime.now()
         # Use current time as end_time to include all recent events
         end_time = now
-        # Calculate start_time as exactly N days before end_time
-        start_time = end_time - timedelta(days=self.days)
+        
+        # Calculate start_time based on hours or days
+        if self.hours is not None:
+            start_time = end_time - timedelta(hours=self.hours)
+            time_unit = f"{self.hours} hours"
+        else:
+            start_time = end_time - timedelta(days=self.days)
+            time_unit = f"{self.days} days"
 
         try:
             # Load sessions in the time range
-            loading_msg = f"[dim]Loading Claude sessions from the last {self.days} days"
+            loading_msg = f"[dim]Loading Claude sessions from the last {time_unit}"
             if self.project:
                 loading_msg += f" (filtered by project: {self.project})"
             loading_msg += "...[/dim]"
