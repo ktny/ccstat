@@ -1,164 +1,169 @@
 # ccmonitor
 
-Claude Session Timeline - Claudeセッションの時系列可視化ツール
+Claude Session Timeline - CLI tool for visualizing Claude session activity patterns
 
-## 概要
+## Overview
 
-`ccmonitor`は、Claude Codeのセッション履歴を解析し、プロジェクト別の活動状況を時系列で可視化するCLIツールです。Claude Codeのログファイル（~/.claude/projects/）から情報を読み取り、プロジェクト毎の活動パターンやアクティブ時間を分析・表示します。
+`ccmonitor` is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format. It reads information from Claude Code log files (~/.claude/projects/) and analyzes and displays activity patterns and active time for each project.
 
-## 特徴
+## Features
 
-- 📊 **プロジェクト別活動表示**: 各プロジェクトの活動状況を時系列でビジュアル表示
-- 🕒 **アクティブ時間計算**: メッセージ間隔に基づく実際の作業時間を自動計算
-- 📈 **活動密度可視化**: 活動の密度に応じた色分け表示
-- 🗂️ **プロジェクト統合**: Git repositoryによるプロジェクトの自動グルーピング
-- 🧵 **スレッド表示**: 同一リポジトリ内の異なるディレクトリを階層表示
-- 📅 **期間フィルタ**: 指定日数分の活動履歴を表示
-- 🔍 **プロジェクトフィルタ**: 特定プロジェクトのみの表示
+- 📊 **Project Activity Display**: Visual timeline display of each project's activity status
+- 🕒 **Active Time Calculation**: Automatic calculation of actual work time based on message intervals
+- 📈 **Activity Density Visualization**: Color-coded display based on activity density
+- 🗂️ **Project Integration**: Automatic project grouping by Git repository
+- 🧵 **Worktree Display**: Hierarchical display of different directories within the same repository
+- 📅 **Period Filter**: Display activity history for specified number of days or hours
+- 🔍 **Project Filter**: Display only specific projects
 
-## インストール
+## Installation
 
-### uvを使用した開発環境セットアップ（推奨）
+### Development Environment Setup with uv (Recommended)
 
 ```bash
-# uvをインストール（初回のみ）
+# Install uv (first time only)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# リポジトリをクローン
+# Clone repository
 git clone https://github.com/ktny/ccmonitor.git
 cd ccmonitor
 
-# 依存関係をインストール
+# Install dependencies
 uv sync
 
-# 開発用インストール（エディタブルモード）
+# Development install (editable mode)
 uv pip install -e .
 ```
 
-### pipを使用した場合
+### Using pip
 
 ```bash
-# リポジトリをクローン
+# Clone repository
 git clone https://github.com/ktny/ccmonitor.git
 cd ccmonitor
 
-# 依存関係をインストール
+# Install dependencies
 pip install -r requirements.txt
 
-# または開発用インストール
+# Or development install
 pip install -e .
 ```
 
-## 使用方法
+## Usage
 
-### 基本的な使用方法
+### Basic Usage
 
 ```bash
-# 過去1日の活動を表示（デフォルト）
+# Display activity for the last 1 day (default)
 ccmonitor
 
-# 過去7日間の活動を表示
+# Display activity for the last 7 days
 ccmonitor --days 7
 ccmonitor -d 7
 
-# 特定プロジェクトのみフィルタ表示
+# Display activity for the last 6 hours
+ccmonitor --hours 6
+ccmonitor -t 6
+
+# Filter display by specific project
 ccmonitor --project myproject
 ccmonitor -p myproject
 
-# スレッド表示（同一リポジトリの異なるディレクトリを分離表示）
-ccmonitor --threads
-ccmonitor -t
+# Worktree display (separate directories within the same repository)
+ccmonitor --worktree
+ccmonitor -w
 
-# 複数オプションの組み合わせ
-ccmonitor --days 3 --project myproject --threads
-ccmonitor -d 3 -p myproject -t
+# Multiple option combinations
+ccmonitor --days 3 --project myproject --worktree
+ccmonitor -d 3 -p myproject -w
 
-# ヘルプ表示
+# Display help
 ccmonitor --help
 ccmonitor -h
 
-# バージョン表示
+# Display version
 ccmonitor --version
 ccmonitor -v
 ```
 
-### 表示内容の説明
+### Display Content Explanation
 
-#### Project Activityテーブル
-- **Project**: プロジェクト名（Git repository名またはディレクトリ名）
-- **Timeline**: 時系列での活動状況（活動密度により色分け）
-- **Events**: セッション内のメッセージ数
-- **Duration**: アクティブな作業時間（分単位）
+#### Project Activity Table
+- **Project**: Project name (Git repository name or directory name)
+- **Timeline**: Chronological activity status (color-coded by activity density)
+- **Events**: Number of messages in session
+- **Duration**: Active work time (in minutes)
 
-#### 活動密度の色分け
-- ■ (明るい黒): 低活動
-- ■ (緑系): 中程度の活動
-- ■ (黄～オレンジ系): 高活動
-- ■ (赤系): 非常に高い活動
+#### Activity Density Color Coding
+- ■ (bright black): Low activity
+- ■ (green): Moderate activity
+- ■ (yellow-orange): High activity
+- ■ (red): Very high activity
 
-#### 時間軸
-- 1日表示: 時間単位（0, 6, 12, 18時）
-- 複数日表示: 日付単位
+#### Time Axis
+- Hours display: Minute/hour intervals (15min, 30min, 1h, 2h, 3h, 4h based on range)
+- Single day display: Hour intervals (0, 6, 12, 18 hours)
+- Multiple days display: Date intervals
 
-### アクティブ時間の計算
+### Active Time Calculation
 
-メッセージ間の間隔が1分以内の場合のみアクティブ時間として計算されます。長時間の休憩は除外され、実際の作業時間のみが計測されます。
+Only time periods where message intervals are within 1 minute are calculated as active time. Long breaks are excluded, measuring only actual work time.
 
-## 開発
+## Development
 
-### 開発コマンド
+### Development Commands
 
 ```bash
-# コードフォーマットとリント
-uv run ruff check .       # リントチェック
-uv run ruff check . --fix # 自動修正
-uv run ruff format .      # コードフォーマット
+# Code formatting and linting
+uv run ruff check .       # Lint check
+uv run ruff check . --fix # Auto-fix
+uv run ruff format .      # Code formatting
 
-# 型チェック
+# Type checking
 uv run pyright
 
-# テスト実行
-uv run pytest                    # 全テスト実行
-uv run pytest -v               # 詳細表示
-uv run pytest --cov=ccmonitor  # カバレッジ付き
+# Test execution
+uv run pytest                    # Run all tests
+uv run pytest -v               # Verbose output
+uv run pytest --cov=ccmonitor  # With coverage
 
-# 単一のテストファイルを実行
+# Run single test file
 uv run pytest tests/test_claude_logs.py
 
-# 開発環境でのccmonitor実行
+# Run ccmonitor in development environment
 uv run ccmonitor
-uv run ccmonitor -d 7 -t
+uv run ccmonitor -d 7 -w
 ```
 
-### アーキテクチャ
+### Architecture
 
 ```
 ccmonitor/
-├── __main__.py          # エントリーポイント
-├── timeline_monitor.py  # メイン監視・制御ロジック
-├── claude_logs.py       # Claudeログファイル解析
-├── timeline_ui.py       # リッチUI表示コンポーネント
-├── git_utils.py         # Git repository情報取得
-└── utils.py            # ユーティリティ関数
+├── __main__.py          # Entry point
+├── timeline_monitor.py  # Main monitoring and control logic
+├── claude_logs.py       # Claude log file analysis
+├── timeline_ui.py       # Rich UI display components
+├── git_utils.py         # Git repository information retrieval
+└── utils.py            # Utility functions
 ```
 
-#### 主要コンポーネント
-- **claude_logs.py**: `~/.claude/projects/`のJSONLファイルを解析し、セッション情報を抽出
-- **timeline_ui.py**: Richライブラリを使用した美しいターミナル表示
-- **git_utils.py**: ディレクトリのGit repository情報を取得してプロジェクトをグルーピング
+#### Major Components
+- **claude_logs.py**: Analyzes JSONL files in `~/.claude/projects/` and extracts session information
+- **timeline_ui.py**: Beautiful terminal display using Rich library
+- **git_utils.py**: Retrieves Git repository information for directories and groups projects
 
-### データソース
+### Data Sources
 
-ccmonitorは以下のファイルからデータを読み取ります：
-- `~/.claude/projects/*/**.jsonl`: Claude Codeのセッションログ
-- 各JSONLファイルには、タイムスタンプ、セッションID、作業ディレクトリ、メッセージ内容などが記録
+ccmonitor reads data from the following files:
+- `~/.claude/projects/*/**.jsonl`: Claude Code session logs
+- Each JSONL file contains timestamps, session IDs, working directories, message content, etc.
 
-## 要件
+## Requirements
 
 - Python 3.12+
-- Claude Code（ログファイル生成のため）
-- Git（プロジェクト統合機能のため、推奨）
+- Claude Code (for log file generation)
+- Git (recommended for project integration functionality)
 
-## ライセンス
+## License
 
-このプロジェクトはMITライセンスの下で公開されています。
+This project is published under the MIT License.

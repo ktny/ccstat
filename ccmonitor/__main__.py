@@ -35,7 +35,7 @@ from ccmonitor.timeline_monitor import TimelineMonitor
 @click.version_option(__version__, "-v", "--version", prog_name="ccmonitor")
 @click.help_option("-h", "--help")
 def main(days: int, hours: int | None, project: str | None, worktree: bool) -> None:
-    """Claude Session Timeline - Claudeセッションの時系列可視化ツール."""
+    """Claude Session Timeline - CLI tool for visualizing Claude session activity patterns."""
     try:
         monitor = TimelineMonitor(days=days, hours=hours, project=project, threads=worktree)
         monitor.run()

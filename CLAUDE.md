@@ -2,173 +2,173 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## プロジェクト概要
+## Project Overview
 
-ccmonitorは、Claude Codeのセッション履歴を解析し、プロジェクト別の活動状況を時系列で可視化するCLIツールです。
+ccmonitor is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
 
-### 主な機能
-- Claude Codeのログファイル（~/.claude/projects/）から セッション情報を解析
-- プロジェクト別の活動パターンを時系列で視覚化
-- Input/Output tokenの使用量をプロジェクト別に集計・表示
-- メッセージ間隔に基づくアクティブ時間の自動計算（1分間隔閾値）
-- Git repositoryによるプロジェクトの自動統合・グルーピング
+### Key Features
+- Parses session information from Claude Code log files (~/.claude/projects/)
+- Visualizes project activity patterns in timeline format
+- Aggregates and displays Input/Output token usage by project
+- Automatically calculates active time based on message intervals (1-minute threshold)
+- Automatically integrates and groups projects by Git repository
 
-## 開発環境のセットアップ
+## Development Environment Setup
 
 ```bash
-# uvのインストール（初回のみ）
+# Install uv (first time only)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 依存関係のインストール
+# Install dependencies
 uv sync
 
-# 開発用インストール（エディタブルモード）
+# Development install (editable mode)
 uv pip install -e .
 ```
 
-## コマンド一覧
+## Command Reference
 
-### 実行コマンド
+### Execution Commands
 ```bash
-# 基本的な実行（過去1日）
+# Basic execution (last 1 day)
 ccmonitor
 
-# 過去N日間の活動を表示
+# Display activity for the last N days
 ccmonitor --days 7
 
-# 特定プロジェクトのみフィルタ表示
+# Filter display by specific project
 ccmonitor --project myproject
 
-# スレッド表示（同一リポジトリの異なるディレクトリを分離表示）
-ccmonitor --threads
+# Worktree display (separate directories within the same repository)
+ccmonitor --worktree
 
-# 複数オプションの組み合わせ
-ccmonitor --days 3 --project myproject --threads
+# Multiple option combinations
+ccmonitor --days 3 --project myproject --worktree
 
-# ヘルプ表示
+# Display help
 ccmonitor --help
 ```
 
-### 開発コマンド
+### Development Commands
 ```bash
-# コードフォーマットとリント
-uv run ruff check .       # リントチェック
-uv run ruff check . --fix # 自動修正
-uv run ruff format .      # コードフォーマット
+# Code formatting and linting
+uv run ruff check .       # Lint check
+uv run ruff check . --fix # Auto-fix
+uv run ruff format .      # Code formatting
 
-# 型チェック
+# Type checking
 uv run pyright
 
-# テスト実行
-uv run pytest                    # 全テスト実行
-uv run pytest -v               # 詳細表示
-uv run pytest --cov=ccmonitor  # カバレッジ付き
+# Test execution
+uv run pytest                    # Run all tests
+uv run pytest -v               # Verbose output
+uv run pytest --cov=ccmonitor  # With coverage
 
-# 単一のテストファイルを実行
+# Run single test file
 uv run pytest tests/test_claude_logs.py
 uv run pytest tests/test_claude_logs.py::TestCalculateActiveDuration
 
-# 開発環境でのccmonitor実行
+# Run ccmonitor in development environment
 uv run ccmonitor
-uv run ccmonitor --days 7 --threads
+uv run ccmonitor --days 7 --worktree
 ```
 
-## アーキテクチャ
+## Architecture
 
-### コア構造
+### Core Structure
 ```
 ccmonitor/
-├── __main__.py          # エントリーポイント
-├── timeline_monitor.py  # メイン監視・制御ロジック
-├── claude_logs.py       # Claudeログファイル解析
-├── timeline_ui.py       # リッチUI表示コンポーネント
-├── git_utils.py         # Git repository情報取得
-└── utils.py            # ユーティリティ関数（削除済み）
+├── __main__.py          # Entry point
+├── timeline_monitor.py  # Main monitoring and control logic
+├── claude_logs.py       # Claude log file analysis
+├── timeline_ui.py       # Rich UI display components
+├── git_utils.py         # Git repository information retrieval
+└── utils.py            # Utility functions (removed)
 ```
 
-### 主要コンポーネント
+### Major Components
 
-#### claude_logs.py - ログ解析エンジン
-- Claude Codeのセッションログ（~/.claude/projects/**.jsonl）をパース
-- `SessionEvent`: 個々のメッセージイベント（timestamp, tokens, content等）
-- `SessionTimeline`: プロジェクト毎のセッション集約（total tokens, active duration等）
-- `calculate_active_duration()`: 1分間隔閾値によるアクティブ時間計算
-- `calculate_token_totals()`: input/output tokenの集計
+#### claude_logs.py - Log Analysis Engine
+- Parses Claude Code session logs (~/.claude/projects/**.jsonl)
+- `SessionEvent`: Individual message events (timestamp, tokens, content, etc.)
+- `SessionTimeline`: Session aggregation by project (total tokens, active duration, etc.)
+- `calculate_active_duration()`: Active time calculation with 1-minute threshold
+- `calculate_token_totals()`: Input/output token aggregation
 
-#### timeline_ui.py - UI表示レイヤー
-- Richライブラリを使用した美しいターミナル表示
-- Project Activityテーブル: プロジェクト名、時系列視覚化、Events数、Input/Output tokens、Duration
-- 活動密度による色分け表示（低活動→高活動で色の濃さが変化）
-- 時間軸表示（1日表示時は時間単位、複数日時は日付単位）
+#### timeline_ui.py - UI Display Layer
+- Beautiful terminal display using Rich library
+- Project Activity table: Project name, timeline visualization, Events count, Input/Output tokens, Duration
+- Activity density color coding (low activity → high activity with increasing color intensity)
+- Time axis display (hourly for single day, daily for multiple days)
 
-#### timeline_monitor.py - 制御レイヤー
-- CLIオプションの処理（--days, --project, --threads）
-- ログ読み込み処理の制御とUI表示の管理
-- プロジェクトフィルタリング機能
+#### timeline_monitor.py - Control Layer
+- CLI option processing (--days, --project, --worktree)
+- Log loading process control and UI display management
+- Project filtering functionality
 
-#### git_utils.py - プロジェクト統合
-- ディレクトリのGit repository情報を取得
-- 同一リポジトリ内の異なるディレクトリを統合してプロジェクトとしてグルーピング
+#### git_utils.py - Project Integration
+- Retrieves Git repository information for directories
+- Integrates and groups different directories within the same repository as projects
 
-### データフロー
-1. `timeline_monitor.py` がCLIオプションを解析
-2. `claude_logs.py` が~/.claude/projects/下のJSONLファイルを読み込み
-3. セッションイベントをパースし、token情報と時刻情報を抽出
-4. `git_utils.py` でプロジェクト統合・グルーピング処理
-5. アクティブ時間とtoken集計を実行
-6. `timeline_ui.py` でRichを使った視覚化と表示
+### Data Flow
+1. `timeline_monitor.py` parses CLI options
+2. `claude_logs.py` loads JSONL files from ~/.claude/projects/
+3. Parses session events and extracts token and timestamp information
+4. `git_utils.py` performs project integration and grouping
+5. Executes active time and token aggregation
+6. `timeline_ui.py` provides visualization and display using Rich
 
-### 重要な依存関係
-- **Rich**: 美しいターミナルUI（テーブル、色分け、パネル）
-- **Click**: コマンドライン引数の処理
-- **pathlib/json**: ログファイルの読み込みと解析
+### Important Dependencies
+- **Rich**: Beautiful terminal UI (tables, color coding, panels)
+- **Click**: Command-line argument processing
+- **pathlib/json**: Log file loading and parsing
 
-### 設定とデータソース
-- **入力データ**: `~/.claude/projects/*/*.jsonl` （Claude Codeセッションログ）
-- **データ形式**: 各行がJSON形式のイベント（timestamp, sessionId, cwd, message, usage等）
-- **token情報**: assistantメッセージの`usage`フィールドから`input_tokens`と`output_tokens`を抽出
+### Configuration and Data Sources
+- **Input Data**: `~/.claude/projects/*/*.jsonl` (Claude Code session logs)
+- **Data Format**: Each line is a JSON event (timestamp, sessionId, cwd, message, usage, etc.)
+- **Token Information**: Extracts `input_tokens` and `output_tokens` from the `usage` field of assistant messages
 
-### アクティブ時間計算ロジック
-- メッセージ間の間隔が1分以内の場合のみアクティブ時間としてカウント
-- 長時間の休憩（>1分）は除外し、実際の作業時間のみを計測
-- 単一イベントの場合は最低5分として扱う
+### Active Time Calculation Logic
+- Only counts time as active when message intervals are within 1 minute
+- Excludes long breaks (>1 minute), measuring only actual work time
+- Treats single events as a minimum of 5 minutes
 
-## 開発のポイント
+## Development Guidelines
 
 ### TDD (Test-Driven Development)
-- 原則としてテスト駆動開発で進める
-- 新機能追加時は、まずテストを作成してから実装
-- 既存機能修正時も、関連テストを先に更新
+- Follow test-driven development principles
+- Create tests first when adding new features, then implement
+- Update related tests first when modifying existing features
 
-### Token情報の取扱い
-- cache_creation_input_tokensとcache_read_input_tokensは input_tokensに含めない
-- assistantメッセージのみtoken情報を持つ（userメッセージは0）
-- token表示は3桁区切り（1,000形式）、0の場合は「-」表示
+### Token Information Handling
+- cache_creation_input_tokens and cache_read_input_tokens are not included in input_tokens
+- Only assistant messages have token information (user messages are 0)
+- Token display uses thousands separators (1,000 format), displays "-" for 0
 
-### プロジェクト統合ロジック
-- Git repositoryの検出により同一プロジェクトをグルーピング
-- --threadsオプション時は同一リポジトリでもディレクトリ別に分離表示
-- 親子関係の表示（└─で子プロジェクトを示す）
+### Project Integration Logic
+- Groups same projects by detecting Git repositories
+- With --worktree option, displays directories separately even within the same repository
+- Shows parent-child relationships (└─ indicates child projects)
 
-## カスタムコマンド
+## Custom Commands
 
 ### `/project:worktree-task`
-`.worktree`配下にgit worktreeで新しいブランチを作成し、タスク完了後にPRまで作成するカスタムスラッシュコマンドです。
+A custom slash command that creates a new branch with git worktree under `.worktree` and creates a PR after task completion.
 
-#### 使用方法
-1. `/project:worktree-task` を実行
-2. タスクの説明を入力
-3. 自動的に新しいworktreeブランチが作成される
-4. 実装指示を与える
-5. 完了後、自動的にコミット・プッシュ・PR作成まで実行される
+#### Usage
+1. Execute `/project:worktree-task`
+2. Input task description
+3. A new worktree branch is automatically created
+4. Provide implementation instructions
+5. After completion, automatically executes commit, push, and PR creation
 
-#### 前提条件
-- GitHub CLIがセットアップされていること
-- リモートリポジトリへのプッシュ権限があること
+#### Prerequisites
+- GitHub CLI must be set up
+- Must have push permissions to remote repository
 
-#### ディレクトリ構造
+#### Directory Structure
 ```
 .worktree/
-├── feat-task-name-1221-1430/  # 各タスクのworktreeディレクトリ
-└── .gitignore                 # .worktree/は.gitignoreに追加済み
+├── feat-task-name-1221-1430/  # Each task's worktree directory
+└── .gitignore                 # .worktree/ is already added to .gitignore
 ```
