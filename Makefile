@@ -33,9 +33,19 @@ run-days: build
 run-hours: build
 	./$(OUTPUT) --hours 6
 
-# Test build without installing
+# Run tests
 .PHONY: test
 test:
+	go test -v ./...
+
+# Test coverage
+.PHONY: test-coverage
+test-coverage:
+	go test -v -cover ./...
+
+# Test build without installing
+.PHONY: test-build
+test-build:
 	go run ./cmd/ccmonitor --help
 
 # Install to $GOPATH/bin
@@ -51,6 +61,8 @@ help:
 	@echo "  run        - Build and run with default options"
 	@echo "  run-days   - Build and run with --days 2"
 	@echo "  run-hours  - Build and run with --hours 6"
-	@echo "  test       - Test build by running with --help"
+	@echo "  test       - Run Go tests"
+	@echo "  test-coverage - Run Go tests with coverage"
+	@echo "  test-build - Test build by running with --help"
 	@echo "  install    - Install to \$$GOPATH/bin"
 	@echo "  help       - Show this help message"
