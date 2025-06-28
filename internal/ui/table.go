@@ -92,14 +92,18 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 
 // createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths optimized for timeline display
-	projectWidth := 18
-	eventsWidth := 6
-	durationWidth := 8
-	// Give much more space to timeline - it's the main visual element
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12 // Account for padding and borders
-	if timelineWidth < 40 {
-		timelineWidth = 40
+	// Calculate column widths considering padding (padding is included in width)
+	projectWidth := 18   // Actual content width
+	eventsWidth := 6     // Actual content width
+	durationWidth := 8   // Actual content width
+	
+	// Calculate available space for timeline
+	// ui.width - other columns - table borders and spacing
+	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 16
+	
+	// Ensure minimum timeline width
+	if timelineWidth < 25 {
+		timelineWidth = 25
 	}
 
 	// Define style function for dynamic styling based on row and column
