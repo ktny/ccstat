@@ -167,3 +167,6 @@ bin/
 *.exe
 ccmonitor
 ccmonitor-*
+
+pyproject.toml
+uv.lock

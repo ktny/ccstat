@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -95,9 +96,11 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 	// Calculate column widths for table with external padding
 	projectWidth := 20
 	eventsWidth := 8
+	inTokensWidth := 8   // Input tokens column
+	outTokensWidth := 8  // Output tokens column
 	durationWidth := 10
-	// Account for table borders and external padding (1,2) = 4 horizontal + 4 borders
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12
+	// Account for table borders and external padding + new token columns
+	timelineWidth := ui.width - projectWidth - eventsWidth - inTokensWidth - outTokensWidth - durationWidth - 16
 	if timelineWidth < 25 {
 		timelineWidth = 25
 	}
@@ -113,7 +116,11 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 				return lipgloss.NewStyle().Width(timelineWidth).Bold(true).Padding(0, 1)
 			case 2: // Events column
 				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
-			case 3: // Duration column
+			case 3: // Input tokens column
+				return lipgloss.NewStyle().Width(inTokensWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1).Foreground(lipgloss.Color("10")) // Green
+			case 4: // Output tokens column
+				return lipgloss.NewStyle().Width(outTokensWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1).Foreground(lipgloss.Color("9")) // Red
+			case 5: // Duration column
 				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
 			}
 		}
@@ -126,7 +133,11 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			return lipgloss.NewStyle().Width(timelineWidth).Padding(0, 1)
 		case 2: // Events column
 			return lipgloss.NewStyle().Width(eventsWidth).Align(lipgloss.Right).Padding(0, 1)
-		case 3: // Duration column
+		case 3: // Input tokens column
+			return lipgloss.NewStyle().Width(inTokensWidth).Align(lipgloss.Right).Padding(0, 1)
+		case 4: // Output tokens column
+			return lipgloss.NewStyle().Width(outTokensWidth).Align(lipgloss.Right).Padding(0, 1)
+		case 5: // Duration column
 			return lipgloss.NewStyle().Width(durationWidth).Align(lipgloss.Right).Padding(0, 1)
 		}
 		return lipgloss.NewStyle()
@@ -140,11 +151,11 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		BorderRow(false).    // Disable row borders (except header)
 		BorderHeader(false). // Keep header separator
 		StyleFunc(styleFunc).
-		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
+		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "In", "Out", "Duration")
 
 	// Add time axis row
 	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth-2)
-	t.Row("", timeAxis, "", "")
+	t.Row("", timeAxis, "", "", "", "")
 
 	// Add data rows
 	for _, timeline := range timelines {
@@ -154,6 +165,10 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		// Format duration
 		durationStr := fmt.Sprintf("%dm", timeline.ActiveDurationMinutes)
 
+		// Format token counts with thousands separators
+		inputTokensStr := ui.formatTokenCount(timeline.TotalInputTokens)
+		outputTokensStr := ui.formatTokenCount(timeline.TotalOutputTokens)
+
 		// Handle project display with indentation for child projects
 		projectDisplay := timeline.ProjectName
 		if timeline.ParentProject != nil {
@@ -162,7 +177,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 
 		projectDisplay = truncate.StringWithTail(projectDisplay, uint(projectWidth-2), "…")
 
-		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
+		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), inputTokensStr, outputTokensStr, durationStr)
 	}
 
 	return t.String()
@@ -441,6 +456,30 @@ func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) st
 	return strings.Join(axisChars, "")
 }
 
+// formatTokenCount formats token counts with thousands separators, displays "-" for 0
+func (ui *TimelineUI) formatTokenCount(count int) string {
+	if count == 0 {
+		return "-"
+	}
+
+	// Add thousands separators
+	countStr := strconv.Itoa(count)
+	if len(countStr) <= 3 {
+		return countStr
+	}
+
+	// Add commas from right to left
+	var result strings.Builder
+	for i, digit := range countStr {
+		if i > 0 && (len(countStr)-i)%3 == 0 {
+			result.WriteString(",")
+		}
+		result.WriteRune(digit)
+	}
+
+	return result.String()
+}
+
 // createSummary creates the summary statistics text
 func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string {
 	if len(timelines) == 0 {
@@ -449,17 +488,23 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 
 	totalEvents := 0
 	totalDuration := 0
+	totalInputTokens := 0
+	totalOutputTokens := 0
 
 	for _, timeline := range timelines {
 		totalEvents += len(timeline.Events)
 		totalDuration += timeline.ActiveDurationMinutes
+		totalInputTokens += timeline.TotalInputTokens
+		totalOutputTokens += timeline.TotalOutputTokens
 	}
 
 	summary := fmt.Sprintf("\nSummary Statistics:\n"+
 		"  • Total Projects: %d\n"+
 		"  • Total Events: %d\n"+
+		"  • Total Input Tokens: %s\n"+
+		"  • Total Output Tokens: %s\n"+
 		"  • Total Duration: %d minutes",
-		len(timelines), totalEvents, totalDuration)
+		len(timelines), totalEvents, ui.formatTokenCount(totalInputTokens), ui.formatTokenCount(totalOutputTokens), totalDuration)
 
 	return HeaderStyle.Render(summary)
 }
