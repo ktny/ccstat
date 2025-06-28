@@ -35,6 +35,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
 	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
 	rootCmd.Flags().BoolVarP(&worktree, "worktree", "w", false, "Show projects as worktree (separate similar repos)")
+	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug output for troubleshooting")
 }
 
 func runMonitor() error {
