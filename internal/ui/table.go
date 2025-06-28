@@ -107,26 +107,26 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		if row == table.HeaderRow {
 			switch col {
 			case 0: // Project column
-				return ProjectStyle.Width(projectWidth).Bold(true)
+				return ProjectStyle.Width(projectWidth).Bold(true).Padding(0, 1)
 			case 1: // Timeline column
-				return lipgloss.NewStyle().Width(timelineWidth).Bold(true)
+				return lipgloss.NewStyle().Width(timelineWidth).Bold(true).Padding(0, 1)
 			case 2: // Events column
-				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right)
+				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
 			case 3: // Duration column
-				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right)
+				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
 			}
 		}
 
 		// Data row styling (no individual cell padding)
 		switch col {
 		case 0: // Project column
-			return lipgloss.NewStyle().Width(projectWidth)
+			return lipgloss.NewStyle().Width(projectWidth).Padding(0, 1)
 		case 1: // Timeline column
-			return lipgloss.NewStyle().Width(timelineWidth)
+			return lipgloss.NewStyle().Width(timelineWidth).Padding(0, 1)
 		case 2: // Events column
-			return lipgloss.NewStyle().Width(eventsWidth).Align(lipgloss.Right)
+			return lipgloss.NewStyle().Width(eventsWidth).Align(lipgloss.Right).Padding(0, 1)
 		case 3: // Duration column
-			return lipgloss.NewStyle().Width(durationWidth).Align(lipgloss.Right)
+			return lipgloss.NewStyle().Width(durationWidth).Align(lipgloss.Right).Padding(0, 1)
 		}
 		return lipgloss.NewStyle()
 	}
@@ -142,13 +142,13 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
 
 	// Add time axis row
-	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth)
+	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth-2)
 	t.Row("", timeAxis, "", "")
 
 	// Add data rows
 	for _, timeline := range timelines {
 		// Create timeline visualization with actual event density
-		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth)
+		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth-2)
 
 		// Format duration
 		durationStr := fmt.Sprintf("%dm", timeline.ActiveDurationMinutes)
@@ -160,7 +160,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		}
 
 		// Truncate project name if it's too long
-		projectDisplay = truncateString(projectDisplay, projectWidth)
+		projectDisplay = truncateString(projectDisplay, projectWidth-2)
 
 		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
 	}
