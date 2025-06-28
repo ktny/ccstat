@@ -76,8 +76,7 @@ func runMonitor() error {
 	timelineUI := ui.NewTimelineUI(width)
 	output := timelineUI.DisplayTimeline(timelines, startTime, endTime, timeUnit)
 
-	// Clear screen and display
-	fmt.Print("\033[2J\033[H") // Clear screen and move cursor to top
+	// Display result
 	fmt.Print(output)
 
 	return nil
