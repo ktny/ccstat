@@ -16,6 +16,7 @@ var (
 	hours    int
 	project  string
 	worktree bool
+	debug    bool
 )
 
 var rootCmd = &cobra.Command{
@@ -34,6 +35,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&hours, "hours", "t", 0, "Number of hours to look back (1-24, overrides --days)")
 	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
 	rootCmd.Flags().BoolVarP(&worktree, "worktree", "w", false, "Show projects as worktree (separate similar repos)")
+	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug output for troubleshooting")
 }
 
 func runMonitor() error {
@@ -61,7 +63,7 @@ func runMonitor() error {
 	fmt.Println(loadingMsg)
 
 	// Load sessions
-	timelines, err := claude.LoadSessionsInTimeRange(startTime, endTime, project, worktree)
+	timelines, err := claude.LoadSessionsInTimeRange(startTime, endTime, project, worktree, debug)
 	if err != nil {
 		return fmt.Errorf("failed to load sessions: %w", err)
 	}
