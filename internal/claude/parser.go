@@ -15,7 +15,7 @@ import (
 )
 
 // ParseJSONLFile parses a JSONL file and extracts session events
-func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
+func ParseJSONLFile(filePath string, debug bool) ([]*models.SessionEvent, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -26,7 +26,12 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 
 	var events []*models.SessionEvent
 	scanner := bufio.NewScanner(file)
+	// Increase buffer size to handle large JSON lines (1MB)
+	const maxScanTokenSize = 1024 * 1024
+	buf := make([]byte, maxScanTokenSize)
+	scanner.Buffer(buf, maxScanTokenSize)
 	lineNum := 0
+	skippedCount := 0
 
 	for scanner.Scan() {
 		lineNum++
@@ -38,18 +43,24 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(line), &data); err != nil {
 			// Skip malformed lines
+			skippedCount++
+			if debug && len(line) > 1000 {
+				fmt.Printf("DEBUG: Skipped line %d due to JSON error (line length: %d): %v\n", lineNum, len(line), err)
+			}
 			continue
 		}
 
 		// Extract timestamp
 		timestampStr, ok := data["timestamp"].(string)
 		if !ok {
+			skippedCount++
 			continue
 		}
 
 		// Parse ISO format timestamp and convert to local time
 		timestamp, err := time.Parse(time.RFC3339, timestampStr)
 		if err != nil {
+			skippedCount++
 			continue
 		}
 
@@ -94,6 +105,12 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 		return nil, err
 	}
 
+	// Debug: log if we skipped many lines
+	if debug && skippedCount > 0 {
+		fmt.Printf("DEBUG: File %s - Total lines: %d, Events parsed: %d, Skipped: %d\n",
+			filepath.Base(filePath), lineNum, len(events), skippedCount)
+	}
+
 	return events, nil
 }
 
@@ -104,27 +121,37 @@ func GetAllSessionFiles() ([]string, error) {
 		return nil, err
 	}
 
-	projectsDir := filepath.Join(homeDir, ".claude", "projects")
-
-	if _, err := os.Stat(projectsDir); os.IsNotExist(err) {
-		return []string{}, nil
+	// Check both possible directories
+	projectsDirs := []string{
+		filepath.Join(homeDir, ".claude", "projects"),
+		filepath.Join(homeDir, ".config", "claude", "projects"),
 	}
 
 	var jsonlFiles []string
 
-	err = filepath.Walk(projectsDir, func(path string, info os.FileInfo, err error) error {
+	for _, projectsDir := range projectsDirs {
+		if _, err := os.Stat(projectsDir); os.IsNotExist(err) {
+			continue
+		}
+
+		err = filepath.Walk(projectsDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !info.IsDir() && strings.HasSuffix(path, ".jsonl") {
+				jsonlFiles = append(jsonlFiles, path)
+			}
+
+			return nil
+		})
+
 		if err != nil {
-			return err
+			return nil, err
 		}
+	}
 
-		if !info.IsDir() && strings.HasSuffix(path, ".jsonl") {
-			jsonlFiles = append(jsonlFiles, path)
-		}
-
-		return nil
-	})
-
-	return jsonlFiles, err
+	return jsonlFiles, nil
 }
 
 // LoadSessionsInTimeRange loads all Claude sessions within a time range, grouped by project directory
@@ -135,6 +162,10 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	jsonlFiles, err := GetAllSessionFiles()
 	if err != nil {
 		return nil, err
+	}
+	
+	if debug {
+		fmt.Printf("DEBUG: Found %d JSONL files\n", len(jsonlFiles))
 	}
 
 	// Parse each file and collect events (with mtime filtering)
@@ -150,7 +181,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 			continue
 		}
 
-		events, err := ParseJSONLFile(filePath)
+		events, err := ParseJSONLFile(filePath, debug)
 		if err != nil {
 			continue // Skip files that can't be parsed
 		}
@@ -164,6 +195,13 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 		if !event.Timestamp.Before(startTime) && !event.Timestamp.After(endTime) {
 			filteredEvents = append(filteredEvents, event)
 		}
+	}
+	
+	if debug {
+		fmt.Printf("DEBUG: Total events parsed: %d\n", len(allEvents))
+		fmt.Printf("DEBUG: Events after time filter: %d\n", len(filteredEvents))
+		fmt.Printf("DEBUG: Time range: %s to %s\n", startTime.Format(time.RFC3339), endTime.Format(time.RFC3339))
+		fmt.Printf("DEBUG: Project filter: '%s'\n", projectFilter)
 	}
 
 	// Sort events by timestamp
@@ -183,13 +221,22 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 		for _, timeline := range timelines {
 			if strings.Contains(strings.ToLower(timeline.ProjectName), strings.ToLower(projectFilter)) {
 				filteredTimelines = append(filteredTimelines, timeline)
+				if debug {
+					fmt.Printf("DEBUG: Timeline '%s' matches filter '%s'\n", timeline.ProjectName, projectFilter)
+				}
+			} else if debug {
+				fmt.Printf("DEBUG: Timeline '%s' does NOT match filter '%s'\n", timeline.ProjectName, projectFilter)
 			}
+		}
+		if debug {
+			fmt.Printf("DEBUG: Total timelines: %d, Filtered timelines: %d\n", len(timelines), len(filteredTimelines))
 		}
 		return filteredTimelines, nil
 	}
 
 	return timelines, nil
 }
+
 
 // CalculateActiveDuration calculates active work duration based on event intervals
 func CalculateActiveDuration(events []*models.SessionEvent) int {
@@ -243,8 +290,9 @@ func groupEventsByProject(events []*models.SessionEvent, threads bool, debug boo
 
 // groupEventsByRepositoryConsolidated consolidates events by git repository (default mode)
 func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bool) ([]*models.SessionTimeline, error) {
-	// Group events by git repository, consolidating all directories of the same repo
-	repoEventMap := make(map[string][]*models.SessionEvent)
+	// First group events by directory, then by repository
+	directoryEventMap := make(map[string][]*models.SessionEvent)
+	repoDirectoryMap := make(map[string][]string)
 
 	for _, event := range events {
 		directory := event.Directory
@@ -274,30 +322,72 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bo
 			fmt.Printf("DEBUG: Final mapping: Directory '%s' -> Repository '%s' (events: %d)\n", directory, repoName, 1)
 		}
 
-		repoEventMap[repoName] = append(repoEventMap[repoName], event)
+		// Group by directory first
+		directoryEventMap[directory] = append(directoryEventMap[directory], event)
+
+		// Track which directories belong to which repository
+		found := false
+		for _, existingDir := range repoDirectoryMap[repoName] {
+			if existingDir == directory {
+				found = true
+				break
+			}
+		}
+		if !found {
+			repoDirectoryMap[repoName] = append(repoDirectoryMap[repoName], directory)
+		}
 	}
 
 	var timelines []*models.SessionTimeline
 
-	for repoName, repoEvents := range repoEventMap {
-		if len(repoEvents) == 0 {
+	for repoName, directories := range repoDirectoryMap {
+		if len(directories) == 0 {
 			continue
 		}
 
-		// Sort all events by timestamp
-		sort.Slice(repoEvents, func(i, j int) bool {
-			return repoEvents[i].Timestamp.Before(repoEvents[j].Timestamp)
+		// Collect all events from all directories
+		var allRepoEvents []*models.SessionEvent
+
+		// Collect events from all directories
+		for _, directory := range directories {
+			directoryEvents := directoryEventMap[directory]
+			if len(directoryEvents) == 0 {
+				continue
+			}
+
+			// Add to all events
+			allRepoEvents = append(allRepoEvents, directoryEvents...)
+
+			if debug {
+				fmt.Printf("DEBUG: Directory '%s' has %d events\n", directory, len(directoryEvents))
+			}
+		}
+
+		if len(allRepoEvents) == 0 {
+			continue
+		}
+
+		// Sort all events by timestamp for proper start/end time calculation
+		sort.Slice(allRepoEvents, func(i, j int) bool {
+			return allRepoEvents[i].Timestamp.Before(allRepoEvents[j].Timestamp)
 		})
+
+		// Calculate total duration from all consolidated events
+		totalDuration := CalculateActiveDuration(allRepoEvents)
 
 		// Create consolidated timeline for this repository
 		timeline := &models.SessionTimeline{
 			SessionID:             fmt.Sprintf("repo_%s", repoName),
 			Directory:             "", // No specific directory for consolidated repo
 			ProjectName:           repoName,
-			Events:                repoEvents,
-			StartTime:             repoEvents[0].Timestamp,
-			EndTime:               repoEvents[len(repoEvents)-1].Timestamp,
-			ActiveDurationMinutes: CalculateActiveDuration(repoEvents),
+			Events:                allRepoEvents,
+			StartTime:             allRepoEvents[0].Timestamp,
+			EndTime:               allRepoEvents[len(allRepoEvents)-1].Timestamp,
+			ActiveDurationMinutes: totalDuration, // Use calculated duration from all events
+		}
+
+		if debug {
+			fmt.Printf("DEBUG: Repository '%s' total events: %d, total duration: %d minutes (from %d directories)\n", repoName, len(allRepoEvents), totalDuration, len(directories))
 		}
 
 		timelines = append(timelines, timeline)
