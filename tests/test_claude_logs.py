@@ -109,7 +109,7 @@ class TestCalculateActiveDuration:
         assert duration == 1
 
     def test_with_inactive_periods(self):
-        """Test active duration with inactive periods (intervals > 1 minute)."""
+        """Test active duration with inactive periods (intervals > 3 minutes)."""
         base_time = datetime.now()
         events = []
 
@@ -135,11 +135,11 @@ class TestCalculateActiveDuration:
             )
         )
 
-        # Long gap (3 minutes - exceeds 1-minute threshold)
+        # Long gap (4 minutes - exceeds 3-minute threshold)
         # Second cluster: 2 events 45 seconds apart
         events.append(
             SessionEvent(
-                timestamp=base_time + timedelta(minutes=3, seconds=30),
+                timestamp=base_time + timedelta(minutes=4, seconds=30),
                 session_id="test",
                 directory="/test",
                 message_type="user",
@@ -149,7 +149,7 @@ class TestCalculateActiveDuration:
         )
         events.append(
             SessionEvent(
-                timestamp=base_time + timedelta(minutes=4, seconds=15),
+                timestamp=base_time + timedelta(minutes=5, seconds=15),
                 session_id="test",
                 directory="/test",
                 message_type="assistant",
@@ -159,7 +159,7 @@ class TestCalculateActiveDuration:
         )
 
         duration = calculate_active_duration(events)
-        # Only intervals <= 1 minute: 0.5 + 0.75 = 1.25 minutes
+        # Only intervals <= 3 minutes: 0.5 + 0.75 = 1.25 minutes
         assert duration == 1
 
     def test_empty_events(self):
