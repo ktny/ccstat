@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Build binaries
+      run: |
+        # Linux amd64
+        GOOS=linux GOARCH=amd64 go build -o ccmonitor-linux-amd64 ./cmd/ccmonitor
+        
+        # Linux arm64
+        GOOS=linux GOARCH=arm64 go build -o ccmonitor-linux-arm64 ./cmd/ccmonitor
+        
+        # Windows amd64
+        GOOS=windows GOARCH=amd64 go build -o ccmonitor-windows-amd64.exe ./cmd/ccmonitor
+        
+        # macOS amd64
+        GOOS=darwin GOARCH=amd64 go build -o ccmonitor-darwin-amd64 ./cmd/ccmonitor
+        
+        # macOS arm64 (Apple Silicon)
+        GOOS=darwin GOARCH=arm64 go build -o ccmonitor-darwin-arm64 ./cmd/ccmonitor
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ccmonitor-linux-amd64
+          ccmonitor-linux-arm64
+          ccmonitor-windows-amd64.exe
+          ccmonitor-darwin-amd64
+          ccmonitor-darwin-arm64
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
