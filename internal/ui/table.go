@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ktny/ccmonitor/pkg/models"
 )
@@ -89,31 +90,31 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 	return PanelStyle.Render(headerText)
 }
 
-// createTimelineTable creates the main timeline visualization table
+// createTimelineTable creates the main timeline visualization table using bubbles/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths
+	// Calculate column widths with better spacing
 	projectWidth := 20
-	eventsWidth := 6
-	durationWidth := 8
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 10 // Account for padding and borders
-	if timelineWidth < 20 {
-		timelineWidth = 20
+	eventsWidth := 8
+	durationWidth := 10
+	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 15 // Account for padding and borders
+	if timelineWidth < 30 {
+		timelineWidth = 30
 	}
 
-	var rows []string
+	// Create table columns
+	columns := []table.Column{
+		{Title: ProjectStyle.Render("Project"), Width: projectWidth},
+		{Title: ui.createTimelineHeader(timelineWidth), Width: timelineWidth},
+		{Title: EventsStyle.Render("Events"), Width: eventsWidth},
+		{Title: DurationStyle.Render("Duration"), Width: durationWidth},
+	}
 
-	// Create table header
-	header := ui.createTableHeader(projectWidth, timelineWidth, eventsWidth, durationWidth)
-	rows = append(rows, header)
+	// Create table rows
+	var rows []table.Row
 
-	// Create time axis row
+	// Add time axis row
 	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth)
-	timeAxisRow := fmt.Sprintf("%-*s %s %*s %*s",
-		projectWidth, "",
-		timeAxis,
-		eventsWidth, "",
-		durationWidth, "")
-	rows = append(rows, timeAxisRow)
+	rows = append(rows, table.Row{"", timeAxis, "", ""})
 
 	// Create data rows
 	for _, timeline := range timelines {
@@ -132,24 +133,47 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		// Truncate project name if it's too long
 		projectDisplay = truncateString(projectDisplay, projectWidth)
 
-		row := fmt.Sprintf("%-*s %s %*d %*s",
-			projectWidth, projectDisplay,
+		row := table.Row{
+			projectDisplay,
 			timelineStr,
-			eventsWidth, len(timeline.Events),
-			durationWidth, durationStr)
-
+			fmt.Sprintf("%d", len(timeline.Events)),
+			durationStr,
+		}
 		rows = append(rows, row)
 	}
 
-	// Create the table panel
-	tableContent := strings.Join(rows, "\n")
+	// Create and configure the table
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithRows(rows),
+		table.WithFocused(false),
+		table.WithHeight(len(rows)+1), // +1 for header
+	)
+
+	// Apply styling
+	tableStyle := table.DefaultStyles()
+	tableStyle.Header = tableStyle.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("14")).
+		BorderBottom(true).
+		Bold(false)
+	tableStyle.Selected = tableStyle.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+
+	t.SetStyles(tableStyle)
+
+	// Render the table
+	tableContent := t.View()
+
 	return PanelStyle.
 		BorderForeground(lipgloss.Color("14")).
 		Render(tableContent)
 }
 
-// createTableHeader creates the table header with column names and activity legend
-func (ui *TimelineUI) createTableHeader(projectWidth, timelineWidth, eventsWidth, durationWidth int) string {
+// createTimelineHeader creates the timeline column header with activity legend
+func (ui *TimelineUI) createTimelineHeader(timelineWidth int) string {
 	// Create timeline header with activity density legend (without styles first)
 	baseTimelineHeader := "Timeline "
 	activityLegend := ""
@@ -178,11 +202,7 @@ func (ui *TimelineUI) createTableHeader(projectWidth, timelineWidth, eventsWidth
 		timelineHeader += strings.Repeat(" ", paddingLength)
 	}
 
-	return fmt.Sprintf("%-*s %s %*s %*s",
-		projectWidth, ProjectStyle.Render("Project"),
-		timelineHeader,
-		eventsWidth, EventsStyle.Render("Events"),
-		durationWidth, DurationStyle.Render("Duration"))
+	return timelineHeader
 }
 
 // createTimelineString creates a visual timeline string with density-based display
