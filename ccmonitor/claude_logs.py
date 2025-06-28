@@ -196,10 +196,6 @@ def load_sessions_in_timerange(
     jsonl_files = get_all_session_files()
 
     # Parse each file and collect events (with mtime filtering)
-    total_files = len(jsonl_files)
-    skipped_files = 0
-    processed_files = 0
-
     for file_path in jsonl_files:
         # Check file modification time for performance optimization
         file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
@@ -207,20 +203,13 @@ def load_sessions_in_timerange(
         # Skip files that were last modified before the start time
         # If a file hasn't been modified since before start_time, it cannot contain events within our time range
         if file_mtime < start_time:
-            skipped_files += 1
             continue
         
         events = parse_jsonl_file(file_path)
         all_events.extend(events)
-        processed_files += 1
 
     # Filter events by time range
     filtered_events = [event for event in all_events if start_time <= event.timestamp <= end_time]
-
-    # Performance optimization debug info
-    if skipped_files > 0:
-        time_range_str = f"{start_time.strftime('%Y-%m-%d %H:%M')} to {end_time.strftime('%Y-%m-%d %H:%M')}"
-        print(f"Performance optimization: Skipped {skipped_files}/{total_files} files based on modification time for range {time_range_str}")
 
     # Sort events by timestamp
     filtered_events.sort(key=lambda e: e.timestamp)
