@@ -133,10 +133,13 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		return baseStyle
 	}
 
-	// Create the table with styling
+	// Create the table with styling (no inner borders)
 	t := table.New().
 		Border(lipgloss.RoundedBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("14"))).
+		BorderColumn(false). // Disable column borders
+		BorderRow(false).    // Disable row borders (except header)
+		BorderHeader(true).  // Keep header separator
 		StyleFunc(styleFunc).
 		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
 
