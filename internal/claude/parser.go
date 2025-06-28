@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ktny/ccmonitor/internal/git"
 	"github.com/ktny/ccmonitor/pkg/models"
 )
 
@@ -125,7 +126,7 @@ func GetAllSessionFiles() ([]string, error) {
 }
 
 // LoadSessionsInTimeRange loads all Claude sessions within a time range, grouped by project directory
-func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string, threads bool) ([]*models.SessionTimeline, error) {
+func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string, threads bool, debug bool) ([]*models.SessionTimeline, error) {
 	var allEvents []*models.SessionEvent
 
 	// Get all JSONL files
@@ -169,7 +170,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	})
 
 	// Group events by project directory
-	timelines, err := groupEventsByProject(filteredEvents, threads)
+	timelines, err := groupEventsByProject(filteredEvents, threads, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -227,46 +228,74 @@ func getStringValue(data map[string]interface{}, key string) string {
 	return ""
 }
 
-// groupEventsByProject groups events by project directory
-func groupEventsByProject(events []*models.SessionEvent, threads bool) ([]*models.SessionTimeline, error) {
-	// This is a simplified version - we'll implement the full grouping logic later
-	// For now, just group by directory
-	projectMap := make(map[string][]*models.SessionEvent)
+// groupEventsByProject groups events by project directory or git repository based on threads flag
+func groupEventsByProject(events []*models.SessionEvent, threads bool, debug bool) ([]*models.SessionTimeline, error) {
+	if threads {
+		// threads=true (worktree mode): group by git repository with child project support
+		return groupEventsByRepositoryWithChildren(events, debug)
+	} else {
+		// threads=false (default): consolidate by git repository
+		return groupEventsByRepositoryConsolidated(events, debug)
+	}
+}
+
+// groupEventsByRepositoryConsolidated consolidates events by git repository (default mode)
+func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bool) ([]*models.SessionTimeline, error) {
+	// Group events by git repository, consolidating all directories of the same repo
+	repoEventMap := make(map[string][]*models.SessionEvent)
 
 	for _, event := range events {
 		directory := event.Directory
 		if directory == "" {
 			directory = "unknown"
 		}
-		projectMap[directory] = append(projectMap[directory], event)
+
+		// Get repository name for this directory
+		repoName := git.GetRepositoryName(directory)
+		if debug {
+			fmt.Printf("DEBUG: Directory '%s' -> git.GetRepositoryName() = '%s'\n", directory, repoName)
+		}
+		if repoName == "" {
+			// Try to find parent repository by walking up the directory tree
+			repoName = findParentRepository(directory)
+			if debug {
+				fmt.Printf("DEBUG: Directory '%s' -> findParentRepository() = '%s'\n", directory, repoName)
+			}
+			if repoName == "" {
+				repoName = filepath.Base(directory) // fallback to directory name
+				if debug {
+					fmt.Printf("DEBUG: Directory '%s' -> fallback to base name = '%s'\n", directory, repoName)
+				}
+			}
+		}
+		if debug {
+			fmt.Printf("DEBUG: Final mapping: Directory '%s' -> Repository '%s' (events: %d)\n", directory, repoName, 1)
+		}
+
+		repoEventMap[repoName] = append(repoEventMap[repoName], event)
 	}
 
 	var timelines []*models.SessionTimeline
 
-	for directory, projectEvents := range projectMap {
-		if len(projectEvents) == 0 {
+	for repoName, repoEvents := range repoEventMap {
+		if len(repoEvents) == 0 {
 			continue
 		}
 
-		// Sort events by timestamp
-		sort.Slice(projectEvents, func(i, j int) bool {
-			return projectEvents[i].Timestamp.Before(projectEvents[j].Timestamp)
+		// Sort all events by timestamp
+		sort.Slice(repoEvents, func(i, j int) bool {
+			return repoEvents[i].Timestamp.Before(repoEvents[j].Timestamp)
 		})
 
-		// Use directory name as project name (simplified)
-		projectName := filepath.Base(directory)
-		if projectName == "" || projectName == "." {
-			projectName = "unknown"
-		}
-
+		// Create consolidated timeline for this repository
 		timeline := &models.SessionTimeline{
-			SessionID:             fmt.Sprintf("dir_%s", directory),
-			Directory:             directory,
-			ProjectName:           projectName,
-			Events:                projectEvents,
-			StartTime:             projectEvents[0].Timestamp,
-			EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
-			ActiveDurationMinutes: CalculateActiveDuration(projectEvents),
+			SessionID:             fmt.Sprintf("repo_%s", repoName),
+			Directory:             "", // No specific directory for consolidated repo
+			ProjectName:           repoName,
+			Events:                repoEvents,
+			StartTime:             repoEvents[0].Timestamp,
+			EndTime:               repoEvents[len(repoEvents)-1].Timestamp,
+			ActiveDurationMinutes: CalculateActiveDuration(repoEvents),
 		}
 
 		timelines = append(timelines, timeline)
@@ -278,4 +307,279 @@ func groupEventsByProject(events []*models.SessionEvent, threads bool) ([]*model
 	})
 
 	return timelines, nil
+}
+
+// findParentRepository walks up the directory tree to find a parent git repository
+func findParentRepository(directory string) string {
+	// Clean the directory path
+	cleanPath := filepath.Clean(directory)
+
+	// Walk up the directory tree
+	for {
+		parentDir := filepath.Dir(cleanPath)
+
+		// If we've reached the root or can't go further up, stop
+		if parentDir == cleanPath || parentDir == "/" || parentDir == "." {
+			break
+		}
+
+		// Try to get repository name from parent directory
+		repoName := git.GetRepositoryName(parentDir)
+		if repoName != "" {
+			return repoName
+		}
+
+		cleanPath = parentDir
+	}
+
+	return ""
+}
+
+// findMainRepositoryDirectory identifies the main repository directory from a list of directories
+func findMainRepositoryDirectory(directories []string) string {
+	if len(directories) == 0 {
+		return ""
+	}
+
+	// Sort by path length to prioritize shorter paths (likely main directories)
+	sort.Slice(directories, func(i, j int) bool {
+		return len(directories[i]) < len(directories[j])
+	})
+
+	for _, dir := range directories {
+		// Prefer directories that directly contain .git (not worktree subdirectories)
+		gitPath := filepath.Join(dir, ".git")
+		if info, err := os.Stat(gitPath); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+
+	// If no direct .git directory found, return the shortest path
+	return directories[0]
+}
+
+// generateChildProjectName generates a meaningful name for child projects
+func generateChildProjectName(childDir, parentDir string) string {
+	// Try to extract a meaningful name from the path difference
+	relPath, err := filepath.Rel(parentDir, childDir)
+	if err != nil {
+		return filepath.Base(childDir)
+	}
+
+	// Remove common prefixes like .worktree/
+	relPath = strings.TrimPrefix(relPath, ".worktree/")
+	relPath = strings.TrimPrefix(relPath, ".git/worktrees/")
+
+	// If the relative path has multiple components, use the last meaningful part
+	parts := strings.Split(relPath, string(filepath.Separator))
+	if len(parts) > 0 && parts[len(parts)-1] != "" {
+		return parts[len(parts)-1]
+	}
+
+	return filepath.Base(childDir)
+}
+
+// groupEventsByRepositoryWithChildren groups events by git repository with child project support (worktree mode)
+func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bool) ([]*models.SessionTimeline, error) {
+	// First, group by directory to collect events
+	directoryMap := make(map[string][]*models.SessionEvent)
+
+	for _, event := range events {
+		directory := event.Directory
+		if directory == "" {
+			directory = "unknown"
+		}
+		directoryMap[directory] = append(directoryMap[directory], event)
+	}
+
+	// Then, group directories by git repository
+	repoMap := make(map[string]map[string][]*models.SessionEvent)
+	directoryToRepo := make(map[string]string)
+
+	for directory, directoryEvents := range directoryMap {
+		repoName := git.GetRepositoryName(directory)
+		if debug {
+			fmt.Printf("DEBUG: Directory '%s' -> git.GetRepositoryName() = '%s'\n", directory, repoName)
+		}
+
+		if repoName == "" {
+			// Try to find parent repository by walking up the directory tree
+			repoName = findParentRepository(directory)
+			if debug {
+				fmt.Printf("DEBUG: Directory '%s' -> findParentRepository() = '%s'\n", directory, repoName)
+			}
+
+			if repoName == "" {
+				repoName = filepath.Base(directory) // fallback to directory name
+				if debug {
+					fmt.Printf("DEBUG: Directory '%s' -> fallback to base name = '%s'\n", directory, repoName)
+				}
+			}
+		}
+		if debug {
+			fmt.Printf("DEBUG: Final mapping: Directory '%s' -> Repository '%s' (events: %d)\n", directory, repoName, len(directoryEvents))
+		}
+
+		if repoMap[repoName] == nil {
+			repoMap[repoName] = make(map[string][]*models.SessionEvent)
+		}
+		repoMap[repoName][directory] = directoryEvents
+		directoryToRepo[directory] = repoName
+	}
+
+	var timelines []*models.SessionTimeline
+
+	for repoName, repoDirs := range repoMap {
+		// If only one directory in this repo, treat as single project
+		if len(repoDirs) == 1 {
+			for directory, projectEvents := range repoDirs {
+				if len(projectEvents) == 0 {
+					continue
+				}
+
+				// Sort events by timestamp
+				sort.Slice(projectEvents, func(i, j int) bool {
+					return projectEvents[i].Timestamp.Before(projectEvents[j].Timestamp)
+				})
+
+				timeline := &models.SessionTimeline{
+					SessionID:             fmt.Sprintf("repo_%s", repoName),
+					Directory:             directory,
+					ProjectName:           repoName,
+					Events:                projectEvents,
+					StartTime:             projectEvents[0].Timestamp,
+					EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
+					ActiveDurationMinutes: CalculateActiveDuration(projectEvents),
+				}
+
+				timelines = append(timelines, timeline)
+			}
+		} else {
+			// Multiple directories in same repo: create parent and child projects
+			// First, identify the main repository directory
+			var directories []string
+			for directory := range repoDirs {
+				directories = append(directories, directory)
+			}
+
+			mainDir := findMainRepositoryDirectory(directories)
+			mainDirEvents, hasMainDir := repoDirs[mainDir]
+
+			// Create parent project with main directory events only
+			if hasMainDir && len(mainDirEvents) > 0 {
+				// Sort events by timestamp
+				sort.Slice(mainDirEvents, func(i, j int) bool {
+					return mainDirEvents[i].Timestamp.Before(mainDirEvents[j].Timestamp)
+				})
+
+				parentTimeline := &models.SessionTimeline{
+					SessionID:             fmt.Sprintf("repo_%s", repoName),
+					Directory:             mainDir,
+					ProjectName:           repoName,
+					Events:                mainDirEvents,
+					StartTime:             mainDirEvents[0].Timestamp,
+					EndTime:               mainDirEvents[len(mainDirEvents)-1].Timestamp,
+					ActiveDurationMinutes: CalculateActiveDuration(mainDirEvents),
+				}
+
+				timelines = append(timelines, parentTimeline)
+			}
+
+			// Then, create child projects for non-main directories
+			for directory, projectEvents := range repoDirs {
+				// Skip the main directory (already processed as parent)
+				if directory == mainDir {
+					continue
+				}
+
+				if len(projectEvents) == 0 {
+					continue
+				}
+
+				// Sort events by timestamp
+				sort.Slice(projectEvents, func(i, j int) bool {
+					return projectEvents[i].Timestamp.Before(projectEvents[j].Timestamp)
+				})
+
+				// Generate meaningful child project name
+				childName := generateChildProjectName(directory, mainDir)
+
+				// Skip if child has the same name as parent (avoid duplication)
+				if childName == repoName {
+					continue
+				}
+
+				childTimeline := &models.SessionTimeline{
+					SessionID:             fmt.Sprintf("dir_%s", directory),
+					Directory:             directory,
+					ProjectName:           childName,
+					Events:                projectEvents,
+					StartTime:             projectEvents[0].Timestamp,
+					EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
+					ActiveDurationMinutes: CalculateActiveDuration(projectEvents),
+					ParentProject:         &repoName, // Set parent project name
+				}
+
+				timelines = append(timelines, childTimeline)
+			}
+		}
+	}
+
+	// Sort by parent-child relationships first, then by event count
+	return sortTimelinesWithProperHierarchy(timelines, debug), nil
+}
+
+// sortTimelinesWithProperHierarchy sorts timelines maintaining proper parent-child relationships
+func sortTimelinesWithProperHierarchy(timelines []*models.SessionTimeline, debug bool) []*models.SessionTimeline {
+	// Group timelines by parent-child relationships
+	parentProjects := make([]*models.SessionTimeline, 0)
+	childProjectsMap := make(map[string][]*models.SessionTimeline)
+
+	for _, timeline := range timelines {
+		if timeline.ParentProject == nil {
+			// This is a parent project
+			parentProjects = append(parentProjects, timeline)
+			if debug {
+				fmt.Printf("DEBUG: Parent project: '%s' (events: %d)\n", timeline.ProjectName, len(timeline.Events))
+			}
+		} else {
+			// This is a child project
+			parentName := *timeline.ParentProject
+			if childProjectsMap[parentName] == nil {
+				childProjectsMap[parentName] = make([]*models.SessionTimeline, 0)
+			}
+			childProjectsMap[parentName] = append(childProjectsMap[parentName], timeline)
+			if debug {
+				fmt.Printf("DEBUG: Child project: '%s' -> Parent: '%s' (events: %d)\n", timeline.ProjectName, parentName, len(timeline.Events))
+			}
+		}
+	}
+
+	// Sort parent projects by event count (descending)
+	sort.Slice(parentProjects, func(i, j int) bool {
+		return len(parentProjects[i].Events) > len(parentProjects[j].Events)
+	})
+
+	// Sort child projects within each parent group by event count (descending)
+	for _, children := range childProjectsMap {
+		sort.Slice(children, func(i, j int) bool {
+			return len(children[i].Events) > len(children[j].Events)
+		})
+	}
+
+	// Build final sorted list: parent followed by its children
+	result := make([]*models.SessionTimeline, 0, len(timelines))
+
+	for _, parent := range parentProjects {
+		result = append(result, parent)
+
+		// Add children for this parent
+		if children, exists := childProjectsMap[parent.ProjectName]; exists {
+			for _, child := range children {
+				result = append(result, child)
+			}
+		}
+	}
+
+	return result
 }
