@@ -15,7 +15,7 @@ import (
 )
 
 // ParseJSONLFile parses a JSONL file and extracts session events
-func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
+func ParseJSONLFile(filePath string, debug bool) ([]*models.SessionEvent, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 		if err := json.Unmarshal([]byte(line), &data); err != nil {
 			// Skip malformed lines
 			skippedCount++
-			if len(line) > 1000 {
+			if debug && len(line) > 1000 {
 				fmt.Printf("DEBUG: Skipped line %d due to JSON error (line length: %d): %v\n", lineNum, len(line), err)
 			}
 			continue
@@ -106,7 +106,7 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 	}
 
 	// Debug: log if we skipped many lines
-	if skippedCount > 0 {
+	if debug && skippedCount > 0 {
 		fmt.Printf("DEBUG: File %s - Total lines: %d, Events parsed: %d, Skipped: %d\n",
 			filepath.Base(filePath), lineNum, len(events), skippedCount)
 	}
@@ -181,7 +181,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 			continue
 		}
 
-		events, err := ParseJSONLFile(filePath)
+		events, err := ParseJSONLFile(filePath, debug)
 		if err != nil {
 			continue // Skip files that can't be parsed
 		}
