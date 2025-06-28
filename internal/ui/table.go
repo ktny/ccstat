@@ -146,10 +146,42 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth-2)
 	t.Row("", timeAxis, "", "")
 
+	// Calculate global max activity across all timelines for consistent scaling
+	globalMaxActivity := 0
+	totalDuration := endTime.Sub(startTime)
+	width := timelineWidth - 2
+	
+	for _, timeline := range timelines {
+		activityCounts := make([]int, width)
+		
+		// Count events per time position for this timeline
+		for _, event := range timeline.Events {
+			eventOffset := event.Timestamp.Sub(startTime)
+			position := int((float64(eventOffset) / float64(totalDuration)) * float64(width))
+			
+			// Clamp position to valid range
+			if position >= width {
+				position = width - 1
+			}
+			if position < 0 {
+				position = 0
+			}
+			
+			activityCounts[position]++
+		}
+		
+		// Find max activity for this timeline
+		for _, count := range activityCounts {
+			if count > globalMaxActivity {
+				globalMaxActivity = count
+			}
+		}
+	}
+
 	// Add data rows
 	for _, timeline := range timelines {
 		// Create timeline visualization with actual event density
-		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth-2)
+		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth-2, globalMaxActivity)
 
 		// Format duration
 		durationStr := fmt.Sprintf("%dm", timeline.ActiveDurationMinutes)
@@ -202,7 +234,7 @@ func (ui *TimelineUI) createTimelineHeader(timelineWidth int) string {
 }
 
 // createTimelineString creates a visual timeline string with density-based display
-func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, startTime, endTime time.Time, width int) string {
+func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, startTime, endTime time.Time, width int, globalMaxActivity int) string {
 	// Initialize timeline with idle markers
 	timelineChars := make([]string, width)
 	for i := range timelineChars {
@@ -228,14 +260,8 @@ func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, sta
 		activityCounts[position]++
 	}
 
-	// Find max activity for normalization
-	maxActivity := 0
-	for _, count := range activityCounts {
-		if count > maxActivity {
-			maxActivity = count
-		}
-	}
-
+	// Use global max activity for normalization
+	maxActivity := globalMaxActivity
 	if maxActivity == 0 {
 		maxActivity = 1
 	}
@@ -311,76 +337,51 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 }
 
 // calculateOptimalTicks calculates optimal tick positions for the time axis
+// aligned to natural time boundaries (similar to Python version)
 func calculateOptimalTicks(startTime, endTime time.Time, width int, format TimeAxisFormat) []time.Time {
-	const minTicks = 3
-	const maxTicks = 6
-
-	duration := endTime.Sub(startTime)
-	days := duration.Hours() / 24
-
-	// Period-specific tick count optimization
-	var targetTicks int
-	switch {
-	case days <= 1:
-		targetTicks = 6 // 1 day: 6 ticks
-	case days <= 2:
-		targetTicks = 6 // 2 days: 6 ticks
-	case days <= 3:
-		targetTicks = 3 // 3 days: 3 ticks
-	case days <= 4:
-		targetTicks = 4 // 4 days: 4 ticks
-	case days <= 5:
-		targetTicks = 5 // 5 days: 5 ticks
-	case days <= 7:
-		targetTicks = 6 // 6-7 days: 6 ticks
-	default:
-		// For longer periods, use dynamic calculation within min/max bounds
-		defaultTickCount := int(duration / format.interval)
-		if defaultTickCount < minTicks {
-			targetTicks = minTicks
-		} else if defaultTickCount > maxTicks {
-			targetTicks = maxTicks
-		} else {
-			targetTicks = defaultTickCount
-		}
-	}
-
-	// Clamp target ticks to bounds
-	if targetTicks < minTicks {
-		targetTicks = minTicks
-	}
-	if targetTicks > maxTicks {
-		targetTicks = maxTicks
-	}
-
-	// Generate evenly spaced ticks
 	var ticks []time.Time
-	if targetTicks == 1 {
-		// Single tick at middle
-		ticks = append(ticks, startTime.Add(duration/2))
-	} else {
-		// Multiple ticks evenly spaced
-		tickInterval := duration / time.Duration(targetTicks-1)
-		for i := 0; i < targetTicks; i++ {
-			tick := startTime.Add(time.Duration(i) * tickInterval)
-			if i == targetTicks-1 {
-				tick = endTime // Ensure last tick is exactly at end
-			}
-			ticks = append(ticks, tick)
+	
+	// Start from aligned time boundary based on format interval
+	currentTime := roundToInterval(startTime, format.interval)
+	
+	// If currentTime is before startTime, move to next interval
+	if currentTime.Before(startTime) {
+		currentTime = currentTime.Add(format.interval)
+	}
+	
+	// Generate ticks at regular intervals until we reach or exceed endTime
+	for currentTime.Before(endTime) || currentTime.Equal(endTime) {
+		// Only add tick if it's within our display range
+		if (currentTime.After(startTime) || currentTime.Equal(startTime)) && 
+		   (currentTime.Before(endTime) || currentTime.Equal(endTime)) {
+			ticks = append(ticks, currentTime)
+		}
+		currentTime = currentTime.Add(format.interval)
+		
+		// Safety check to prevent infinite loops
+		if len(ticks) > 20 {
+			break
 		}
 	}
-
+	
+	// If we don't have enough ticks, add the end time
+	if len(ticks) == 0 {
+		ticks = append(ticks, startTime.Add(endTime.Sub(startTime)/2))
+	}
+	
 	return ticks
 }
 
-// roundToInterval rounds a time to the nearest interval
+// roundToInterval rounds a time to the nearest interval boundary
 func roundToInterval(t time.Time, interval time.Duration) time.Time {
 	if interval >= 24*time.Hour {
 		// For day or longer intervals, round to start of day
 		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 	} else if interval >= time.Hour {
-		// For hour intervals, round to start of hour
-		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
+		// For hour intervals, align to the interval boundary
+		intervalHours := int(interval.Hours())
+		alignedHour := (t.Hour() / intervalHours) * intervalHours
+		return time.Date(t.Year(), t.Month(), t.Day(), alignedHour, 0, 0, 0, t.Location())
 	}
 	// For smaller intervals, return as-is
 	return t
