@@ -279,17 +279,10 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 			interval:    4 * time.Hour,
 			displayName: "hours",
 		}
-	case days <= 7:
-		// 3-7 days: daily display with date
+	case days <= 30:
+		// 3-30 days: daily display with MM/DD format
 		return TimeAxisFormat{
 			formatStr:   "01/02", // MM/DD format
-			interval:    24 * time.Hour,
-			displayName: "days",
-		}
-	case days <= 30:
-		// 8-30 days: daily display with day number
-		return TimeAxisFormat{
-			formatStr:   "02", // DD format
 			interval:    24 * time.Hour,
 			displayName: "days",
 		}
@@ -319,46 +312,58 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 
 // calculateOptimalTicks calculates optimal tick positions for the time axis
 func calculateOptimalTicks(startTime, endTime time.Time, width int, format TimeAxisFormat) []time.Time {
-	const minTicks = 6
-	const maxTicks = 12
+	const minTicks = 3
+	const maxTicks = 6
 
 	duration := endTime.Sub(startTime)
+	days := duration.Hours() / 24
 
-	// Calculate how many ticks we'd get with the default interval
-	defaultTickCount := int(duration / format.interval)
-
-	// Adjust interval if needed to stay within min/max bounds
-	interval := format.interval
-	if defaultTickCount < minTicks {
-		// Too few ticks, reduce interval
-		interval = duration / time.Duration(minTicks)
-	} else if defaultTickCount > maxTicks {
-		// Too many ticks, increase interval
-		interval = duration / time.Duration(maxTicks)
+	// Period-specific tick count optimization
+	var targetTicks int
+	switch {
+	case days <= 1:
+		targetTicks = 6 // 1 day: 6 ticks
+	case days <= 2:
+		targetTicks = 6 // 2 days: 6 ticks
+	case days <= 3:
+		targetTicks = 3 // 3 days: 3 ticks
+	case days <= 4:
+		targetTicks = 4 // 4 days: 4 ticks
+	case days <= 5:
+		targetTicks = 5 // 5 days: 5 ticks
+	case days <= 7:
+		targetTicks = 6 // 6-7 days: 6 ticks
+	default:
+		// For longer periods, use dynamic calculation within min/max bounds
+		defaultTickCount := int(duration / format.interval)
+		if defaultTickCount < minTicks {
+			targetTicks = minTicks
+		} else if defaultTickCount > maxTicks {
+			targetTicks = maxTicks
+		} else {
+			targetTicks = defaultTickCount
+		}
 	}
 
-	// Generate tick positions
+	// Clamp target ticks to bounds
+	if targetTicks < minTicks {
+		targetTicks = minTicks
+	}
+	if targetTicks > maxTicks {
+		targetTicks = maxTicks
+	}
+
+	// Generate evenly spaced ticks
 	var ticks []time.Time
-
-	// Start from a rounded time for cleaner display
-	current := roundToInterval(startTime, interval)
-	if current.Before(startTime) {
-		current = current.Add(interval)
-	}
-
-	for current.Before(endTime) && len(ticks) < maxTicks {
-		ticks = append(ticks, current)
-		current = current.Add(interval)
-	}
-
-	// Ensure we have at least minTicks
-	if len(ticks) < minTicks {
-		// Add evenly spaced ticks
-		tickInterval := duration / time.Duration(minTicks-1)
-		ticks = nil
-		for i := 0; i < minTicks; i++ {
+	if targetTicks == 1 {
+		// Single tick at middle
+		ticks = append(ticks, startTime.Add(duration/2))
+	} else {
+		// Multiple ticks evenly spaced
+		tickInterval := duration / time.Duration(targetTicks-1)
+		for i := 0; i < targetTicks; i++ {
 			tick := startTime.Add(time.Duration(i) * tickInterval)
-			if i == minTicks-1 {
+			if i == targetTicks-1 {
 				tick = endTime // Ensure last tick is exactly at end
 			}
 			ticks = append(ticks, tick)
