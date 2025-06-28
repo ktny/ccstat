@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ktny/ccmonitor/pkg/models"
 )
@@ -90,35 +89,44 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 	return PanelStyle.Render(headerText)
 }
 
-// createTimelineTable creates the main timeline visualization table using bubbles/table
+// createTimelineTable creates the main timeline visualization table with manual formatting
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths with better spacing
-	projectWidth := 20
-	eventsWidth := 8
-	durationWidth := 10
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 15 // Account for padding and borders
-	if timelineWidth < 30 {
-		timelineWidth = 30
+	// Calculate column widths optimized for timeline display  
+	projectWidth := 18
+	eventsWidth := 6
+	durationWidth := 8
+	// Give much more space to timeline - it's the main visual element
+	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12 // Account for padding and borders
+	if timelineWidth < 40 {
+		timelineWidth = 40
 	}
 
-	// Create table columns
-	columns := []table.Column{
-		{Title: ProjectStyle.Render("Project"), Width: projectWidth},
-		{Title: ui.createTimelineHeader(timelineWidth), Width: timelineWidth},
-		{Title: EventsStyle.Render("Events"), Width: eventsWidth},
-		{Title: DurationStyle.Render("Duration"), Width: durationWidth},
-	}
+	var rows []string
 
-	// Create table rows
-	var rows []table.Row
+	// Create table header
+	header := fmt.Sprintf("  %-*s %s %*s %*s",
+		projectWidth, ProjectStyle.Render("Project"),
+		ui.createTimelineHeader(timelineWidth),
+		eventsWidth, EventsStyle.Render("Events"),
+		durationWidth, DurationStyle.Render("Duration"))
+	rows = append(rows, header)
 
-	// Add time axis row
+	// Create separator line
+	separatorLine := "  " + strings.Repeat("─", projectWidth+1+timelineWidth+1+eventsWidth+1+durationWidth)
+	rows = append(rows, separatorLine)
+
+	// Create time axis row
 	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth)
-	rows = append(rows, table.Row{"", timeAxis, "", ""})
+	timeAxisRow := fmt.Sprintf("  %-*s %s %*s %*s",
+		projectWidth, "",
+		timeAxis,
+		eventsWidth, "",
+		durationWidth, "")
+	rows = append(rows, timeAxisRow)
 
 	// Create data rows
 	for _, timeline := range timelines {
-		// Create timeline visualization
+		// Create timeline visualization with actual event density
 		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth)
 
 		// Format duration
@@ -133,40 +141,17 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		// Truncate project name if it's too long
 		projectDisplay = truncateString(projectDisplay, projectWidth)
 
-		row := table.Row{
-			projectDisplay,
+		row := fmt.Sprintf("  %-*s %s %*d %*s",
+			projectWidth, projectDisplay,
 			timelineStr,
-			fmt.Sprintf("%d", len(timeline.Events)),
-			durationStr,
-		}
+			eventsWidth, len(timeline.Events),
+			durationWidth, durationStr)
+
 		rows = append(rows, row)
 	}
 
-	// Create and configure the table
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows(rows),
-		table.WithFocused(false),
-		table.WithHeight(len(rows)+1), // +1 for header
-	)
-
-	// Apply styling
-	tableStyle := table.DefaultStyles()
-	tableStyle.Header = tableStyle.Header.
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("14")).
-		BorderBottom(true).
-		Bold(false)
-	tableStyle.Selected = tableStyle.Selected.
-		Foreground(lipgloss.Color("229")).
-		Background(lipgloss.Color("57")).
-		Bold(false)
-
-	t.SetStyles(tableStyle)
-
-	// Render the table
-	tableContent := t.View()
-
+	// Create the table panel
+	tableContent := strings.Join(rows, "\n")
 	return PanelStyle.
 		BorderForeground(lipgloss.Color("14")).
 		Render(tableContent)
