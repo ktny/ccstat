@@ -1,191 +1,114 @@
-# ccmonitor
+# 📊 ccmonitor
 
-Claude Session Timeline - CLI tool for visualizing Claude session activity patterns.
+> Visualize your Claude Code session activity patterns — fast, beautiful, and insightful!
 
-## Overview
+![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
 
-ccmonitor analyzes Claude Code session logs and provides timeline visualization of project activity patterns with:
-- Project-wise activity timeline with colored density indicators
-- Input/Output token usage statistics by project  
-- Active time calculation based on message intervals (3-minute threshold)
-- Git repository-based project grouping and integration
+## ✨ What is ccmonitor?
 
-## Features
+ccmonitor is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns, monitor token usage, and gain insights into your development workflow.
 
-- 📊 **Timeline Visualization**: Color-coded ■ blocks indicating activity levels
-- 🕒 **Active Duration**: Calculated based on 3-minute inactive threshold  
-- 📈 **Activity Density**: Five-level density visualization (idle to very high)
-- 🗂️ **Project Grouping**: Automatic grouping by Git repository
-- 🧵 **Worktree Support**: Separate display for different worktree directories
-- 📅 **Flexible Time Ranges**: Days (1+) or hours (1-24) with adaptive time axis
-- 🔍 **Project Filtering**: Display only specific projects
-- ⚡ **Performance Optimized**: File modification time filtering for fast loading
+### 🎯 Key Features
 
-## Installation
+- 📈 **Timeline Visualization** — Color-coded activity blocks showing your coding patterns
+- ⏱️ **Smart Duration Tracking** — Calculates active work time with intelligent break detection
+- 🎨 **Activity Density** — Five-level visual density indicators from idle to very high
+- 📁 **Git Integration** — Automatically groups projects by repository
+- 🌳 **Worktree Support** — Separate visualization for different worktree directories
+- 📊 **Token Analytics** — Track input/output token usage across projects
+- 🕐 **Flexible Time Ranges** — View activity by days (1+) or hours (1-24)
+- 🔍 **Project Filtering** — Focus on specific projects
+- ⚡ **High Performance** — Optimized file processing for fast results
 
-### Build from Source (Go)
+## 🚀 Installation
+
+### Option 1: Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/ktny/ccmonitor.git
 cd ccmonitor
-
-# Build binary
 make build
-
-# Or build manually
-go build -o bin/ccmonitor ./cmd/ccmonitor
-```
-
-### Direct Installation
-
-```bash
-# Install to $GOPATH/bin
-make install
-
-# Or install manually
-go install ./cmd/ccmonitor
-```
-
-### Legacy Python Version
-
-```bash
-# Using uv (recommended)
-uv sync
-uv run ccmonitor
-
-# Using pip
-pip install -e .
-ccmonitor
-```
-
-## Usage
-
-### Go Version (Recommended)
-
-```bash
-# Basic usage (last 1 day)
 ./bin/ccmonitor
+```
 
-# Specify time range
-./bin/ccmonitor --days 7        # Last 7 days
-./bin/ccmonitor --hours 6       # Last 6 hours (overrides --days)
+### Option 2: Direct Installation
 
-# Filter by project
-./bin/ccmonitor --project myproject
+```bash
+go install github.com/ktny/ccmonitor/cmd/ccmonitor@latest
+```
 
-# Show worktree mode (separate similar repos)
-./bin/ccmonitor --worktree
+### Option 3: Using Makefile
+
+```bash
+git clone https://github.com/ktny/ccmonitor.git
+cd ccmonitor
+make install  # Installs to $GOPATH/bin
+```
+
+## 📖 Usage
+
+### Basic Commands
+
+```bash
+# View last 24 hours of activity
+ccmonitor
+
+# View last 7 days
+ccmonitor --days 7
+
+# View last 6 hours
+ccmonitor --hours 6
+
+# Filter by specific project
+ccmonitor --project myproject
+
+# Show worktree view (separate repos)
+ccmonitor --worktree
 
 # Combine options
-./bin/ccmonitor --days 3 --project ccmonitor --worktree
-
-# Using Makefile shortcuts
-make run        # Build and run with defaults
-make run-days   # Build and run with --days 2  
-make run-hours  # Build and run with --hours 6
+ccmonitor --days 3 --project ccmonitor --worktree
 ```
 
-### Python Version (Legacy)
+### Understanding the Output
 
-```bash
-# Display activity for the last 1 day (default)
-uv run ccmonitor
+#### 📊 Project Activity Table
+- **Project**: Git repository name or directory name
+- **Timeline**: Visual activity timeline with color-coded density
+- **Events**: Number of messages in the session
+- **Tokens**: Input/Output token usage statistics
+- **Duration**: Active work time in minutes
 
-# Display activity for the last 7 days
-uv run ccmonitor --days 7
+#### 🎨 Activity Color Coding
+- **■** (gray): Minimal activity
+- **■** (green): Low activity  
+- **■** (yellow): Moderate activity
+- **■** (orange): High activity
+- **■** (red): Very high activity
 
-# Display activity for the last 6 hours  
-uv run ccmonitor --hours 6
+#### ⏰ Time Axis Display
+- **Hours view**: 15min/30min/1h/2h/3h/4h intervals
+- **Single day**: Hour markers (0, 6, 12, 18)
+- **Multiple days**: Date intervals
 
-# Filter display by specific project
-uv run ccmonitor --project myproject
+### 🧠 Smart Features
 
-# Worktree display (separate directories within the same repository)
-uv run ccmonitor --worktree
+**Active Time Calculation**: Only counts periods where message intervals are ≤1 minute as active time, excluding long breaks to measure actual work time.
 
-# Multiple option combinations
-uv run ccmonitor --days 3 --project myproject --worktree
-```
+**Git Integration**: Automatically detects and groups projects by Git repository, showing parent-child relationships for complex project structures.
 
-### Display Content Explanation
+## 📋 Requirements
 
-#### Project Activity Table
-- **Project**: Project name (Git repository name or directory name)
-- **Timeline**: Chronological activity status (color-coded by activity density)
-- **Events**: Number of messages in session
-- **Duration**: Active work time (in minutes)
+- **Go 1.21+** for building from source
+- **Claude Code** for generating session logs
+- **Git** (recommended) for project integration features
 
-#### Activity Density Color Coding
-- ■ (bright black): Low activity
-- ■ (green): Moderate activity
-- ■ (yellow-orange): High activity
-- ■ (red): Very high activity
+## 📄 License
 
-#### Time Axis
-- Hours display: Minute/hour intervals (15min, 30min, 1h, 2h, 3h, 4h based on range)
-- Single day display: Hour intervals (0, 6, 12, 18 hours)
-- Multiple days display: Date intervals
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Active Time Calculation
+---
 
-Only time periods where message intervals are within 1 minute are calculated as active time. Long breaks are excluded, measuring only actual work time.
-
-## Development
-
-### Development Commands
-
-```bash
-# Code formatting and linting
-uv run ruff check .       # Lint check
-uv run ruff check . --fix # Auto-fix
-uv run ruff format .      # Code formatting
-
-# Type checking
-uv run pyright
-
-# Test execution
-uv run pytest                    # Run all tests
-uv run pytest -v               # Verbose output
-uv run pytest --cov=ccmonitor  # With coverage
-
-# Run single test file
-uv run pytest tests/test_claude_logs.py
-
-# Run ccmonitor in development environment
-uv run ccmonitor
-uv run ccmonitor -d 7 -w
-```
-
-### Architecture
-
-```
-ccmonitor/
-├── __main__.py          # Entry point
-├── timeline_monitor.py  # Main monitoring and control logic
-├── claude_logs.py       # Claude log file analysis
-├── timeline_ui.py       # Rich UI display components
-├── git_utils.py         # Git repository information retrieval
-└── utils.py            # Utility functions
-```
-
-#### Major Components
-- **claude_logs.py**: Analyzes JSONL files in `~/.claude/projects/` and extracts session information
-- **timeline_ui.py**: Beautiful terminal display using Rich library
-- **git_utils.py**: Retrieves Git repository information for directories and groups projects
-
-### Data Sources
-
-ccmonitor reads data from the following files:
-- `~/.claude/projects/*/**.jsonl`: Claude Code session logs
-- Each JSONL file contains timestamps, session IDs, working directories, message content, etc.
-
-## Requirements
-
-- Python 3.12+
-- Claude Code (for log file generation)
-- Git (recommended for project integration functionality)
-
-## License
-
-This project is published under the MIT License.
+<div align="center">
+  <sub>Built with ❤️ for the Claude Code community</sub>
+</div>
