@@ -103,7 +103,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 	var rows []string
 
 	// Create table header
-	header := ui.createTableHeader(timelineWidth)
+	header := ui.createTableHeader(projectWidth, timelineWidth, eventsWidth, durationWidth)
 	rows = append(rows, header)
 
 	// Create time axis row
@@ -149,21 +149,40 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 }
 
 // createTableHeader creates the table header with column names and activity legend
-func (ui *TimelineUI) createTableHeader(timelineWidth int) string {
-	// Create timeline header with activity density legend
-	timelineHeader := "Timeline "
-	for i, color := range ActivityColors {
+func (ui *TimelineUI) createTableHeader(projectWidth, timelineWidth, eventsWidth, durationWidth int) string {
+	// Create timeline header with activity density legend (without styles first)
+	baseTimelineHeader := "Timeline "
+	activityLegend := ""
+	for i := range ActivityColors {
 		if i == 0 {
 			continue // Skip the first (no activity) color for the legend
+		}
+		activityLegend += "■"
+	}
+	
+	// Calculate total visible length
+	totalHeaderLength := len(baseTimelineHeader + activityLegend)
+	
+	// Create styled timeline header
+	timelineHeader := baseTimelineHeader
+	for i, color := range ActivityColors {
+		if i == 0 {
+			continue
 		}
 		timelineHeader += lipgloss.NewStyle().Foreground(color).Render("■")
 	}
 
-	return fmt.Sprintf("%-20s %s %6s %8s",
-		ProjectStyle.Render("Project"),
+	// Add padding to match timelineWidth if needed
+	if totalHeaderLength < timelineWidth {
+		paddingLength := timelineWidth - totalHeaderLength
+		timelineHeader += strings.Repeat(" ", paddingLength)
+	}
+
+	return fmt.Sprintf("%-*s %s %*s %*s",
+		projectWidth, ProjectStyle.Render("Project"),
 		timelineHeader,
-		EventsStyle.Render("Events"),
-		DurationStyle.Render("Duration"))
+		eventsWidth, EventsStyle.Render("Events"),
+		durationWidth, DurationStyle.Render("Duration"))
 }
 
 // createTimelineString creates a visual timeline string with density-based display
