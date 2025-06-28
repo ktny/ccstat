@@ -259,48 +259,180 @@ func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, sta
 	return strings.Join(timelineChars, "")
 }
 
+// TimeAxisFormat represents different time axis display formats
+type TimeAxisFormat struct {
+	formatStr   string        // Go time format string
+	interval    time.Duration // Interval between ticks
+	displayName string        // Human readable name
+}
+
+// determineTimeAxisFormat determines the appropriate time axis format based on duration
+func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
+	hours := duration.Hours()
+	days := hours / 24
+
+	switch {
+	case days <= 2:
+		// 1-2 days: hourly display (4-hour intervals for better spacing)
+		return TimeAxisFormat{
+			formatStr:   "15", // HH format
+			interval:    4 * time.Hour,
+			displayName: "hours",
+		}
+	case days <= 30:
+		// 3-30 days: daily display with MM/DD format
+		return TimeAxisFormat{
+			formatStr:   "01/02", // MM/DD format
+			interval:    24 * time.Hour,
+			displayName: "days",
+		}
+	case days <= 90:
+		// 31-90 days: weekly display
+		return TimeAxisFormat{
+			formatStr:   "01/02", // MM/DD format for week start
+			interval:    7 * 24 * time.Hour,
+			displayName: "weeks",
+		}
+	case days <= 365:
+		// 91-365 days: monthly display
+		return TimeAxisFormat{
+			formatStr:   "Jan",               // Month abbreviation
+			interval:    30 * 24 * time.Hour, // Approximate month
+			displayName: "months",
+		}
+	default:
+		// 365+ days: yearly display
+		return TimeAxisFormat{
+			formatStr:   "2006", // Year format
+			interval:    365 * 24 * time.Hour,
+			displayName: "years",
+		}
+	}
+}
+
+// calculateOptimalTicks calculates optimal tick positions for the time axis
+func calculateOptimalTicks(startTime, endTime time.Time, width int, format TimeAxisFormat) []time.Time {
+	const minTicks = 3
+	const maxTicks = 6
+
+	duration := endTime.Sub(startTime)
+	days := duration.Hours() / 24
+
+	// Period-specific tick count optimization
+	var targetTicks int
+	switch {
+	case days <= 1:
+		targetTicks = 6 // 1 day: 6 ticks
+	case days <= 2:
+		targetTicks = 6 // 2 days: 6 ticks
+	case days <= 3:
+		targetTicks = 3 // 3 days: 3 ticks
+	case days <= 4:
+		targetTicks = 4 // 4 days: 4 ticks
+	case days <= 5:
+		targetTicks = 5 // 5 days: 5 ticks
+	case days <= 7:
+		targetTicks = 6 // 6-7 days: 6 ticks
+	default:
+		// For longer periods, use dynamic calculation within min/max bounds
+		defaultTickCount := int(duration / format.interval)
+		if defaultTickCount < minTicks {
+			targetTicks = minTicks
+		} else if defaultTickCount > maxTicks {
+			targetTicks = maxTicks
+		} else {
+			targetTicks = defaultTickCount
+		}
+	}
+
+	// Clamp target ticks to bounds
+	if targetTicks < minTicks {
+		targetTicks = minTicks
+	}
+	if targetTicks > maxTicks {
+		targetTicks = maxTicks
+	}
+
+	// Generate evenly spaced ticks
+	var ticks []time.Time
+	if targetTicks == 1 {
+		// Single tick at middle
+		ticks = append(ticks, startTime.Add(duration/2))
+	} else {
+		// Multiple ticks evenly spaced
+		tickInterval := duration / time.Duration(targetTicks-1)
+		for i := 0; i < targetTicks; i++ {
+			tick := startTime.Add(time.Duration(i) * tickInterval)
+			if i == targetTicks-1 {
+				tick = endTime // Ensure last tick is exactly at end
+			}
+			ticks = append(ticks, tick)
+		}
+	}
+
+	return ticks
+}
+
+// roundToInterval rounds a time to the nearest interval
+func roundToInterval(t time.Time, interval time.Duration) time.Time {
+	if interval >= 24*time.Hour {
+		// For day or longer intervals, round to start of day
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	} else if interval >= time.Hour {
+		// For hour intervals, round to start of hour
+		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
+	}
+	// For smaller intervals, return as-is
+	return t
+}
+
 // createTimeAxis creates a time axis string with appropriate time markers
 func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) string {
-	// Simplified time axis - showing just start/middle/end for now
-	// This would need the full time unit logic from the Python version
 	duration := endTime.Sub(startTime)
 
+	// Determine the appropriate time axis format
+	format := determineTimeAxisFormat(duration)
+
+	// Calculate optimal tick positions
+	ticks := calculateOptimalTicks(startTime, endTime, width, format)
+
+	// Initialize axis with spaces
 	axisChars := make([]string, width)
 	for i := range axisChars {
 		axisChars[i] = " "
 	}
 
-	// Add time markers at key positions
-	if width > 10 {
-		// Start time marker
-		startStr := startTime.Format("15")
-		if len(startStr) <= width {
-			for i, c := range startStr {
-				if i < width {
-					axisChars[i] = string(c)
-				}
-			}
+	// Place tick markers
+	for _, tick := range ticks {
+		// Calculate position for this tick
+		tickOffset := tick.Sub(startTime)
+		position := int((float64(tickOffset) / float64(duration)) * float64(width))
+
+		// Clamp position to valid range
+		if position >= width {
+			position = width - 1
+		}
+		if position < 0 {
+			position = 0
 		}
 
-		// End time marker
-		endStr := endTime.Format("15")
-		if len(endStr) <= width {
-			startPos := width - len(endStr)
-			for i, c := range endStr {
-				if startPos+i < width && startPos+i >= 0 {
+		// Format the tick label
+		tickLabel := tick.Format(format.formatStr)
+
+		// Place the label, centered on the position if possible
+		startPos := position - len(tickLabel)/2
+		if startPos < 0 {
+			startPos = 0
+		}
+		if startPos+len(tickLabel) > width {
+			startPos = width - len(tickLabel)
+		}
+
+		// Only place if it doesn't overflow
+		if startPos >= 0 && startPos+len(tickLabel) <= width {
+			for i, c := range tickLabel {
+				if startPos+i < width {
 					axisChars[startPos+i] = string(c)
-				}
-			}
-		}
-
-		// Middle marker for longer durations
-		if duration.Hours() > 2 && width > 20 {
-			middleTime := startTime.Add(duration / 2)
-			middleStr := middleTime.Format("15")
-			middlePos := width/2 - len(middleStr)/2
-			for i, c := range middleStr {
-				if middlePos+i < width && middlePos+i >= 0 {
-					axisChars[middlePos+i] = string(c)
 				}
 			}
 		}

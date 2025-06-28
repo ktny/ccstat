@@ -20,7 +20,9 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() // Ignore error in defer
+	}()
 
 	var events []*models.SessionEvent
 	scanner := bufio.NewScanner(file)
