@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/ktny/ccmonitor/pkg/models"
 )
 
@@ -89,9 +90,9 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 	return PanelStyle.Render(headerText)
 }
 
-// createTimelineTable creates the main timeline visualization table with manual formatting
+// createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths optimized for timeline display  
+	// Calculate column widths optimized for timeline display
 	projectWidth := 18
 	eventsWidth := 6
 	durationWidth := 8
@@ -101,30 +102,49 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		timelineWidth = 40
 	}
 
-	var rows []string
+	// Define style function for dynamic styling based on row and column
+	styleFunc := func(row, col int) lipgloss.Style {
+		// Header row styling
+		if row == table.HeaderRow {
+			switch col {
+			case 0: // Project column
+				return ProjectStyle.Width(projectWidth).Bold(true)
+			case 1: // Timeline column
+				return lipgloss.NewStyle().Width(timelineWidth).Bold(true)
+			case 2: // Events column
+				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right)
+			case 3: // Duration column
+				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right)
+			}
+		}
 
-	// Create table header
-	header := fmt.Sprintf("  %-*s %s %*s %*s",
-		projectWidth, ProjectStyle.Render("Project"),
-		ui.createTimelineHeader(timelineWidth),
-		eventsWidth, EventsStyle.Render("Events"),
-		durationWidth, DurationStyle.Render("Duration"))
-	rows = append(rows, header)
+		// Data row styling
+		baseStyle := lipgloss.NewStyle()
+		switch col {
+		case 0: // Project column
+			return baseStyle.Width(projectWidth)
+		case 1: // Timeline column
+			return baseStyle.Width(timelineWidth)
+		case 2: // Events column
+			return baseStyle.Width(eventsWidth).Align(lipgloss.Right)
+		case 3: // Duration column
+			return baseStyle.Width(durationWidth).Align(lipgloss.Right)
+		}
+		return baseStyle
+	}
 
-	// Create separator line
-	separatorLine := "  " + strings.Repeat("─", projectWidth+1+timelineWidth+1+eventsWidth+1+durationWidth)
-	rows = append(rows, separatorLine)
+	// Create the table with styling
+	t := table.New().
+		Border(lipgloss.RoundedBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("14"))).
+		StyleFunc(styleFunc).
+		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
 
-	// Create time axis row
+	// Add time axis row
 	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth)
-	timeAxisRow := fmt.Sprintf("  %-*s %s %*s %*s",
-		projectWidth, "",
-		timeAxis,
-		eventsWidth, "",
-		durationWidth, "")
-	rows = append(rows, timeAxisRow)
+	t.Row("", timeAxis, "", "")
 
-	// Create data rows
+	// Add data rows
 	for _, timeline := range timelines {
 		// Create timeline visualization with actual event density
 		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth)
@@ -141,20 +161,10 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		// Truncate project name if it's too long
 		projectDisplay = truncateString(projectDisplay, projectWidth)
 
-		row := fmt.Sprintf("  %-*s %s %*d %*s",
-			projectWidth, projectDisplay,
-			timelineStr,
-			eventsWidth, len(timeline.Events),
-			durationWidth, durationStr)
-
-		rows = append(rows, row)
+		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
 	}
 
-	// Create the table panel
-	tableContent := strings.Join(rows, "\n")
-	return PanelStyle.
-		BorderForeground(lipgloss.Color("14")).
-		Render(tableContent)
+	return t.String()
 }
 
 // createTimelineHeader creates the timeline column header with activity legend
@@ -321,13 +331,36 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 	return HeaderStyle.Render(summary)
 }
 
-// truncateString truncates a string to maxLen characters, adding "..." if truncated
+// truncateString truncates a string to maxLen display width, properly handling ANSI codes
 func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	// Use lipgloss.Width to get the display width (ignoring ANSI codes)
+	currentWidth := lipgloss.Width(s)
+
+	if currentWidth <= maxLen {
 		return s
 	}
+
 	if maxLen <= 3 {
-		return s[:maxLen]
+		// If maxLen is very small, just truncate by runes
+		runes := []rune(s)
+		if len(runes) <= maxLen {
+			return s
+		}
+		return string(runes[:maxLen])
 	}
-	return s[:maxLen-3] + "..."
+
+	// Truncate and add ellipsis
+	ellipsis := "..."
+	targetWidth := maxLen - len(ellipsis)
+
+	// Truncate by runes until we reach the target display width
+	runes := []rune(s)
+	for i := len(runes); i > 0; i-- {
+		candidate := string(runes[:i])
+		if lipgloss.Width(candidate) <= targetWidth {
+			return candidate + ellipsis
+		}
+	}
+
+	return ellipsis
 }
