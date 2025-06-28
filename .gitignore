@@ -161,3 +161,9 @@ ehthumbs.db
 .claude/CLAUDE.md
 .claude/settings.local.json
 .worktree/
+
+# Go binaries and build artifacts
+bin/
+*.exe
+ccmonitor
+ccmonitor-*

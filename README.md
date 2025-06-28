@@ -1,89 +1,111 @@
 # ccmonitor
 
-Claude Session Timeline - CLI tool for visualizing Claude session activity patterns
+Claude Session Timeline - CLI tool for visualizing Claude session activity patterns.
 
 ## Overview
 
-`ccmonitor` is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format. It reads information from Claude Code log files (~/.claude/projects/) and analyzes and displays activity patterns and active time for each project.
+ccmonitor analyzes Claude Code session logs and provides timeline visualization of project activity patterns with:
+- Project-wise activity timeline with colored density indicators
+- Input/Output token usage statistics by project  
+- Active time calculation based on message intervals (3-minute threshold)
+- Git repository-based project grouping and integration
 
 ## Features
 
-- 📊 **Project Activity Display**: Visual timeline display of each project's activity status
-- 🕒 **Active Time Calculation**: Automatic calculation of actual work time based on message intervals
-- 📈 **Activity Density Visualization**: Color-coded display based on activity density
-- 🗂️ **Project Integration**: Automatic project grouping by Git repository
-- 🧵 **Worktree Display**: Hierarchical display of different directories within the same repository
-- 📅 **Period Filter**: Display activity history for specified number of days or hours
-- 🔍 **Project Filter**: Display only specific projects
+- 📊 **Timeline Visualization**: Color-coded ■ blocks indicating activity levels
+- 🕒 **Active Duration**: Calculated based on 3-minute inactive threshold  
+- 📈 **Activity Density**: Five-level density visualization (idle to very high)
+- 🗂️ **Project Grouping**: Automatic grouping by Git repository
+- 🧵 **Worktree Support**: Separate display for different worktree directories
+- 📅 **Flexible Time Ranges**: Days (1+) or hours (1-24) with adaptive time axis
+- 🔍 **Project Filtering**: Display only specific projects
+- ⚡ **Performance Optimized**: File modification time filtering for fast loading
 
 ## Installation
 
-### Development Environment Setup with uv (Recommended)
+### Build from Source (Go)
 
 ```bash
-# Install uv (first time only)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Clone repository
+# Clone the repository
 git clone https://github.com/ktny/ccmonitor.git
 cd ccmonitor
 
-# Install dependencies
-uv sync
+# Build binary
+make build
 
-# Development install (editable mode)
-uv pip install -e .
+# Or build manually
+go build -o bin/ccmonitor ./cmd/ccmonitor
 ```
 
-### Using pip
+### Direct Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/ktny/ccmonitor.git
-cd ccmonitor
+# Install to $GOPATH/bin
+make install
 
-# Install dependencies
-pip install -r requirements.txt
+# Or install manually
+go install ./cmd/ccmonitor
+```
 
-# Or development install
+### Legacy Python Version
+
+```bash
+# Using uv (recommended)
+uv sync
+uv run ccmonitor
+
+# Using pip
 pip install -e .
+ccmonitor
 ```
 
 ## Usage
 
-### Basic Usage
+### Go Version (Recommended)
+
+```bash
+# Basic usage (last 1 day)
+./bin/ccmonitor
+
+# Specify time range
+./bin/ccmonitor --days 7        # Last 7 days
+./bin/ccmonitor --hours 6       # Last 6 hours (overrides --days)
+
+# Filter by project
+./bin/ccmonitor --project myproject
+
+# Show worktree mode (separate similar repos)
+./bin/ccmonitor --worktree
+
+# Combine options
+./bin/ccmonitor --days 3 --project ccmonitor --worktree
+
+# Using Makefile shortcuts
+make run        # Build and run with defaults
+make run-days   # Build and run with --days 2  
+make run-hours  # Build and run with --hours 6
+```
+
+### Python Version (Legacy)
 
 ```bash
 # Display activity for the last 1 day (default)
-ccmonitor
+uv run ccmonitor
 
 # Display activity for the last 7 days
-ccmonitor --days 7
-ccmonitor -d 7
+uv run ccmonitor --days 7
 
-# Display activity for the last 6 hours
-ccmonitor --hours 6
-ccmonitor -t 6
+# Display activity for the last 6 hours  
+uv run ccmonitor --hours 6
 
 # Filter display by specific project
-ccmonitor --project myproject
-ccmonitor -p myproject
+uv run ccmonitor --project myproject
 
 # Worktree display (separate directories within the same repository)
-ccmonitor --worktree
-ccmonitor -w
+uv run ccmonitor --worktree
 
 # Multiple option combinations
-ccmonitor --days 3 --project myproject --worktree
-ccmonitor -d 3 -p myproject -w
-
-# Display help
-ccmonitor --help
-ccmonitor -h
-
-# Display version
-ccmonitor --version
-ccmonitor -v
+uv run ccmonitor --days 3 --project myproject --worktree
 ```
 
 ### Display Content Explanation
