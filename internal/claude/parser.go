@@ -20,7 +20,9 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() // Ignore error in defer
+	}()
 
 	var events []*models.SessionEvent
 	scanner := bufio.NewScanner(file)
@@ -233,12 +235,10 @@ func groupEventsByProject(events []*models.SessionEvent, threads bool) ([]*model
 	if threads {
 		// threads=true (worktree mode): group by git repository with child project support
 		return groupEventsByRepositoryWithChildren(events)
-	} else {
-		// threads=false (default): consolidate by git repository
-		return groupEventsByRepositoryConsolidated(events)
 	}
+	// threads=false (default): consolidate by git repository
+	return groupEventsByRepositoryConsolidated(events)
 }
-
 
 // groupEventsByRepositoryConsolidated consolidates events by git repository (default mode)
 func groupEventsByRepositoryConsolidated(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
@@ -298,7 +298,7 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent) ([]*mode
 func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
 	// First, group by directory to collect events
 	directoryMap := make(map[string][]*models.SessionEvent)
-	
+
 	for _, event := range events {
 		directory := event.Directory
 		if directory == "" {
@@ -411,12 +411,12 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*mode
 	// Sort by event count (descending), but keep parent-child order
 	sort.Slice(timelines, func(i, j int) bool {
 		// If one is parent and the other is its child, parent comes first
-		if timelines[i].ParentProject == nil && timelines[j].ParentProject != nil && 
-		   *timelines[j].ParentProject == timelines[i].ProjectName {
+		if timelines[i].ParentProject == nil && timelines[j].ParentProject != nil &&
+			*timelines[j].ParentProject == timelines[i].ProjectName {
 			return true
 		}
-		if timelines[j].ParentProject == nil && timelines[i].ParentProject != nil && 
-		   *timelines[i].ParentProject == timelines[j].ProjectName {
+		if timelines[j].ParentProject == nil && timelines[i].ParentProject != nil &&
+			*timelines[i].ParentProject == timelines[j].ProjectName {
 			return false
 		}
 
