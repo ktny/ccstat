@@ -137,7 +137,7 @@ def calculate_active_duration(events: list[SessionEvent]) -> int:
     sorted_events = sorted(events, key=lambda e: e.timestamp)
 
     active_minutes = 0
-    inactive_threshold = 1  # 1 minute threshold for inactive periods
+    inactive_threshold = 3  # 3 minute threshold for inactive periods
 
     for i in range(1, len(sorted_events)):
         prev_event = sorted_events[i - 1]
