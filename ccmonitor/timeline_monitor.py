@@ -57,7 +57,7 @@ class TimelineMonitor:
             self.console.clear()
 
             # Display components separately for better control
-            self.ui.display_timeline(timelines, start_time, end_time)
+            self.ui.display_timeline(timelines, start_time, end_time, time_unit)
 
         except Exception as e:
             self.console.print(f"[red]Error loading sessions: {e}[/red]")
