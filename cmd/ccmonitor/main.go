@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/ktny/ccmonitor/internal/claude"
 	"github.com/ktny/ccmonitor/internal/ui"
+	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
@@ -40,10 +40,10 @@ func runMonitor() error {
 	// Calculate time range
 	now := time.Now()
 	endTime := now
-	
+
 	var startTime time.Time
 	var timeUnit string
-	
+
 	if hours > 0 {
 		startTime = endTime.Add(-time.Duration(hours) * time.Hour)
 		timeUnit = fmt.Sprintf("%d hours", hours)
@@ -75,7 +75,7 @@ func runMonitor() error {
 	// Create UI and display timeline
 	timelineUI := ui.NewTimelineUI(width)
 	output := timelineUI.DisplayTimeline(timelines, startTime, endTime, timeUnit)
-	
+
 	// Clear screen and display
 	fmt.Print("\033[2J\033[H") // Clear screen and move cursor to top
 	fmt.Print(output)
