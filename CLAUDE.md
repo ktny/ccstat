@@ -68,7 +68,7 @@ uv pip install -e .
 # Using Makefile shortcuts
 make run        # Build and run with defaults
 make run-days   # Build and run with --days 2
-make run-hours  # Build and run with --hours 6
+make run-hours  # Build and run with -H 6
 
 # Display help
 ./bin/ccmonitor --help
@@ -140,6 +140,7 @@ uv run pytest tests/test_claude_logs.py::TestCalculateActiveDuration
 # Run ccmonitor in development environment
 uv run ccmonitor
 uv run ccmonitor --days 7 --worktree
+uv run ccmonitor -H 6  # Use -H for hours
 ```
 
 ## Architecture

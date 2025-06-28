@@ -31,6 +31,10 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	// Disable flag sorting to maintain custom order
+	rootCmd.Flags().SortFlags = false
+	
+	// Define flags in desired display order: --days, --hours, --project, --worktree, --debug, --help
 	rootCmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back (default: 1)")
 	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
 	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
