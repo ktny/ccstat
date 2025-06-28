@@ -70,7 +70,6 @@ func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, start
 	// Create main timeline table
 	table := ui.createTimelineTable(timelines, startTime, endTime)
 	output.WriteString(table)
-	output.WriteString("\n")
 
 	// Create summary
 	summary := ui.createSummary(timelines)
@@ -93,17 +92,12 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 // createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
 	// Calculate column widths considering padding (padding is included in width)
-	projectWidth := 18   // Actual content width
-	eventsWidth := 6     // Actual content width
-	durationWidth := 8   // Actual content width
-	
-	// Calculate available space for timeline
-	// ui.width - other columns - table borders and spacing
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 16
-	
-	// Ensure minimum timeline width
-	if timelineWidth < 25 {
-		timelineWidth = 25
+	projectWidth := 20
+	eventsWidth := 8
+	durationWidth := 10
+	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 10
+	if timelineWidth < 20 {
+		timelineWidth = 20
 	}
 
 	// Define style function for dynamic styling based on row and column
@@ -112,26 +106,26 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		if row == table.HeaderRow {
 			switch col {
 			case 0: // Project column
-				return ProjectStyle.Width(projectWidth).Bold(true).Padding(0, 1)
+				return ProjectStyle.Width(projectWidth).Bold(true)
 			case 1: // Timeline column
-				return lipgloss.NewStyle().Width(timelineWidth).Bold(true).Padding(0, 1)
+				return lipgloss.NewStyle().Width(timelineWidth).Bold(true)
 			case 2: // Events column
-				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
+				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right)
 			case 3: // Duration column
-				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
+				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right)
 			}
 		}
 
 		// Data row styling with padding
 		switch col {
 		case 0: // Project column
-			return lipgloss.NewStyle().Width(projectWidth).Padding(0, 1)
+			return lipgloss.NewStyle().Width(projectWidth)
 		case 1: // Timeline column
-			return lipgloss.NewStyle().Width(timelineWidth).Padding(0, 1)
+			return lipgloss.NewStyle().Width(timelineWidth)
 		case 2: // Events column
-			return lipgloss.NewStyle().Width(eventsWidth).Align(lipgloss.Right).Padding(0, 1)
+			return lipgloss.NewStyle().Width(eventsWidth).Align(lipgloss.Right)
 		case 3: // Duration column
-			return lipgloss.NewStyle().Width(durationWidth).Align(lipgloss.Right).Padding(0, 1)
+			return lipgloss.NewStyle().Width(durationWidth).Align(lipgloss.Right)
 		}
 		return lipgloss.NewStyle()
 	}
@@ -142,7 +136,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("14"))).
 		BorderColumn(false). // Disable column borders
 		BorderRow(false).    // Disable row borders (except header)
-		BorderHeader(true).  // Keep header separator
+		BorderHeader(false). // Keep header separator
 		StyleFunc(styleFunc).
 		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
 
