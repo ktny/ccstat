@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/ktny/ccmonitor/pkg/models"
+	"github.com/muesli/reflow/truncate"
 )
 
 // Colors matching Rich color scheme
@@ -159,8 +160,8 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			projectDisplay = " └─" + timeline.ProjectName
 		}
 
-		// Truncate project name if it's too long
-		projectDisplay = truncateString(projectDisplay, projectWidth-2)
+		// Auto-truncate project name with ellipsis using reflow/truncate
+		projectDisplay = truncate.StringWithTail(projectDisplay, uint(projectWidth-2), "…")
 
 		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
 	}
@@ -332,36 +333,3 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 	return HeaderStyle.Render(summary)
 }
 
-// truncateString truncates a string to maxLen display width, properly handling ANSI codes
-func truncateString(s string, maxLen int) string {
-	// Use lipgloss.Width to get the display width (ignoring ANSI codes)
-	currentWidth := lipgloss.Width(s)
-
-	if currentWidth <= maxLen {
-		return s
-	}
-
-	if maxLen <= 3 {
-		// If maxLen is very small, just truncate by runes
-		runes := []rune(s)
-		if len(runes) <= maxLen {
-			return s
-		}
-		return string(runes[:maxLen])
-	}
-
-	// Truncate and add ellipsis
-	ellipsis := "..."
-	targetWidth := maxLen - len(ellipsis)
-
-	// Truncate by runes until we reach the target display width
-	runes := []rune(s)
-	for i := len(runes); i > 0; i-- {
-		candidate := string(runes[:i])
-		if lipgloss.Width(candidate) <= targetWidth {
-			return candidate + ellipsis
-		}
-	}
-
-	return ellipsis
-}
