@@ -53,8 +53,8 @@ issues:
   # Maximum count of issues with the same text. Set to 0 to disable the limit.
   max-same-issues: 0
   
-  # Exclude specific issues or files
-  exclude:
+  # Exclude specific patterns
+  exclude-rules:
     # Exclude test files from certain checks
     - path: _test\.go
       linters:
