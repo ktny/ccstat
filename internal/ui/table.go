@@ -26,7 +26,7 @@ var (
 	PanelStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("12")).
-			Padding(1, 2) // テーブル全体に上下1、左右2のpadding
+			Padding(0, 1)
 
 	// Activity density colors (matching Rich color scheme)
 	ActivityColors = []lipgloss.Color{
@@ -93,9 +93,9 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 // createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
 	// Calculate column widths for table with external padding
-	projectWidth := 18
-	eventsWidth := 6
-	durationWidth := 8
+	projectWidth := 20
+	eventsWidth := 8
+	durationWidth := 10
 	// Account for table borders and external padding (1,2) = 4 horizontal + 4 borders
 	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12
 	if timelineWidth < 25 {
@@ -160,7 +160,6 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			projectDisplay = " └─" + timeline.ProjectName
 		}
 
-		// Auto-truncate project name with ellipsis using reflow/truncate
 		projectDisplay = truncate.StringWithTail(projectDisplay, uint(projectWidth-2), "…")
 
 		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
@@ -332,4 +331,3 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 
 	return HeaderStyle.Render(summary)
 }
-
