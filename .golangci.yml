@@ -24,15 +24,6 @@ linters:
     - revive        # Fast linter replacement for golint
     - unconvert     # Remove unnecessary type conversions
     - whitespace    # Check for trailing whitespace
-    
-  disable:
-    - deadcode      # Deprecated, covered by unused
-    - varcheck      # Deprecated, covered by unused
-    - structcheck   # Deprecated, covered by unused
-    - scopelint     # Deprecated
-    - interfacer    # Deprecated
-    - maligned      # Deprecated
-    - golint        # Deprecated, use revive instead
 
 linters-settings:
   revive:
