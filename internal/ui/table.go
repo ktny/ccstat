@@ -25,7 +25,7 @@ var (
 	PanelStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("12")).
-			Padding(0, 1)
+			Padding(1, 2) // テーブル全体に上下1、左右2のpadding
 
 	// Activity density colors (matching Rich color scheme)
 	ActivityColors = []lipgloss.Color{
@@ -91,18 +91,19 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 
 // createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths considering padding (padding is included in width)
-	projectWidth := 20
-	eventsWidth := 8
-	durationWidth := 10
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 10
-	if timelineWidth < 20 {
-		timelineWidth = 20
+	// Calculate column widths for table with external padding
+	projectWidth := 18
+	eventsWidth := 6
+	durationWidth := 8
+	// Account for table borders and external padding (1,2) = 4 horizontal + 4 borders
+	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12
+	if timelineWidth < 25 {
+		timelineWidth = 25
 	}
 
 	// Define style function for dynamic styling based on row and column
 	styleFunc := func(row, col int) lipgloss.Style {
-		// Header row styling with padding
+		// Header row styling
 		if row == table.HeaderRow {
 			switch col {
 			case 0: // Project column
@@ -116,7 +117,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			}
 		}
 
-		// Data row styling with padding
+		// Data row styling (no individual cell padding)
 		switch col {
 		case 0: // Project column
 			return lipgloss.NewStyle().Width(projectWidth)
