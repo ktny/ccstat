@@ -16,23 +16,23 @@ var (
 	HeaderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Cyan
 
 	// Column colors
-	ProjectStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))  // Blue
-	EventsStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))  // Cyan
-	DurationStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))  // Yellow
-	
+	ProjectStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Blue
+	EventsStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("14")) // Cyan
+	DurationStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // Yellow
+
 	// Panel styles
 	PanelStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("12")).
-		Padding(0, 1)
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("12")).
+			Padding(0, 1)
 
 	// Activity density colors (matching Rich color scheme)
 	ActivityColors = []lipgloss.Color{
-		lipgloss.Color("8"),   // bright_black - no activity
-		lipgloss.Color("22"),  // color(22) - low activity
-		lipgloss.Color("28"),  // color(28) - medium-low activity 
-		lipgloss.Color("34"),  // color(34) - medium-high activity
-		lipgloss.Color("40"),  // color(40) - high activity
+		lipgloss.Color("8"),  // bright_black - no activity
+		lipgloss.Color("22"), // color(22) - low activity
+		lipgloss.Color("28"), // color(28) - medium-low activity
+		lipgloss.Color("34"), // color(34) - medium-high activity
+		lipgloss.Color("40"), // color(40) - high activity
 	}
 )
 
@@ -51,7 +51,7 @@ func NewTimelineUI(width int) *TimelineUI {
 // DisplayTimeline displays the complete timeline with header, table, and summary
 func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, startTime, endTime time.Time, timeUnit string) string {
 	var output strings.Builder
-	
+
 	// Create header
 	header := ui.createHeader(startTime, endTime, len(timelines), timeUnit)
 	output.WriteString(header)
@@ -85,7 +85,7 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 		endTime.Format("01/02/2006 15:04"),
 		timeUnit,
 		sessionCount)
-	
+
 	return PanelStyle.Render(headerText)
 }
 
@@ -119,10 +119,10 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 	for _, timeline := range timelines {
 		// Create timeline visualization
 		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth)
-		
+
 		// Format duration
 		durationStr := fmt.Sprintf("%dm", timeline.ActiveDurationMinutes)
-		
+
 		// Handle project display with indentation for child projects
 		projectDisplay := timeline.ProjectName
 		if timeline.ParentProject != nil {
@@ -137,7 +137,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			timelineStr,
 			eventsWidth, len(timeline.Events),
 			durationWidth, durationStr)
-		
+
 		rows = append(rows, row)
 	}
 
@@ -159,10 +159,10 @@ func (ui *TimelineUI) createTableHeader(projectWidth, timelineWidth, eventsWidth
 		}
 		activityLegend += "■"
 	}
-	
+
 	// Calculate total visible length
 	totalHeaderLength := len(baseTimelineHeader + activityLegend)
-	
+
 	// Create styled timeline header
 	timelineHeader := baseTimelineHeader
 	for i, color := range ActivityColors {
@@ -200,7 +200,7 @@ func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, sta
 	for _, event := range timeline.Events {
 		eventOffset := event.Timestamp.Sub(startTime)
 		position := int((float64(eventOffset) / float64(totalDuration)) * float64(width))
-		
+
 		// Clamp position to valid range
 		if position >= width {
 			position = width - 1
@@ -229,13 +229,13 @@ func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, sta
 		if count > 0 {
 			// Calculate density level (0-4 scale)
 			densityLevel := int(math.Min(4, math.Floor(float64(count)/float64(maxActivity)*4)+1))
-			
+
 			// Use appropriate color for density level
 			colorIndex := densityLevel
 			if colorIndex >= len(ActivityColors) {
 				colorIndex = len(ActivityColors) - 1
 			}
-			
+
 			timelineChars[i] = lipgloss.NewStyle().Foreground(ActivityColors[colorIndex]).Render("■")
 		}
 	}
@@ -248,7 +248,7 @@ func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) st
 	// Simplified time axis - showing just start/middle/end for now
 	// This would need the full time unit logic from the Python version
 	duration := endTime.Sub(startTime)
-	
+
 	axisChars := make([]string, width)
 	for i := range axisChars {
 		axisChars[i] = " "

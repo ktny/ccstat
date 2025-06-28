@@ -6,24 +6,24 @@ import (
 
 // SessionEvent represents a single event in a Claude session
 type SessionEvent struct {
-	Timestamp      time.Time `json:"timestamp"`
-	SessionID      string    `json:"sessionId"`
-	Directory      string    `json:"cwd"`          // Keep as directory since it's the actual cwd from logs
-	MessageType    string    `json:"role"`         // "user", "assistant", etc.
-	ContentPreview string    `json:"-"`            // Not from JSON, computed
-	UUID           string    `json:"uuid"`
+	Timestamp      time.Time              `json:"timestamp"`
+	SessionID      string                 `json:"sessionId"`
+	Directory      string                 `json:"cwd"`  // Keep as directory since it's the actual cwd from logs
+	MessageType    string                 `json:"role"` // "user", "assistant", etc.
+	ContentPreview string                 `json:"-"`    // Not from JSON, computed
+	UUID           string                 `json:"uuid"`
 	RawMessage     map[string]interface{} `json:"message"` // Raw message for content extraction
 }
 
 // SessionTimeline represents a timeline of events for a single Claude session
 type SessionTimeline struct {
 	SessionID             string          `json:"session_id"`
-	Directory             string          `json:"directory"`       // Full path from logs
-	ProjectName           string          `json:"project_name"`    // short name for display
+	Directory             string          `json:"directory"`    // Full path from logs
+	ProjectName           string          `json:"project_name"` // short name for display
 	Events                []*SessionEvent `json:"events"`
 	StartTime             time.Time       `json:"start_time"`
 	EndTime               time.Time       `json:"end_time"`
-	ActiveDurationMinutes int             `json:"active_duration_minutes"` // Active work time in minutes
+	ActiveDurationMinutes int             `json:"active_duration_minutes"`  // Active work time in minutes
 	ParentProject         *string         `json:"parent_project,omitempty"` // Parent project name for thread display
 }
 
@@ -41,7 +41,7 @@ func (e *SessionEvent) CreateContentPreview() {
 	}
 
 	var contentStr string
-	
+
 	// Handle different content types
 	switch c := content.(type) {
 	case string:
