@@ -163,7 +163,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if debug {
 		fmt.Printf("DEBUG: Found %d JSONL files\n", len(jsonlFiles))
 	}
@@ -196,7 +196,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 			filteredEvents = append(filteredEvents, event)
 		}
 	}
-	
+
 	if debug {
 		fmt.Printf("DEBUG: Total events parsed: %d\n", len(allEvents))
 		fmt.Printf("DEBUG: Events after time filter: %d\n", len(filteredEvents))
@@ -236,7 +236,6 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 
 	return timelines, nil
 }
-
 
 // CalculateActiveDuration calculates active work duration based on event intervals
 func CalculateActiveDuration(events []*models.SessionEvent) int {

@@ -441,7 +441,6 @@ func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) st
 	return strings.Join(axisChars, "")
 }
 
-
 // createSummary creates the summary statistics text
 func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string {
 	if len(timelines) == 0 {
