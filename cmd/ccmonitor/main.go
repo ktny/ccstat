@@ -17,12 +17,17 @@ var (
 	project  string
 	worktree bool
 	debug    bool
+	version  bool
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "ccmonitor",
 	Short: "Claude Session Timeline - CLI tool for visualizing Claude session activity patterns",
 	Run: func(cmd *cobra.Command, args []string) {
+		if version {
+			fmt.Println("ccmonitor version 1.0.0")
+			return
+		}
 		if err := runMonitor(); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
 			os.Exit(1)
@@ -34,12 +39,13 @@ func init() {
 	// Disable flag sorting to maintain custom order
 	rootCmd.Flags().SortFlags = false
 	
-	// Define flags in desired display order: --days, --hours, --project, --worktree, --debug, --help
+	// Define flags in desired display order: --days, --hours, --project, --worktree, --help, --version
 	rootCmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back (default: 1)")
 	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
 	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
 	rootCmd.Flags().BoolVarP(&worktree, "worktree", "w", false, "Show projects as worktree (separate similar repos)")
 	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug output for troubleshooting")
+	rootCmd.Flags().BoolVarP(&version, "version", "v", false, "Show version information")
 }
 
 func runMonitor() error {
