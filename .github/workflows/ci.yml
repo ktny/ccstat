@@ -40,11 +40,10 @@ jobs:
           exit 1
         fi
 
-    - name: Install golangci-lint
-      uses: golangci/golangci-lint-action@v6
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v4
       with:
-        version: latest
-        args: --timeout=5m
+        version: v1.54.2
 
     - name: Build
       run: go build -v ./cmd/ccmonitor
