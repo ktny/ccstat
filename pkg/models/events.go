@@ -13,8 +13,6 @@ type SessionEvent struct {
 	ContentPreview string                 `json:"-"`    // Not from JSON, computed
 	UUID           string                 `json:"uuid"`
 	RawMessage     map[string]interface{} `json:"message"` // Raw message for content extraction
-	InputTokens    int                    `json:"input_tokens"`  // Input tokens for assistant messages
-	OutputTokens   int                    `json:"output_tokens"` // Output tokens for assistant messages
 }
 
 // SessionTimeline represents a timeline of events for a single Claude session
@@ -27,8 +25,6 @@ type SessionTimeline struct {
 	EndTime               time.Time       `json:"end_time"`
 	ActiveDurationMinutes int             `json:"active_duration_minutes"`  // Active work time in minutes
 	ParentProject         *string         `json:"parent_project,omitempty"` // Parent project name for thread display
-	TotalInputTokens      int             `json:"total_input_tokens"`        // Total input tokens
-	TotalOutputTokens     int             `json:"total_output_tokens"`       // Total output tokens
 }
 
 // CreateContentPreview creates a content preview from the raw message content

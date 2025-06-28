@@ -6,7 +6,6 @@ Claude Session Timeline - CLI tool for visualizing Claude session activity patte
 
 ccmonitor analyzes Claude Code session logs and provides timeline visualization of project activity patterns with:
 - Project-wise activity timeline with colored density indicators
-- Input/Output token usage statistics by project  
 - Active time calculation based on message intervals (3-minute threshold)
 - Git repository-based project grouping and integration
 

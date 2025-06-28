@@ -95,16 +95,6 @@ func ParseJSONLFile(filePath string) ([]*models.SessionEvent, error) {
 			RawMessage:  rawMessage,
 		}
 
-		// Extract token information from usage field (for assistant messages)
-		if usage, ok := rawMessage["usage"].(map[string]interface{}); ok {
-			if inputTokens, ok := usage["input_tokens"].(float64); ok {
-				event.InputTokens = int(inputTokens)
-			}
-			if outputTokens, ok := usage["output_tokens"].(float64); ok {
-				event.OutputTokens = int(outputTokens)
-			}
-		}
-
 		// Create content preview
 		event.CreateContentPreview()
 
@@ -247,18 +237,6 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	return timelines, nil
 }
 
-// calculateTokenTotals calculates total input and output tokens from events
-func calculateTokenTotals(events []*models.SessionEvent) (int, int) {
-	totalInputTokens := 0
-	totalOutputTokens := 0
-
-	for _, event := range events {
-		totalInputTokens += event.InputTokens
-		totalOutputTokens += event.OutputTokens
-	}
-
-	return totalInputTokens, totalOutputTokens
-}
 
 // CalculateActiveDuration calculates active work duration based on event intervals
 func CalculateActiveDuration(events []*models.SessionEvent) int {
@@ -397,9 +375,6 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bo
 		// Calculate total duration from all consolidated events
 		totalDuration := CalculateActiveDuration(allRepoEvents)
 
-		// Calculate total tokens
-		totalInputTokens, totalOutputTokens := calculateTokenTotals(allRepoEvents)
-
 		// Create consolidated timeline for this repository
 		timeline := &models.SessionTimeline{
 			SessionID:             fmt.Sprintf("repo_%s", repoName),
@@ -409,8 +384,6 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bo
 			StartTime:             allRepoEvents[0].Timestamp,
 			EndTime:               allRepoEvents[len(allRepoEvents)-1].Timestamp,
 			ActiveDurationMinutes: totalDuration, // Use calculated duration from all events
-			TotalInputTokens:      totalInputTokens,
-			TotalOutputTokens:     totalOutputTokens,
 		}
 
 		if debug {
@@ -561,9 +534,6 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 					return projectEvents[i].Timestamp.Before(projectEvents[j].Timestamp)
 				})
 
-				// Calculate tokens
-				inputTokens, outputTokens := calculateTokenTotals(projectEvents)
-
 				timeline := &models.SessionTimeline{
 					SessionID:             fmt.Sprintf("repo_%s", repoName),
 					Directory:             directory,
@@ -572,8 +542,6 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 					StartTime:             projectEvents[0].Timestamp,
 					EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
 					ActiveDurationMinutes: CalculateActiveDuration(projectEvents),
-					TotalInputTokens:      inputTokens,
-					TotalOutputTokens:     outputTokens,
 				}
 
 				timelines = append(timelines, timeline)
@@ -596,9 +564,6 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 					return mainDirEvents[i].Timestamp.Before(mainDirEvents[j].Timestamp)
 				})
 
-				// Calculate tokens for parent
-				parentInputTokens, parentOutputTokens := calculateTokenTotals(mainDirEvents)
-
 				parentTimeline := &models.SessionTimeline{
 					SessionID:             fmt.Sprintf("repo_%s", repoName),
 					Directory:             mainDir,
@@ -607,8 +572,6 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 					StartTime:             mainDirEvents[0].Timestamp,
 					EndTime:               mainDirEvents[len(mainDirEvents)-1].Timestamp,
 					ActiveDurationMinutes: CalculateActiveDuration(mainDirEvents),
-					TotalInputTokens:      parentInputTokens,
-					TotalOutputTokens:     parentOutputTokens,
 				}
 
 				timelines = append(timelines, parentTimeline)
@@ -638,9 +601,6 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 					continue
 				}
 
-				// Calculate tokens for child
-				childInputTokens, childOutputTokens := calculateTokenTotals(projectEvents)
-
 				childTimeline := &models.SessionTimeline{
 					SessionID:             fmt.Sprintf("dir_%s", directory),
 					Directory:             directory,
@@ -650,8 +610,6 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 					EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
 					ActiveDurationMinutes: CalculateActiveDuration(projectEvents),
 					ParentProject:         &repoName, // Set parent project name
-					TotalInputTokens:      childInputTokens,
-					TotalOutputTokens:     childOutputTokens,
 				}
 
 				timelines = append(timelines, childTimeline)
