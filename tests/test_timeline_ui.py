@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 from rich.console import Console
 
-from ccmonitor.claude_logs import SessionEvent, SessionTimeline
-from ccmonitor.timeline_ui import TimelineUI
+from ccmonitor-python.claude_logs import SessionEvent, SessionTimeline
+from ccmonitor-python.timeline_ui import TimelineUI
 
 
 class TestTimelineUI:

@@ -1,4 +1,4 @@
-"""Integration tests for ccmonitor."""
+"""Integration tests for ccmonitor-python."""
 
 import json
 import tempfile
@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
-from ccmonitor.claude_logs import load_sessions_in_timerange
-from ccmonitor.timeline_monitor import TimelineMonitor
+from ccmonitor-python.claude_logs import load_sessions_in_timerange
+from ccmonitor-python.timeline_monitor import TimelineMonitor
 
 
 class TestIntegration:
@@ -74,7 +74,7 @@ class TestIntegration:
         temp_dir, files, project_data = mock_claude_projects
 
         # Mock the get_all_session_files function
-        with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+        with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
             mock_get_files.return_value = files
 
             start_time = datetime.now() - timedelta(hours=4)
@@ -101,7 +101,7 @@ class TestIntegration:
         """Test end-to-end processing with project filter."""
         temp_dir, files, project_data = mock_claude_projects
 
-        with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+        with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
             mock_get_files.return_value = files
 
             start_time = datetime.now() - timedelta(hours=4)
@@ -118,7 +118,7 @@ class TestIntegration:
         """Test TimelineMonitor integration."""
         temp_dir, files, project_data = mock_claude_projects
 
-        with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+        with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
             mock_get_files.return_value = files
 
             # Create monitor with short time range
@@ -138,7 +138,7 @@ class TestIntegration:
         """Test that active duration calculation works in integration."""
         temp_dir, files, project_data = mock_claude_projects
 
-        with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+        with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
             mock_get_files.return_value = files
 
             start_time = datetime.now() - timedelta(hours=4)
@@ -164,7 +164,7 @@ class TestIntegration:
 
     def test_empty_projects_handling(self):
         """Test handling of empty projects directory."""
-        with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+        with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
             mock_get_files.return_value = []
 
             start_time = datetime.now() - timedelta(hours=1)
@@ -190,7 +190,7 @@ class TestIntegration:
             temp_file = Path(f.name)
 
         try:
-            with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+            with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
                 mock_get_files.return_value = [temp_file]
 
                 start_time = datetime.now() - timedelta(hours=1)
@@ -225,7 +225,7 @@ class TestIntegration:
 
         files.append(test_file)
 
-        with patch("ccmonitor.claude_logs.get_all_session_files") as mock_get_files:
+        with patch("ccmonitor-python.claude_logs.get_all_session_files") as mock_get_files:
             mock_get_files.return_value = [test_file]
 
             start_time = datetime.now() - timedelta(hours=1)

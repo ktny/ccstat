@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from ccmonitor import __version__
-from ccmonitor.__main__ import main
+from ccmonitor-python import __version__
+from ccmonitor-python.__main__ import main
 
 
 class TestMain:
@@ -15,7 +15,7 @@ class TestMain:
         """Test main with default parameters."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, [])
@@ -28,7 +28,7 @@ class TestMain:
         """Test main with custom days parameter."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["--days", "7"])
@@ -41,7 +41,7 @@ class TestMain:
         """Test main with days shorthand parameter."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["-d", "7"])
@@ -54,7 +54,7 @@ class TestMain:
         """Test main with project filter."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["--project", "myproject"])
@@ -67,7 +67,7 @@ class TestMain:
         """Test main with project shorthand parameter."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["-p", "myproject"])
@@ -80,7 +80,7 @@ class TestMain:
         """Test main with threads mode enabled."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["--threads"])
@@ -93,7 +93,7 @@ class TestMain:
         """Test main with threads shorthand parameter."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["-t"])
@@ -106,7 +106,7 @@ class TestMain:
         """Test main with all parameters."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["--days", "14", "--project", "testproj", "--threads"])
@@ -119,7 +119,7 @@ class TestMain:
         """Test main with all shorthand parameters."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
 
             result = runner.invoke(main, ["-d", "5", "-p", "testproj", "-t"])
@@ -132,7 +132,7 @@ class TestMain:
         """Test main handling KeyboardInterrupt."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
             mock_monitor.run.side_effect = KeyboardInterrupt()
 
@@ -145,7 +145,7 @@ class TestMain:
         """Test main handling general exceptions."""
         runner = CliRunner()
 
-        with patch("ccmonitor.__main__.TimelineMonitor") as mock_monitor_class:
+        with patch("ccmonitor-python.__main__.TimelineMonitor") as mock_monitor_class:
             mock_monitor = mock_monitor_class.return_value
             mock_monitor.run.side_effect = Exception("Test error")
 

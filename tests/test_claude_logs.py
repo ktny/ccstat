@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ccmonitor.claude_logs import (
+from ccmonitor-python.claude_logs import (
     SessionEvent,
     SessionTimeline,
     calculate_active_duration,
@@ -333,7 +333,7 @@ class TestLoadSessionsInTimerange:
         temp_dir, files = sample_jsonl_files
 
         # Mock the get_all_session_files function to return our test files
-        import ccmonitor.claude_logs as claude_logs_module
+        import ccmonitor-python.claude_logs as claude_logs_module
 
         original_get_files = claude_logs_module.get_all_session_files
 

@@ -3,28 +3,51 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 jobs:
   test:
+    name: Go Build and Test
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
 
-    - name: Install dependencies
-      run: uv sync
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
 
-    - name: Run linting
-      run: uv run ruff check .
+    - name: Download dependencies
+      run: go mod download
 
-    - name: Run formatting check
-      run: uv run ruff format --check .
+    - name: Run go fmt check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Code is not formatted. Please run 'go fmt ./...'"
+          gofmt -s -l .
+          exit 1
+        fi
 
-    - name: Run type checking
-      run: uv run pyright
+    # - name: Run golangci-lint
+    #   run: |
+    #     curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.0
+    #     golangci-lint run
 
-    - name: Run tests
-      run: uv run pytest --cov=ccmonitor
+    - name: Build
+      run: go build -v ./cmd/ccmonitor
+
+    - name: Test
+      run: go test -v ./...
+

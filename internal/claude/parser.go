@@ -102,7 +102,7 @@ func GetAllSessionFiles() ([]string, error) {
 	}
 
 	projectsDir := filepath.Join(homeDir, ".claude", "projects")
-	
+
 	if _, err := os.Stat(projectsDir); os.IsNotExist(err) {
 		return []string{}, nil
 	}

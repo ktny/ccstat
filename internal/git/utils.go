@@ -11,7 +11,7 @@ import (
 // GetRepositoryName extracts repository name from git config
 func GetRepositoryName(directory string) string {
 	gitPath := filepath.Join(directory, ".git")
-	
+
 	// Check if .git exists
 	if _, err := os.Stat(gitPath); os.IsNotExist(err) {
 		return ""
@@ -37,7 +37,7 @@ func GetRepositoryName(directory string) string {
 		// Extract gitdir path (format: "gitdir: /path/to/actual/git/dir")
 		if strings.HasPrefix(gitContent, "gitdir: ") {
 			actualGitDir := gitContent[8:] // Remove "gitdir: " prefix
-			
+
 			// For worktree, check if commondir exists to find main git dir
 			commondirFile := filepath.Join(actualGitDir, "commondir")
 			if _, err := os.Stat(commondirFile); err == nil {
@@ -79,17 +79,17 @@ func extractRepoNameFromConfig(content string) string {
 	// Pattern matches lines like: url = git@github.com:user/repo.git
 	// or: url = https://github.com/user/repo.git
 	scanner := bufio.NewScanner(strings.NewReader(content))
-	
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Look for URL lines
 		urlRegex := regexp.MustCompile(`url\s*=\s*(.+)`)
 		matches := urlRegex.FindStringSubmatch(line)
-		
+
 		if len(matches) > 1 {
 			url := strings.TrimSpace(matches[1])
-			
+
 			// Extract repo name from various URL formats
 			repoName := extractRepoNameFromURL(url)
 			if repoName != "" {
@@ -97,7 +97,7 @@ func extractRepoNameFromConfig(content string) string {
 			}
 		}
 	}
-	
+
 	return ""
 }
 
@@ -105,19 +105,19 @@ func extractRepoNameFromConfig(content string) string {
 func extractRepoNameFromURL(url string) string {
 	// SSH format: git@github.com:user/repo.git
 	sshRegex := regexp.MustCompile(`[^:/]+/([^/]+?)(?:\.git)?$`)
-	
+
 	// HTTPS format: https://github.com/user/repo.git
 	httpsRegex := regexp.MustCompile(`/([^/]+?)(?:\.git)?$`)
-	
+
 	// Try SSH pattern first
 	if matches := sshRegex.FindStringSubmatch(url); len(matches) > 1 {
 		return matches[1]
 	}
-	
+
 	// Try HTTPS pattern
 	if matches := httpsRegex.FindStringSubmatch(url); len(matches) > 1 {
 		return matches[1]
 	}
-	
+
 	return ""
 }

@@ -1,1 +1,1 @@
-"""Tests for ccmonitor."""
+"""Tests for ccmonitor-python."""
