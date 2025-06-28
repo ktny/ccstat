@@ -195,8 +195,16 @@ def load_sessions_in_timerange(
     # Get all JSONL files
     jsonl_files = get_all_session_files()
 
-    # Parse each file and collect events
+    # Parse each file and collect events (with mtime filtering)
     for file_path in jsonl_files:
+        # Check file modification time for performance optimization
+        file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+        
+        # Skip files that were last modified before the start time
+        # If a file hasn't been modified since before start_time, it cannot contain events within our time range
+        if file_mtime < start_time:
+            continue
+        
         events = parse_jsonl_file(file_path)
         all_events.extend(events)
 
