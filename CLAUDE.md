@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ccmonitor is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
 
+**Primary Implementation**: Go (recommended for all development)  
+**Legacy Implementation**: Python (maintained but not actively developed)
+
 ### Key Features
 - Parses session information from Claude Code log files (~/.claude/projects/)
 - Visualizes project activity patterns in timeline format
@@ -14,6 +17,21 @@ ccmonitor is a CLI tool that analyzes Claude Code session history and visualizes
 - Automatically integrates and groups projects by Git repository
 
 ## Development Environment Setup
+
+### Go Development (Primary)
+
+```bash
+# Build the project
+make build
+
+# Or build manually
+go build -o bin/ccmonitor ./cmd/ccmonitor
+
+# Install to $GOPATH/bin
+make install
+```
+
+### Python Development (Legacy)
 
 ```bash
 # Install uv (first time only)
@@ -29,27 +47,78 @@ uv pip install -e .
 ## Command Reference
 
 ### Execution Commands
+
+#### Go Version (Primary)
 ```bash
 # Basic execution (last 1 day)
-ccmonitor
+./bin/ccmonitor
 
 # Display activity for the last N days
-ccmonitor --days 7
+./bin/ccmonitor --days 7
 
 # Filter display by specific project
-ccmonitor --project myproject
+./bin/ccmonitor --project myproject
 
 # Worktree display (separate directories within the same repository)
-ccmonitor --worktree
+./bin/ccmonitor --worktree
 
 # Multiple option combinations
-ccmonitor --days 3 --project myproject --worktree
+./bin/ccmonitor --days 3 --project myproject --worktree
+
+# Using Makefile shortcuts
+make run        # Build and run with defaults
+make run-days   # Build and run with --days 2
+make run-hours  # Build and run with --hours 6
 
 # Display help
-ccmonitor --help
+./bin/ccmonitor --help
+```
+
+#### Python Version (Legacy)
+```bash
+# Basic execution (last 1 day)
+uv run ccmonitor
+
+# Display activity for the last N days
+uv run ccmonitor --days 7
+
+# Filter display by specific project
+uv run ccmonitor --project myproject
+
+# Worktree display (separate directories within the same repository)
+uv run ccmonitor --worktree
+
+# Multiple option combinations
+uv run ccmonitor --days 3 --project myproject --worktree
+
+# Display help
+uv run ccmonitor --help
 ```
 
 ### Development Commands
+
+#### Go Development (Primary)
+```bash
+# Code formatting (ALWAYS run before committing)
+go fmt ./...
+
+# Code linting
+golangci-lint run
+
+# Build and test
+make build
+make test
+
+# Run ccmonitor in development environment  
+make run
+make run-days   # --days 2
+make run-hours  # --hours 6
+
+# Clean build artifacts
+make clean
+```
+
+#### Python Development (Legacy)
 ```bash
 # Code formatting and linting
 uv run ruff check .       # Lint check
@@ -135,6 +204,19 @@ ccmonitor/
 
 ## Development Guidelines
 
+### Code Quality and Formatting
+
+#### Go Development (Primary)
+- **MANDATORY**: Always run `go fmt ./...` before committing any Go code
+- **MANDATORY**: Run `golangci-lint run` and fix all issues before committing
+- Follow Go standard conventions for naming, structure, and documentation
+- Use meaningful package and variable names
+- Add comments for exported functions and types
+
+#### Python Development (Legacy)
+- Run `uv run ruff format .` before committing Python code
+- Ensure all `ruff` and `pyright` checks pass
+
 ### TDD (Test-Driven Development)
 - Follow test-driven development principles
 - Create tests first when adding new features, then implement
@@ -149,6 +231,33 @@ ccmonitor/
 - Groups same projects by detecting Git repositories
 - With --worktree option, displays directories separately even within the same repository
 - Shows parent-child relationships (└─ indicates child projects)
+
+### Pull Request Guidelines
+
+#### Creating Pull Requests
+- **Always create separate branches for different features/fixes**
+- Use descriptive branch names: `feat/feature-name`, `fix/issue-description`, `setup/tool-configuration`
+- Ensure all linting and formatting checks pass before creating PR
+- Write clear commit messages explaining the "why" not just the "what"
+- Include relevant tests for new functionality
+
+#### Branch Workflow
+```bash
+# Create a new feature branch
+git checkout -b feat/new-feature
+
+# Make changes and ensure formatting
+go fmt ./...
+golangci-lint run
+
+# Commit changes
+git add .
+git commit -m "feat: add new feature description"
+
+# Push and create PR
+git push -u origin feat/new-feature
+gh pr create --title "Add new feature" --body "Description of changes"
+```
 
 ## Custom Commands
 
