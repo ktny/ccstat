@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/ktny/ccmonitor/pkg/models"
+	"github.com/muesli/reflow/truncate"
 )
 
 // Colors matching Rich color scheme
@@ -69,7 +71,6 @@ func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, start
 	// Create main timeline table
 	table := ui.createTimelineTable(timelines, startTime, endTime)
 	output.WriteString(table)
-	output.WriteString("\n")
 
 	// Create summary
 	summary := ui.createSummary(timelines)
@@ -89,36 +90,66 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 	return PanelStyle.Render(headerText)
 }
 
-// createTimelineTable creates the main timeline visualization table
+// createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths
+	// Calculate column widths for table with external padding
 	projectWidth := 20
-	eventsWidth := 6
-	durationWidth := 8
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 10 // Account for padding and borders
-	if timelineWidth < 20 {
-		timelineWidth = 20
+	eventsWidth := 8
+	durationWidth := 10
+	// Account for table borders and external padding (1,2) = 4 horizontal + 4 borders
+	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12
+	if timelineWidth < 25 {
+		timelineWidth = 25
 	}
 
-	var rows []string
+	// Define style function for dynamic styling based on row and column
+	styleFunc := func(row, col int) lipgloss.Style {
+		// Header row styling
+		if row == table.HeaderRow {
+			switch col {
+			case 0: // Project column
+				return ProjectStyle.Width(projectWidth).Bold(true).Padding(0, 1)
+			case 1: // Timeline column
+				return lipgloss.NewStyle().Width(timelineWidth).Bold(true).Padding(0, 1)
+			case 2: // Events column
+				return EventsStyle.Width(eventsWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
+			case 3: // Duration column
+				return DurationStyle.Width(durationWidth).Bold(true).Align(lipgloss.Right).Padding(0, 1)
+			}
+		}
 
-	// Create table header
-	header := ui.createTableHeader(projectWidth, timelineWidth, eventsWidth, durationWidth)
-	rows = append(rows, header)
+		// Data row styling (no individual cell padding)
+		switch col {
+		case 0: // Project column
+			return lipgloss.NewStyle().Width(projectWidth).Padding(0, 1)
+		case 1: // Timeline column
+			return lipgloss.NewStyle().Width(timelineWidth).Padding(0, 1)
+		case 2: // Events column
+			return lipgloss.NewStyle().Width(eventsWidth).Align(lipgloss.Right).Padding(0, 1)
+		case 3: // Duration column
+			return lipgloss.NewStyle().Width(durationWidth).Align(lipgloss.Right).Padding(0, 1)
+		}
+		return lipgloss.NewStyle()
+	}
 
-	// Create time axis row
-	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth)
-	timeAxisRow := fmt.Sprintf("%-*s %s %*s %*s",
-		projectWidth, "",
-		timeAxis,
-		eventsWidth, "",
-		durationWidth, "")
-	rows = append(rows, timeAxisRow)
+	// Create the table with styling (no inner borders)
+	t := table.New().
+		Border(lipgloss.RoundedBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("14"))).
+		BorderColumn(false). // Disable column borders
+		BorderRow(false).    // Disable row borders (except header)
+		BorderHeader(false). // Keep header separator
+		StyleFunc(styleFunc).
+		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
 
-	// Create data rows
+	// Add time axis row
+	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth-2)
+	t.Row("", timeAxis, "", "")
+
+	// Add data rows
 	for _, timeline := range timelines {
-		// Create timeline visualization
-		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth)
+		// Create timeline visualization with actual event density
+		timelineStr := ui.createTimelineString(timeline, startTime, endTime, timelineWidth-2)
 
 		// Format duration
 		durationStr := fmt.Sprintf("%dm", timeline.ActiveDurationMinutes)
@@ -129,27 +160,16 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			projectDisplay = " └─" + timeline.ProjectName
 		}
 
-		// Truncate project name if it's too long
-		projectDisplay = truncateString(projectDisplay, projectWidth)
+		projectDisplay = truncate.StringWithTail(projectDisplay, uint(projectWidth-2), "…")
 
-		row := fmt.Sprintf("%-*s %s %*d %*s",
-			projectWidth, projectDisplay,
-			timelineStr,
-			eventsWidth, len(timeline.Events),
-			durationWidth, durationStr)
-
-		rows = append(rows, row)
+		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
 	}
 
-	// Create the table panel
-	tableContent := strings.Join(rows, "\n")
-	return PanelStyle.
-		BorderForeground(lipgloss.Color("14")).
-		Render(tableContent)
+	return t.String()
 }
 
-// createTableHeader creates the table header with column names and activity legend
-func (ui *TimelineUI) createTableHeader(projectWidth, timelineWidth, eventsWidth, durationWidth int) string {
+// createTimelineHeader creates the timeline column header with activity legend
+func (ui *TimelineUI) createTimelineHeader(timelineWidth int) string {
 	// Create timeline header with activity density legend (without styles first)
 	baseTimelineHeader := "Timeline "
 	activityLegend := ""
@@ -178,11 +198,7 @@ func (ui *TimelineUI) createTableHeader(projectWidth, timelineWidth, eventsWidth
 		timelineHeader += strings.Repeat(" ", paddingLength)
 	}
 
-	return fmt.Sprintf("%-*s %s %*s %*s",
-		projectWidth, ProjectStyle.Render("Project"),
-		timelineHeader,
-		eventsWidth, EventsStyle.Render("Events"),
-		durationWidth, DurationStyle.Render("Duration"))
+	return timelineHeader
 }
 
 // createTimelineString creates a visual timeline string with density-based display
@@ -314,15 +330,4 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 		len(timelines), totalEvents, totalDuration)
 
 	return HeaderStyle.Render(summary)
-}
-
-// truncateString truncates a string to maxLen characters, adding "..." if truncated
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return s[:maxLen]
-	}
-	return s[:maxLen-3] + "..."
 }
