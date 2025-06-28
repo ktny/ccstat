@@ -57,7 +57,7 @@ class TestTimelineUI:
         end_time = datetime(2024, 1, 1, 14, 0, 0)
         session_count = 3
 
-        header = timeline_ui._create_header(start_time, end_time, session_count)
+        header = timeline_ui._create_header(start_time, end_time, session_count, "4 hours")
 
         assert header is not None
         assert header.border_style == "blue"
@@ -258,7 +258,7 @@ class TestTimelineUI:
 
         with patch.object(timeline_ui.console, "print") as mock_print:
             # Should not raise any exceptions
-            timeline_ui.display_timeline(timelines, start_time, end_time)
+            timeline_ui.display_timeline(timelines, start_time, end_time, "1 day")
 
             # Verify console.print was called
             assert mock_print.called
@@ -269,7 +269,7 @@ class TestTimelineUI:
         end_time = start_time + timedelta(hours=1)
 
         with patch.object(timeline_ui.console, "print") as mock_print:
-            timeline_ui.display_timeline([], start_time, end_time)
+            timeline_ui.display_timeline([], start_time, end_time, "1 hour")
 
             # Should print "no sessions found" message
             assert mock_print.called

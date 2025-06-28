@@ -17,16 +17,17 @@ class TimelineUI:
         """Initialize the timeline UI."""
         self.console = Console()
 
-    def display_timeline(self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime) -> None:
+    def display_timeline(self, timelines: list[SessionTimeline], start_time: datetime, end_time: datetime, time_unit: str) -> None:
         """Display the timeline components directly to console.
 
         Args:
             timelines: List of session timelines to display
             start_time: Start of the time range
             end_time: End of the time range
+            time_unit: Time unit description (e.g., "2 days", "6 hours")
         """
         # Header
-        header_panel = self._create_header(start_time, end_time, len(timelines))
+        header_panel = self._create_header(start_time, end_time, len(timelines), time_unit)
         self.console.print(header_panel)
 
         # Main content with timeline visualization
@@ -44,18 +45,15 @@ class TimelineUI:
             summary_text = self.create_summary_text(timelines)
             self.console.print(summary_text)
 
-    def _create_header(self, start_time: datetime, end_time: datetime, session_count: int) -> Panel:
+    def _create_header(self, start_time: datetime, end_time: datetime, session_count: int, time_unit: str) -> Panel:
         """Create header panel with title and time range info."""
-        duration = end_time - start_time
-        hours = int(duration.total_seconds() / 3600)
-
         header_text = Text.assemble(
             ("📊 Claude Project Timeline", "bold cyan"),
             " | ",
             (start_time.strftime("%m/%d/%Y %H:%M")),
             " - ",
             (end_time.strftime("%m/%d/%Y %H:%M")),
-            (f" ({hours} hours)", "bold"),
+            (f" ({time_unit})", "bold"),
             " | ",
             (f"{session_count} projects", "yellow"),
         )
