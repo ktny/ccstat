@@ -129,6 +129,9 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			projectDisplay = " └─" + timeline.ProjectName
 		}
 
+		// Truncate project name if it's too long
+		projectDisplay = truncateString(projectDisplay, projectWidth)
+
 		row := fmt.Sprintf("%-*s %s %*d %*s",
 			projectWidth, projectDisplay,
 			timelineStr,
@@ -292,4 +295,15 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 		len(timelines), totalEvents, totalDuration)
 
 	return HeaderStyle.Render(summary)
+}
+
+// truncateString truncates a string to maxLen characters, adding "..." if truncated
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }
