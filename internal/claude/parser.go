@@ -324,6 +324,50 @@ func findParentRepository(directory string) string {
 	return ""
 }
 
+// findMainRepositoryDirectory identifies the main repository directory from a list of directories
+func findMainRepositoryDirectory(directories []string) string {
+	if len(directories) == 0 {
+		return ""
+	}
+	
+	// Sort by path length to prioritize shorter paths (likely main directories)
+	sort.Slice(directories, func(i, j int) bool {
+		return len(directories[i]) < len(directories[j])
+	})
+	
+	for _, dir := range directories {
+		// Prefer directories that directly contain .git (not worktree subdirectories)
+		gitPath := filepath.Join(dir, ".git")
+		if info, err := os.Stat(gitPath); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+	
+	// If no direct .git directory found, return the shortest path
+	return directories[0]
+}
+
+// generateChildProjectName generates a meaningful name for child projects
+func generateChildProjectName(childDir, parentDir string) string {
+	// Try to extract a meaningful name from the path difference
+	relPath, err := filepath.Rel(parentDir, childDir)
+	if err != nil {
+		return filepath.Base(childDir)
+	}
+	
+	// Remove common prefixes like .worktree/
+	relPath = strings.TrimPrefix(relPath, ".worktree/")
+	relPath = strings.TrimPrefix(relPath, ".git/worktrees/")
+	
+	// If the relative path has multiple components, use the last meaningful part
+	parts := strings.Split(relPath, string(filepath.Separator))
+	if len(parts) > 0 && parts[len(parts)-1] != "" {
+		return parts[len(parts)-1]
+	}
+	
+	return filepath.Base(childDir)
+}
+
 // groupEventsByRepositoryWithChildren groups events by git repository with child project support (worktree mode)
 func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
 	// First, group by directory to collect events
@@ -387,31 +431,42 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*mode
 			}
 		} else {
 			// Multiple directories in same repo: create parent and child projects
-			// First, create parent project with all events
-			var allEvents []*models.SessionEvent
-			for _, directoryEvents := range repoDirs {
-				allEvents = append(allEvents, directoryEvents...)
+			// First, identify the main repository directory
+			var directories []string
+			for directory := range repoDirs {
+				directories = append(directories, directory)
+			}
+			
+			mainDir := findMainRepositoryDirectory(directories)
+			mainDirEvents, hasMainDir := repoDirs[mainDir]
+			
+			// Create parent project with main directory events only
+			if hasMainDir && len(mainDirEvents) > 0 {
+				// Sort events by timestamp
+				sort.Slice(mainDirEvents, func(i, j int) bool {
+					return mainDirEvents[i].Timestamp.Before(mainDirEvents[j].Timestamp)
+				})
+
+				parentTimeline := &models.SessionTimeline{
+					SessionID:             fmt.Sprintf("repo_%s", repoName),
+					Directory:             mainDir,
+					ProjectName:           repoName,
+					Events:                mainDirEvents,
+					StartTime:             mainDirEvents[0].Timestamp,
+					EndTime:               mainDirEvents[len(mainDirEvents)-1].Timestamp,
+					ActiveDurationMinutes: CalculateActiveDuration(mainDirEvents),
+				}
+
+				timelines = append(timelines, parentTimeline)
 			}
 
-			// Sort all events by timestamp
-			sort.Slice(allEvents, func(i, j int) bool {
-				return allEvents[i].Timestamp.Before(allEvents[j].Timestamp)
-			})
-
-			parentTimeline := &models.SessionTimeline{
-				SessionID:             fmt.Sprintf("repo_%s", repoName),
-				Directory:             "", // Parent doesn't have specific directory
-				ProjectName:           repoName,
-				Events:                allEvents,
-				StartTime:             allEvents[0].Timestamp,
-				EndTime:               allEvents[len(allEvents)-1].Timestamp,
-				ActiveDurationMinutes: CalculateActiveDuration(allEvents),
-			}
-
-			timelines = append(timelines, parentTimeline)
-
-			// Then, create child projects for each directory
+			// Then, create child projects for non-main directories
 			for directory, projectEvents := range repoDirs {
+				// Skip the main directory (already processed as parent)
+				if directory == mainDir {
+					continue
+				}
+				
 				if len(projectEvents) == 0 {
 					continue
 				}
@@ -421,15 +476,18 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*mode
 					return projectEvents[i].Timestamp.Before(projectEvents[j].Timestamp)
 				})
 
-				dirName := filepath.Base(directory)
-				if dirName == "" || dirName == "." {
-					dirName = "unknown"
+				// Generate meaningful child project name
+				childName := generateChildProjectName(directory, mainDir)
+				
+				// Skip if child has the same name as parent (avoid duplication)
+				if childName == repoName {
+					continue
 				}
 
 				childTimeline := &models.SessionTimeline{
 					SessionID:             fmt.Sprintf("dir_%s", directory),
 					Directory:             directory,
-					ProjectName:           dirName,
+					ProjectName:           childName,
 					Events:                projectEvents,
 					StartTime:             projectEvents[0].Timestamp,
 					EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
