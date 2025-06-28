@@ -231,52 +231,56 @@ func getStringValue(data map[string]interface{}, key string) string {
 // groupEventsByProject groups events by project directory or git repository based on threads flag
 func groupEventsByProject(events []*models.SessionEvent, threads bool) ([]*models.SessionTimeline, error) {
 	if threads {
-		// threads=true (worktree mode): group by directory (current behavior)
-		return groupEventsByDirectory(events)
+		// threads=true (worktree mode): group by git repository with child project support
+		return groupEventsByRepositoryWithChildren(events)
 	} else {
-		// threads=false: group by git repository with child project support
-		return groupEventsByRepository(events)
+		// threads=false (default): consolidate by git repository
+		return groupEventsByRepositoryConsolidated(events)
 	}
 }
 
-// groupEventsByDirectory groups events by directory (worktree mode)
-func groupEventsByDirectory(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
-	projectMap := make(map[string][]*models.SessionEvent)
+
+// groupEventsByRepositoryConsolidated consolidates events by git repository (default mode)
+func groupEventsByRepositoryConsolidated(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
+	// Group events by git repository, consolidating all directories of the same repo
+	repoEventMap := make(map[string][]*models.SessionEvent)
 
 	for _, event := range events {
 		directory := event.Directory
 		if directory == "" {
 			directory = "unknown"
 		}
-		projectMap[directory] = append(projectMap[directory], event)
+
+		// Get repository name for this directory
+		repoName := git.GetRepositoryName(directory)
+		if repoName == "" {
+			repoName = filepath.Base(directory) // fallback to directory name
+		}
+
+		repoEventMap[repoName] = append(repoEventMap[repoName], event)
 	}
 
 	var timelines []*models.SessionTimeline
 
-	for directory, projectEvents := range projectMap {
-		if len(projectEvents) == 0 {
+	for repoName, repoEvents := range repoEventMap {
+		if len(repoEvents) == 0 {
 			continue
 		}
 
-		// Sort events by timestamp
-		sort.Slice(projectEvents, func(i, j int) bool {
-			return projectEvents[i].Timestamp.Before(projectEvents[j].Timestamp)
+		// Sort all events by timestamp
+		sort.Slice(repoEvents, func(i, j int) bool {
+			return repoEvents[i].Timestamp.Before(repoEvents[j].Timestamp)
 		})
 
-		// Use directory name as project name
-		projectName := filepath.Base(directory)
-		if projectName == "" || projectName == "." {
-			projectName = "unknown"
-		}
-
+		// Create consolidated timeline for this repository
 		timeline := &models.SessionTimeline{
-			SessionID:             fmt.Sprintf("dir_%s", directory),
-			Directory:             directory,
-			ProjectName:           projectName,
-			Events:                projectEvents,
-			StartTime:             projectEvents[0].Timestamp,
-			EndTime:               projectEvents[len(projectEvents)-1].Timestamp,
-			ActiveDurationMinutes: CalculateActiveDuration(projectEvents),
+			SessionID:             fmt.Sprintf("repo_%s", repoName),
+			Directory:             "", // No specific directory for consolidated repo
+			ProjectName:           repoName,
+			Events:                repoEvents,
+			StartTime:             repoEvents[0].Timestamp,
+			EndTime:               repoEvents[len(repoEvents)-1].Timestamp,
+			ActiveDurationMinutes: CalculateActiveDuration(repoEvents),
 		}
 
 		timelines = append(timelines, timeline)
@@ -290,8 +294,8 @@ func groupEventsByDirectory(events []*models.SessionEvent) ([]*models.SessionTim
 	return timelines, nil
 }
 
-// groupEventsByRepository groups events by git repository with child project support
-func groupEventsByRepository(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
+// groupEventsByRepositoryWithChildren groups events by git repository with child project support (worktree mode)
+func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
 	// First, group by directory to collect events
 	directoryMap := make(map[string][]*models.SessionEvent)
 	
