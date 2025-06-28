@@ -254,7 +254,11 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent) ([]*mode
 		// Get repository name for this directory
 		repoName := git.GetRepositoryName(directory)
 		if repoName == "" {
-			repoName = filepath.Base(directory) // fallback to directory name
+			// Try to find parent repository by walking up the directory tree
+			repoName = findParentRepository(directory)
+			if repoName == "" {
+				repoName = filepath.Base(directory) // fallback to directory name
+			}
 		}
 
 		repoEventMap[repoName] = append(repoEventMap[repoName], event)
@@ -294,6 +298,32 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent) ([]*mode
 	return timelines, nil
 }
 
+// findParentRepository walks up the directory tree to find a parent git repository
+func findParentRepository(directory string) string {
+	// Clean the directory path
+	cleanPath := filepath.Clean(directory)
+	
+	// Walk up the directory tree
+	for {
+		parentDir := filepath.Dir(cleanPath)
+		
+		// If we've reached the root or can't go further up, stop
+		if parentDir == cleanPath || parentDir == "/" || parentDir == "." {
+			break
+		}
+		
+		// Try to get repository name from parent directory
+		repoName := git.GetRepositoryName(parentDir)
+		if repoName != "" {
+			return repoName
+		}
+		
+		cleanPath = parentDir
+	}
+	
+	return ""
+}
+
 // groupEventsByRepositoryWithChildren groups events by git repository with child project support (worktree mode)
 func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*models.SessionTimeline, error) {
 	// First, group by directory to collect events
@@ -314,7 +344,11 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent) ([]*mode
 	for directory, directoryEvents := range directoryMap {
 		repoName := git.GetRepositoryName(directory)
 		if repoName == "" {
-			repoName = filepath.Base(directory) // fallback to directory name
+			// Try to find parent repository by walking up the directory tree
+			repoName = findParentRepository(directory)
+			if repoName == "" {
+				repoName = filepath.Base(directory) // fallback to directory name
+			}
 		}
 
 		if repoMap[repoName] == nil {
