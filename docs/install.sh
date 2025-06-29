@@ -109,7 +109,7 @@ install_binary() {
     VERSION="$3"
     INSTALL_DIR="$4"
     
-    BINARY_NAME_FULL="${BINARY_NAME}-${VERSION}-${OS}-${ARCH}"
+    BINARY_NAME_FULL="${BINARY_NAME}-${OS}-${ARCH}"
     DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/${BINARY_NAME_FULL}"
     
     info "Downloading ${BINARY_NAME} ${VERSION} for ${OS}/${ARCH}..."
