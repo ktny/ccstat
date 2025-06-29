@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -58,5 +59,72 @@ func TestSessionEventContentPreview(t *testing.T) {
 
 	if event.ContentPreview != "This is a test message" {
 		t.Errorf("Expected content preview 'This is a test message', got '%s'", event.ContentPreview)
+	}
+}
+
+// parseFilesSequentially is the original sequential implementation for benchmarking
+func parseFilesSequentially(jsonlFiles []string, startTime time.Time, debug bool) []*models.SessionEvent {
+	var allEvents []*models.SessionEvent
+
+	for _, filePath := range jsonlFiles {
+		// Check file modification time for performance optimization
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			continue
+		}
+
+		// Skip files that were last modified before the start time
+		if fileInfo.ModTime().Before(startTime) {
+			continue
+		}
+
+		events, err := ParseJSONLFile(filePath, debug)
+		if err != nil {
+			continue // Skip files that can't be parsed
+		}
+
+		allEvents = append(allEvents, events...)
+	}
+
+	return allEvents
+}
+
+func BenchmarkParseFilesSequential(b *testing.B) {
+	// Get real files for benchmarking
+	jsonlFiles, err := GetAllSessionFiles()
+	if err != nil || len(jsonlFiles) == 0 {
+		b.Skip("No JSONL files found for benchmarking")
+	}
+
+	// Limit to a reasonable number of files for benchmarking
+	if len(jsonlFiles) > 10 {
+		jsonlFiles = jsonlFiles[:10]
+	}
+
+	startTime := time.Now().AddDate(0, 0, -30) // 30 days ago
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = parseFilesSequentially(jsonlFiles, startTime, false)
+	}
+}
+
+func BenchmarkParseFilesParallel(b *testing.B) {
+	// Get real files for benchmarking
+	jsonlFiles, err := GetAllSessionFiles()
+	if err != nil || len(jsonlFiles) == 0 {
+		b.Skip("No JSONL files found for benchmarking")
+	}
+
+	// Limit to a reasonable number of files for benchmarking
+	if len(jsonlFiles) > 10 {
+		jsonlFiles = jsonlFiles[:10]
+	}
+
+	startTime := time.Now().AddDate(0, 0, -30) // 30 days ago
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = parseFilesInParallel(jsonlFiles, startTime, false)
 	}
 }
