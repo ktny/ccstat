@@ -21,17 +21,25 @@ jobs:
     
     - name: Build binaries
       run: |
+        # Extract version from tag
+        VERSION=${GITHUB_REF#refs/tags/}
+        COMMIT_HASH=${GITHUB_SHA::7}
+        BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        # Build flags with version injection
+        BUILD_FLAGS="-ldflags=-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'"
+        
         # Linux amd64
-        GOOS=linux GOARCH=amd64 go build -o ccstat-linux-amd64 ./cmd/ccstat
+        GOOS=linux GOARCH=amd64 go build ${BUILD_FLAGS} -o ccstat-linux-amd64 ./cmd/ccstat
         
         # Linux arm64
-        GOOS=linux GOARCH=arm64 go build -o ccstat-linux-arm64 ./cmd/ccstat
+        GOOS=linux GOARCH=arm64 go build ${BUILD_FLAGS} -o ccstat-linux-arm64 ./cmd/ccstat
         
         # macOS amd64
-        GOOS=darwin GOARCH=amd64 go build -o ccstat-darwin-amd64 ./cmd/ccstat
+        GOOS=darwin GOARCH=amd64 go build ${BUILD_FLAGS} -o ccstat-darwin-amd64 ./cmd/ccstat
         
         # macOS arm64 (Apple Silicon)
-        GOOS=darwin GOARCH=arm64 go build -o ccstat-darwin-arm64 ./cmd/ccstat
+        GOOS=darwin GOARCH=arm64 go build ${BUILD_FLAGS} -o ccstat-darwin-arm64 ./cmd/ccstat
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
