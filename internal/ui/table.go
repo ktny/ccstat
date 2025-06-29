@@ -333,11 +333,25 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 			interval:    4 * time.Hour,
 			displayName: "hours",
 		}
-	case days <= 30:
-		// 3-30 days: daily display with MM/DD format
+	case days <= 7:
+		// 3-7 days: daily display with MM/DD format
 		return TimeAxisFormat{
 			formatStr:   "01/02", // MM/DD format
 			interval:    24 * time.Hour,
+			displayName: "days",
+		}
+	case days <= 14:
+		// 8-14 days: 2-day intervals
+		return TimeAxisFormat{
+			formatStr:   "01/02", // MM/DD format
+			interval:    2 * 24 * time.Hour,
+			displayName: "days",
+		}
+	case days <= 30:
+		// 15-30 days: 3-day intervals
+		return TimeAxisFormat{
+			formatStr:   "01/02", // MM/DD format
+			interval:    3 * 24 * time.Hour,
 			displayName: "days",
 		}
 	case days <= 90:
@@ -410,6 +424,24 @@ func getFormatFallbackChain(primary TimeAxisFormat) []TimeAxisFormat {
 		}
 
 		return fallbacks
+	} else if duration >= 24*time.Hour && duration < 7*24*time.Hour {
+		// For daily intervals, provide fallback options
+		fallbacks := []TimeAxisFormat{primary}
+
+		if duration == 24*time.Hour {
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 2 * 24 * time.Hour, "days"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 3 * 24 * time.Hour, "days"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 7 * 24 * time.Hour, "weeks"})
+		} else if duration == 2*24*time.Hour {
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 3 * 24 * time.Hour, "days"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 5 * 24 * time.Hour, "days"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 7 * 24 * time.Hour, "weeks"})
+		} else if duration == 3*24*time.Hour {
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 5 * 24 * time.Hour, "days"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"01/02", 7 * 24 * time.Hour, "weeks"})
+		}
+
+		return fallbacks
 	}
 
 	// For other intervals, return as-is
@@ -461,8 +493,15 @@ func calculateRequiredWidth(ticks []time.Time, formatStr string) int {
 // roundToInterval rounds a time to the nearest interval boundary
 func roundToInterval(t time.Time, interval time.Duration) time.Time {
 	if interval >= 24*time.Hour {
-		// For day or longer intervals, round to start of day
-		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		// For day or longer intervals, round to interval boundaries
+		days := int(interval.Hours() / 24)
+		// Calculate days since epoch
+		epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, t.Location())
+		daysSinceEpoch := int(t.Sub(epoch).Hours() / 24)
+		// Round down to nearest interval
+		roundedDays := (daysSinceEpoch / days) * days
+		// Convert back to time
+		return epoch.AddDate(0, 0, roundedDays)
 	} else if interval >= time.Hour {
 		// For hour intervals, round to start of hour
 		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
