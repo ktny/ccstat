@@ -45,8 +45,6 @@ wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-darwi
 chmod +x ccstat-v0.1.0-darwin-amd64
 sudo mv ccstat-v0.1.0-darwin-amd64 /usr/local/bin/ccstat
 
-# Windows (PowerShell)
-Invoke-WebRequest -Uri "https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-windows-amd64.exe" -OutFile "ccstat.exe"
 ```
 
 ### Option 2: Go Install (Latest Stable)
@@ -130,6 +128,12 @@ ccstat --days 3 --project ccstat --worktree
 - **Go 1.21+** for building from source
 - **Claude Code** for generating session logs
 - **Git** (recommended) for project integration features
+
+## 🖥️ Supported Platforms
+
+- Linux (x86_64, ARM64)
+- macOS (Intel, Apple Silicon)
+- **Note**: Windows is not currently supported
 
 ## 📄 License
 
