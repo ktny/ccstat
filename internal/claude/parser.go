@@ -163,7 +163,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	if debug {
 		fmt.Printf("DEBUG: Repository cache cleared\n")
 	}
-	
+
 	var allEvents []*models.SessionEvent
 
 	// Get all JSONL files
@@ -239,7 +239,7 @@ func CalculateActiveDuration(events []*models.SessionEvent) int {
 	})
 
 	activeMinutes := 0.0
-	inactiveThreshold := 3.0 // 3 minute threshold for inactive periods
+	inactiveThreshold := 5.0 // 5 minute threshold for inactive periods
 
 	for i := 1; i < len(events); i++ {
 		prevEvent := events[i-1]
@@ -250,10 +250,16 @@ func CalculateActiveDuration(events []*models.SessionEvent) int {
 		// Only count intervals up to the threshold as active time
 		if intervalMinutes <= inactiveThreshold {
 			activeMinutes += intervalMinutes
+		} else {
+			// If interval is longer than threshold, still count 1 minute as active
+			// (represents the minimum active time before becoming inactive)
+			activeMinutes += 1.0
 		}
-		// If interval is longer than threshold, don't add any time
-		// (this represents an inactive period)
 	}
+
+	// Add 1 minute for the last event (similar logic - even if no subsequent activity,
+	// we assume 1 minute of active work for the last message)
+	activeMinutes += 1.0
 
 	return int(activeMinutes)
 }
