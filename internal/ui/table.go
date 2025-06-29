@@ -176,7 +176,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 		BorderRow(false).    // Disable row borders (except header)
 		BorderHeader(false). // Keep header separator
 		StyleFunc(styleFunc).
-		Headers("Project", ui.createTimelineHeader(timelineWidth), "Events", "Duration")
+		Headers("Project", ui.createTimelineHeader(), "Events", "Duration")
 
 	// Add time axis row
 	timeAxis := ui.createTimeAxis(startTime, endTime, timelineWidth-2)
@@ -205,9 +205,9 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 }
 
 // createTimelineHeader creates the timeline column header with activity legend
-func (ui *TimelineUI) createTimelineHeader(timelineWidth int) string {
+func (ui *TimelineUI) createTimelineHeader() string {
 	// Create timeline header with activity density legend (without styles first)
-	baseTimelineHeader := "Timeline "
+	baseTimelineHeader := "Timeline | "
 	activityLegend := ""
 	for i := range ActivityColors {
 		if i == 0 {
@@ -216,23 +216,13 @@ func (ui *TimelineUI) createTimelineHeader(timelineWidth int) string {
 		activityLegend += "■"
 	}
 
-	// Calculate total visible length
-	totalHeaderLength := len(baseTimelineHeader + activityLegend)
-
 	// Create styled timeline header
 	timelineHeader := baseTimelineHeader
-	for i, color := range ActivityColors {
-		if i == 0 {
-			continue
-		}
+	timelineHeader += "less "
+	for _, color := range ActivityColors {
 		timelineHeader += lipgloss.NewStyle().Foreground(color).Render("■")
 	}
-
-	// Add padding to match timelineWidth if needed
-	if totalHeaderLength < timelineWidth {
-		paddingLength := timelineWidth - totalHeaderLength
-		timelineHeader += strings.Repeat(" ", paddingLength)
-	}
+	timelineHeader += " more"
 
 	return timelineHeader
 }
