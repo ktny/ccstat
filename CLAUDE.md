@@ -11,7 +11,6 @@ ccstat is a CLI tool that analyzes Claude Code session history and visualizes pr
 ### Key Features
 - Parses session information from Claude Code log files (~/.claude/projects/)
 - Visualizes project activity patterns in timeline format
-- Aggregates and displays Input/Output token usage by project
 - Automatically calculates active time based on message intervals (3-minute threshold)
 - Automatically integrates and groups projects by Git repository
 
@@ -177,7 +176,6 @@ ccstat/
 ### Configuration and Data Sources
 - **Input Data**: `~/.claude/projects/*/*.jsonl` (Claude Code session logs)
 - **Data Format**: Each line is a JSON event (timestamp, sessionId, cwd, message, usage, etc.)
-- **Token Information**: Extracts `input_tokens` and `output_tokens` from the `usage` field of assistant messages
 
 ## Development Guidelines
 
@@ -193,11 +191,6 @@ ccstat/
 - Follow table-driven test patterns as seen in existing tests
 - Add tests for new functionality, especially core parsing logic
 - Test files follow `*_test.go` naming convention
-
-### Token Information Handling
-- cache_creation_input_tokens and cache_read_input_tokens are not included in input_tokens
-- Only assistant messages have token information (user messages are 0)
-- Token display uses thousands separators (1,000 format), displays "-" for 0
 
 ### Project Integration Logic
 - Groups same projects by detecting Git repositories
