@@ -27,7 +27,7 @@ jobs:
         BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
         
         # Build flags with version injection
-        BUILD_FLAGS="-ldflags=-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'"
+        BUILD_FLAGS="-ldflags=\"-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'\""
         
         # Linux amd64
         GOOS=linux GOARCH=amd64 go build ${BUILD_FLAGS} -o ccstat-linux-amd64 ./cmd/ccstat
