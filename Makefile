@@ -5,8 +5,13 @@ BINARY_NAME=ccmonitor
 BIN_DIR=bin
 OUTPUT=$(BIN_DIR)/$(BINARY_NAME)
 
-# Go build flags
-GO_BUILD_FLAGS=-ldflags="-s -w"
+# Version information
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE ?= $(shell date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+# Go build flags with version injection
+GO_BUILD_FLAGS=-ldflags="-s -w -X 'main.versionString=$(VERSION)' -X 'main.commitHash=$(COMMIT_HASH)' -X 'main.buildDate=$(BUILD_DATE)'"
 
 # Default target
 .PHONY: build
@@ -53,6 +58,11 @@ test-build:
 install:
 	go install ./cmd/ccmonitor
 
+# Show version information
+.PHONY: version
+version: build
+	./$(OUTPUT) --version
+
 .PHONY: help
 help:
 	@echo "Available targets:"
@@ -65,4 +75,5 @@ help:
 	@echo "  test-coverage - Run Go tests with coverage"
 	@echo "  test-build - Test build by running with --help"
 	@echo "  install    - Install to \$$GOPATH/bin"
+	@echo "  version    - Build and show version information"
 	@echo "  help       - Show this help message"
