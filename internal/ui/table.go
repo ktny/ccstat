@@ -456,10 +456,10 @@ func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string 
 	}
 
 	summary := fmt.Sprintf("\nSummary Statistics:\n"+
-		"  • Total Projects: %d\n"+
-		"  • Total Events: %d\n"+
-		"  • Total Duration: %d minutes\n",
+		"  - Total Projects: %d\n"+
+		"  - Total Events: %d\n"+
+		"  - Total Duration: %d minutes\n",
 		len(timelines), totalEvents, totalDuration)
 
-	return HeaderStyle.Render(summary)
+	return summary
 }
