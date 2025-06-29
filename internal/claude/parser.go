@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ktny/ccstat/internal/git"
@@ -168,26 +170,8 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 		fmt.Printf("DEBUG: Found %d JSONL files\n", len(jsonlFiles))
 	}
 
-	// Parse each file and collect events (with mtime filtering)
-	for _, filePath := range jsonlFiles {
-		// Check file modification time for performance optimization
-		fileInfo, err := os.Stat(filePath)
-		if err != nil {
-			continue
-		}
-
-		// Skip files that were last modified before the start time
-		if fileInfo.ModTime().Before(startTime) {
-			continue
-		}
-
-		events, err := ParseJSONLFile(filePath, debug)
-		if err != nil {
-			continue // Skip files that can't be parsed
-		}
-
-		allEvents = append(allEvents, events...)
-	}
+	// Parse files in parallel for better performance
+	allEvents = parseFilesInParallel(jsonlFiles, startTime, debug)
 
 	// Filter events by time range
 	var filteredEvents []*models.SessionEvent
@@ -673,4 +657,71 @@ func sortTimelinesWithProperHierarchy(timelines []*models.SessionTimeline, debug
 	}
 
 	return result
+}
+
+// parseFilesInParallel processes JSONL files in parallel for better performance
+func parseFilesInParallel(jsonlFiles []string, startTime time.Time, debug bool) []*models.SessionEvent {
+	numWorkers := runtime.GOMAXPROCS(0)
+	if numWorkers > len(jsonlFiles) {
+		numWorkers = len(jsonlFiles)
+	}
+	
+	// Create channels for file paths and results
+	filePathChan := make(chan string, len(jsonlFiles))
+	resultChan := make(chan []*models.SessionEvent, len(jsonlFiles))
+	
+	// Start workers
+	var wg sync.WaitGroup
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for filePath := range filePathChan {
+				// Check file modification time for performance optimization
+				fileInfo, err := os.Stat(filePath)
+				if err != nil {
+					resultChan <- nil
+					continue
+				}
+
+				// Skip files that were last modified before the start time
+				if fileInfo.ModTime().Before(startTime) {
+					resultChan <- nil
+					continue
+				}
+
+				events, err := ParseJSONLFile(filePath, debug)
+				if err != nil {
+					resultChan <- nil
+					continue
+				}
+				
+				resultChan <- events
+			}
+		}()
+	}
+	
+	// Send file paths to workers
+	go func() {
+		for _, filePath := range jsonlFiles {
+			filePathChan <- filePath
+		}
+		close(filePathChan)
+	}()
+	
+	// Wait for workers to complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+	
+	// Collect results
+	var allEvents []*models.SessionEvent
+	for events := range resultChan {
+		if events != nil {
+			allEvents = append(allEvents, events...)
+		}
+	}
+	
+	return allEvents
 }
