@@ -6,8 +6,8 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/ktny/ccmonitor/internal/claude"
-	"github.com/ktny/ccmonitor/internal/ui"
+	"github.com/ktny/ccstat/internal/claude"
+	"github.com/ktny/ccstat/internal/ui"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -40,14 +40,14 @@ func getVersionInfo() string {
 	}
 
 	if commitHash != "unknown" || buildDate != "unknown" {
-		return fmt.Sprintf("ccmonitor %s (commit: %s, built: %s)", v, commitHash, buildDate)
+		return fmt.Sprintf("ccstat %s (commit: %s, built: %s)", v, commitHash, buildDate)
 	}
-	return fmt.Sprintf("ccmonitor %s", v)
+	return fmt.Sprintf("ccstat %s", v)
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "ccmonitor",
-	Short: "Claude Session Timeline - CLI tool for visualizing Claude session activity patterns",
+	Use:   "ccstat",
+	Short: "Claude Session Statistics - CLI tool for visualizing Claude session activity patterns",
 	Run: func(cmd *cobra.Command, args []string) {
 		if versionFlag {
 			fmt.Println(getVersionInfo())

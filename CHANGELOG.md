@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 💔 Breaking Changes
+- **Project Rename**: `ccmonitor` → `ccstat` for better branding and clarity
+  - Binary name changed from `ccmonitor` to `ccstat`
+  - Module path changed from `github.com/ktny/ccmonitor` to `github.com/ktny/ccstat`
+  - CLI command changed from `ccmonitor` to `ccstat`
+  - Installation commands updated accordingly
+
+### 📝 Documentation
+- Updated all references from ccmonitor to ccstat in README and documentation
+- Updated installation instructions with new binary names and URLs
+
 ## [0.1.0] - 2025-06-29
 
 ### 🎉 Initial Release
@@ -84,6 +97,6 @@ Flags:
   - `internal/claude/` - Session data parsing and processing
   - `internal/ui/` - Terminal UI rendering with lipgloss
   - `pkg/models/` - Data models and structures
-  - `cmd/ccmonitor/` - CLI interface and main application
+  - `cmd/ccstat/` - CLI interface and main application
 
-[0.1.0]: https://github.com/ktny/ccmonitor/releases/tag/v0.1.0
+[0.1.0]: https://github.com/ktny/ccstat/releases/tag/v0.1.0

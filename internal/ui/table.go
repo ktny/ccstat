@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/ktny/ccmonitor/pkg/models"
+	"github.com/ktny/ccstat/pkg/models"
 	"github.com/muesli/reflow/truncate"
 )
 

@@ -1,15 +1,15 @@
-# 📊 ccmonitor
+# 📊 ccstat
 
 > Visualize your Claude Code session activity patterns — fast, beautiful, and insightful!
 
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
-![Release](https://img.shields.io/github/v/release/ktny/ccmonitor?style=for-the-badge)
-![Downloads](https://img.shields.io/github/downloads/ktny/ccmonitor/total?style=for-the-badge)
+![Release](https://img.shields.io/github/v/release/ktny/ccstat?style=for-the-badge)
+![Downloads](https://img.shields.io/github/downloads/ktny/ccstat/total?style=for-the-badge)
 
-## ✨ What is ccmonitor?
+## ✨ What is ccstat?
 
-ccmonitor is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns, monitor token usage, and gain insights into your development workflow.
+ccstat is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns, monitor token usage, and gain insights into your development workflow.
 
 ### 🎯 Key Features
 
@@ -27,48 +27,48 @@ ccmonitor is a powerful CLI tool that analyzes your Claude Code session history 
 
 ### Option 1: Download Pre-built Binary (Recommended)
 
-Download the latest release binary for your platform from [GitHub Releases](https://github.com/ktny/ccmonitor/releases):
+Download the latest release binary for your platform from [GitHub Releases](https://github.com/ktny/ccstat/releases):
 
 ```bash
 # Linux (x86_64)
-wget https://github.com/ktny/ccmonitor/releases/download/v0.1.0/ccmonitor-v0.1.0-linux-amd64
-chmod +x ccmonitor-v0.1.0-linux-amd64
-sudo mv ccmonitor-v0.1.0-linux-amd64 /usr/local/bin/ccmonitor
+wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-linux-amd64
+chmod +x ccstat-v0.1.0-linux-amd64
+sudo mv ccstat-v0.1.0-linux-amd64 /usr/local/bin/ccstat
 
 # macOS (Apple Silicon)
-wget https://github.com/ktny/ccmonitor/releases/download/v0.1.0/ccmonitor-v0.1.0-darwin-arm64
-chmod +x ccmonitor-v0.1.0-darwin-arm64
-sudo mv ccmonitor-v0.1.0-darwin-arm64 /usr/local/bin/ccmonitor
+wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-darwin-arm64
+chmod +x ccstat-v0.1.0-darwin-arm64
+sudo mv ccstat-v0.1.0-darwin-arm64 /usr/local/bin/ccstat
 
 # macOS (Intel)
-wget https://github.com/ktny/ccmonitor/releases/download/v0.1.0/ccmonitor-v0.1.0-darwin-amd64
-chmod +x ccmonitor-v0.1.0-darwin-amd64
-sudo mv ccmonitor-v0.1.0-darwin-amd64 /usr/local/bin/ccmonitor
+wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-darwin-amd64
+chmod +x ccstat-v0.1.0-darwin-amd64
+sudo mv ccstat-v0.1.0-darwin-amd64 /usr/local/bin/ccstat
 
 # Windows (PowerShell)
-Invoke-WebRequest -Uri "https://github.com/ktny/ccmonitor/releases/download/v0.1.0/ccmonitor-v0.1.0-windows-amd64.exe" -OutFile "ccmonitor.exe"
+Invoke-WebRequest -Uri "https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-windows-amd64.exe" -OutFile "ccstat.exe"
 ```
 
 ### Option 2: Go Install (Latest Stable)
 
 ```bash
-go install github.com/ktny/ccmonitor/cmd/ccmonitor@v0.1.0
+go install github.com/ktny/ccstat/cmd/ccstat@v0.1.0
 ```
 
 ### Option 3: Build from Source
 
 ```bash
-git clone https://github.com/ktny/ccmonitor.git
-cd ccmonitor
+git clone https://github.com/ktny/ccstat.git
+cd ccstat
 make build
-./bin/ccmonitor
+./bin/ccstat
 ```
 
 ### Option 4: Development Installation
 
 ```bash
-git clone https://github.com/ktny/ccmonitor.git
-cd ccmonitor
+git clone https://github.com/ktny/ccstat.git
+cd ccstat
 make install  # Installs to $GOPATH/bin
 ```
 
@@ -78,24 +78,24 @@ make install  # Installs to $GOPATH/bin
 
 ```bash
 # View last 24 hours of activity
-ccmonitor
+ccstat
 
 # View last 7 days
-ccmonitor --days 7
+ccstat --days 7
 
 # View last 6 hours
-ccmonitor --hours 6
+ccstat --hours 6
 # or using short option
-ccmonitor -H 6
+ccstat -H 6
 
 # Filter by specific project
-ccmonitor --project myproject
+ccstat --project myproject
 
 # Show worktree view (separate repos)
-ccmonitor --worktree
+ccstat --worktree
 
 # Combine options
-ccmonitor --days 3 --project ccmonitor --worktree
+ccstat --days 3 --project ccstat --worktree
 ```
 
 ### Understanding the Output
