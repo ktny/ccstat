@@ -33,9 +33,6 @@ Install the latest version with a single command:
 ```bash
 # Using curl
 curl -fsSL https://ktny.github.io/ccstat/install.sh | sh
-
-# Using wget
-wget -qO- https://ktny.github.io/ccstat/install.sh | sh
 ```
 
 The installer automatically:
