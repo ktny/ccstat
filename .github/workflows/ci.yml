@@ -46,7 +46,7 @@ jobs:
     #     golangci-lint run
 
     - name: Build
-      run: go build -v ./cmd/ccmonitor
+      run: go build -v ./cmd/ccstat
 
     - name: Test
       run: go test -v ./...
