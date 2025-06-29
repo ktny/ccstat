@@ -163,7 +163,7 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	if debug {
 		fmt.Printf("DEBUG: Repository cache cleared\n")
 	}
-	
+
 	var allEvents []*models.SessionEvent
 
 	// Get all JSONL files
@@ -455,8 +455,8 @@ func findParentRepositoryCached(directory string, debug bool) string {
 				repositoryCache[directory] = repoName
 				return repoName
 			} else {
-				// Cache empty result for parent to avoid repeated lookups
-				repositoryCache[parentDir] = ""
+				// Don't cache empty results to avoid empty string pollution
+				// (slightly less efficient but prevents empty project names)
 			}
 		}
 
