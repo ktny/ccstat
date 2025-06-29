@@ -1,6 +1,6 @@
 # 📊 ccstat
 
-> Visualize your Claude Code session activity patterns — fast, beautiful, and insightful!
+> Visualize your Claude Code session activity timeline — fast, beautiful, and insightful!
 
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
@@ -9,7 +9,7 @@
 
 ## ✨ What is ccstat?
 
-ccstat is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns, monitor token usage, and gain insights into your development workflow.
+ccstat is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns and gain insights into your development workflow.
 
 ### 🎯 Key Features
 
@@ -18,7 +18,6 @@ ccstat is a powerful CLI tool that analyzes your Claude Code session history and
 - 🎨 **Activity Density** — Five-level visual density indicators from idle to very high
 - 📁 **Git Integration** — Automatically groups projects by repository
 - 🌳 **Worktree Support** — Separate visualization for different worktree directories
-- 📊 **Token Analytics** — Track input/output token usage across projects
 - 🕐 **Flexible Time Ranges** — View activity by days (1+) or hours (1-24)
 - 🔍 **Project Filtering** — Focus on specific projects
 - ⚡ **High Performance** — Optimized file processing for fast results
@@ -83,8 +82,6 @@ ccstat --days 7
 
 # View last 6 hours
 ccstat --hours 6
-# or using short option
-ccstat -H 6
 
 # Filter by specific project
 ccstat --project myproject
@@ -93,7 +90,7 @@ ccstat --project myproject
 ccstat --worktree
 
 # Combine options
-ccstat --days 3 --project ccstat --worktree
+ccstat --days 3 --project myproject --worktree
 ```
 
 ### Understanding the Output
@@ -102,7 +99,6 @@ ccstat --days 3 --project ccstat --worktree
 - **Project**: Git repository name or directory name
 - **Timeline**: Visual activity timeline with color-coded density
 - **Events**: Number of messages in the session
-- **Tokens**: Input/Output token usage statistics
 - **Duration**: Active work time in minutes
 
 #### 🎨 Activity Color Coding
