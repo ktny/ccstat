@@ -665,11 +665,11 @@ func parseFilesInParallel(jsonlFiles []string, startTime time.Time, debug bool) 
 	if numWorkers > len(jsonlFiles) {
 		numWorkers = len(jsonlFiles)
 	}
-	
+
 	// Create channels for file paths and results
 	filePathChan := make(chan string, len(jsonlFiles))
 	resultChan := make(chan []*models.SessionEvent, len(jsonlFiles))
-	
+
 	// Start workers
 	var wg sync.WaitGroup
 	for i := 0; i < numWorkers; i++ {
@@ -695,12 +695,12 @@ func parseFilesInParallel(jsonlFiles []string, startTime time.Time, debug bool) 
 					resultChan <- nil
 					continue
 				}
-				
+
 				resultChan <- events
 			}
 		}()
 	}
-	
+
 	// Send file paths to workers
 	go func() {
 		for _, filePath := range jsonlFiles {
@@ -708,13 +708,13 @@ func parseFilesInParallel(jsonlFiles []string, startTime time.Time, debug bool) 
 		}
 		close(filePathChan)
 	}()
-	
+
 	// Wait for workers to complete
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
-	
+
 	// Collect results
 	var allEvents []*models.SessionEvent
 	for events := range resultChan {
@@ -722,6 +722,6 @@ func parseFilesInParallel(jsonlFiles []string, startTime time.Time, debug bool) 
 			allEvents = append(allEvents, events...)
 		}
 	}
-	
+
 	return allEvents
 }
