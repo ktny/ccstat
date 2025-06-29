@@ -24,7 +24,34 @@ ccstat is a powerful CLI tool that analyzes your Claude Code session history and
 
 ## 🚀 Installation
 
-### Option 1: Download Pre-built Binary (Recommended)
+### Quick Install (Recommended)
+
+Install the latest version with a single command:
+
+```bash
+# Using curl
+curl -fsSL https://ktny.github.io/ccstat/install.sh | sh
+
+# Using wget
+wget -qO- https://ktny.github.io/ccstat/install.sh | sh
+```
+
+The installer automatically:
+- Detects your OS and architecture
+- Downloads the appropriate binary
+- Installs to `/usr/local/bin` (with sudo) or `~/.local/bin` (without sudo)
+- Verifies the installation
+
+For specific versions or custom installation paths:
+```bash
+# Install specific version
+curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.0
+
+# Install to custom directory
+curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --prefix $HOME/bin
+```
+
+### Option 1: Download Pre-built Binary (Manual)
 
 Download the latest release binary for your platform from [GitHub Releases](https://github.com/ktny/ccstat/releases):
 
