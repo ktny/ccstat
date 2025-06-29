@@ -202,6 +202,14 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 		fmt.Printf("DEBUG: Events after time filter: %d\n", len(filteredEvents))
 		fmt.Printf("DEBUG: Time range: %s to %s\n", startTime.Format(time.RFC3339), endTime.Format(time.RFC3339))
 		fmt.Printf("DEBUG: Project filter: '%s'\n", projectFilter)
+		
+		// Show latest event time for debugging timeline display
+		if len(filteredEvents) > 0 {
+			latestEvent := filteredEvents[len(filteredEvents)-1]
+			fmt.Printf("DEBUG: Latest event time: %s\n", latestEvent.Timestamp.Format(time.RFC3339))
+			timeSinceLatest := endTime.Sub(latestEvent.Timestamp)
+			fmt.Printf("DEBUG: Time since latest event: %v\n", timeSinceLatest)
+		}
 	}
 
 	// Sort events by timestamp

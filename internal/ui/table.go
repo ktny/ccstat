@@ -150,15 +150,15 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 	globalMaxActivity := 0
 	totalDuration := endTime.Sub(startTime)
 	width := timelineWidth - 2
-	
+
 	for _, timeline := range timelines {
 		activityCounts := make([]int, width)
-		
-		// Count events per time position for this timeline
+
+		// Count events per time position for this timeline (match createTimelineString calculation)
 		for _, event := range timeline.Events {
 			eventOffset := event.Timestamp.Sub(startTime)
-			position := int((float64(eventOffset) / float64(totalDuration)) * float64(width))
-			
+			position := int((float64(eventOffset) / float64(totalDuration)) * float64(width-1))
+
 			// Clamp position to valid range
 			if position >= width {
 				position = width - 1
@@ -166,10 +166,10 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			if position < 0 {
 				position = 0
 			}
-			
+
 			activityCounts[position]++
 		}
-		
+
 		// Find max activity for this timeline
 		for _, count := range activityCounts {
 			if count > globalMaxActivity {
@@ -244,10 +244,10 @@ func (ui *TimelineUI) createTimelineString(timeline *models.SessionTimeline, sta
 	activityCounts := make([]int, width)
 	totalDuration := endTime.Sub(startTime)
 
-	// Count events per time position
+	// Count events per time position (match Python: use width-1)
 	for _, event := range timeline.Events {
 		eventOffset := event.Timestamp.Sub(startTime)
-		position := int((float64(eventOffset) / float64(totalDuration)) * float64(width))
+		position := int((float64(eventOffset) / float64(totalDuration)) * float64(width-1))
 
 		// Clamp position to valid range
 		if position >= width {
@@ -299,10 +299,10 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 
 	switch {
 	case days <= 2:
-		// 1-2 days: hourly display (4-hour intervals for better spacing)
+		// 1-2 days: Use 6-hour intervals to match Python version
 		return TimeAxisFormat{
 			formatStr:   "15", // HH format
-			interval:    4 * time.Hour,
+			interval:    6 * time.Hour,
 			displayName: "hours",
 		}
 	case days <= 30:
@@ -340,35 +340,35 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 // aligned to natural time boundaries (similar to Python version)
 func calculateOptimalTicks(startTime, endTime time.Time, width int, format TimeAxisFormat) []time.Time {
 	var ticks []time.Time
-	
+
 	// Start from aligned time boundary based on format interval
 	currentTime := roundToInterval(startTime, format.interval)
-	
+
 	// If currentTime is before startTime, move to next interval
 	if currentTime.Before(startTime) {
 		currentTime = currentTime.Add(format.interval)
 	}
-	
+
 	// Generate ticks at regular intervals until we reach or exceed endTime
 	for currentTime.Before(endTime) || currentTime.Equal(endTime) {
 		// Only add tick if it's within our display range
-		if (currentTime.After(startTime) || currentTime.Equal(startTime)) && 
-		   (currentTime.Before(endTime) || currentTime.Equal(endTime)) {
+		if (currentTime.After(startTime) || currentTime.Equal(startTime)) &&
+			(currentTime.Before(endTime) || currentTime.Equal(endTime)) {
 			ticks = append(ticks, currentTime)
 		}
 		currentTime = currentTime.Add(format.interval)
-		
+
 		// Safety check to prevent infinite loops
 		if len(ticks) > 20 {
 			break
 		}
 	}
-	
+
 	// If we don't have enough ticks, add the end time
 	if len(ticks) == 0 {
 		ticks = append(ticks, startTime.Add(endTime.Sub(startTime)/2))
 	}
-	
+
 	return ticks
 }
 
@@ -405,9 +405,9 @@ func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) st
 
 	// Place tick markers
 	for _, tick := range ticks {
-		// Calculate position for this tick
+		// Calculate position for this tick (match Python: use width-1)
 		tickOffset := tick.Sub(startTime)
-		position := int((float64(tickOffset) / float64(duration)) * float64(width))
+		position := int((float64(tickOffset) / float64(duration)) * float64(width-1))
 
 		// Clamp position to valid range
 		if position >= width {
@@ -420,20 +420,12 @@ func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) st
 		// Format the tick label
 		tickLabel := tick.Format(format.formatStr)
 
-		// Place the label, centered on the position if possible
-		startPos := position - len(tickLabel)/2
-		if startPos < 0 {
-			startPos = 0
-		}
-		if startPos+len(tickLabel) > width {
-			startPos = width - len(tickLabel)
-		}
-
-		// Only place if it doesn't overflow
-		if startPos >= 0 && startPos+len(tickLabel) <= width {
+		// Place the label with proper spacing (match Python logic)
+		// Leave space for label - for hour format (HH), need at least 2 chars
+		if position < width-2 {
 			for i, c := range tickLabel {
-				if startPos+i < width {
-					axisChars[startPos+i] = string(c)
+				if position+i < width {
+					axisChars[position+i] = string(c)
 				}
 			}
 		}
@@ -441,7 +433,6 @@ func (ui *TimelineUI) createTimeAxis(startTime, endTime time.Time, width int) st
 
 	return strings.Join(axisChars, "")
 }
-
 
 // createSummary creates the summary statistics text
 func (ui *TimelineUI) createSummary(timelines []*models.SessionTimeline) string {
