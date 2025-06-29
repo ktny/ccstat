@@ -158,6 +158,12 @@ func GetAllSessionFiles() ([]string, error) {
 
 // LoadSessionsInTimeRange loads all Claude sessions within a time range, grouped by project directory
 func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string, threads bool, debug bool) ([]*models.SessionTimeline, error) {
+	// Clear repository cache at the start of each execution to avoid stale data
+	repositoryCache = make(map[string]string)
+	if debug {
+		fmt.Printf("DEBUG: Repository cache cleared\n")
+	}
+
 	var allEvents []*models.SessionEvent
 
 	// Get all JSONL files
@@ -269,42 +275,73 @@ func groupEventsByProject(events []*models.SessionEvent, threads bool, debug boo
 	}
 }
 
+// repositoryCache caches directory -> repository name mappings to avoid redundant git operations
+var repositoryCache = make(map[string]string)
+
+// getCachedRepositoryName returns the repository name for a directory, using cache when possible
+func getCachedRepositoryName(directory string, debug bool) string {
+	if repoName, exists := repositoryCache[directory]; exists {
+		if debug {
+			fmt.Printf("DEBUG: Cache hit for directory '%s' -> '%s'\n", directory, repoName)
+		}
+		return repoName
+	}
+
+	// Get repository name (expensive operation)
+	repoName := git.GetRepositoryName(directory)
+	if debug {
+		fmt.Printf("DEBUG: Directory '%s' -> git.GetRepositoryName() = '%s'\n", directory, repoName)
+	}
+
+	if repoName == "" {
+		// Try to find parent repository by walking up the directory tree
+		repoName = findParentRepositoryCached(directory, debug)
+		if debug {
+			fmt.Printf("DEBUG: Directory '%s' -> findParentRepositoryCached() = '%s'\n", directory, repoName)
+		}
+		if repoName == "" {
+			repoName = filepath.Base(directory) // fallback to directory name
+			if debug {
+				fmt.Printf("DEBUG: Directory '%s' -> fallback to base name = '%s'\n", directory, repoName)
+			}
+		}
+	}
+
+	// Cache the result (only cache non-empty repository names to avoid empty string pollution)
+	if repoName != "" {
+		repositoryCache[directory] = repoName
+		if debug {
+			fmt.Printf("DEBUG: Cached mapping: Directory '%s' -> Repository '%s'\n", directory, repoName)
+		}
+	} else if debug {
+		fmt.Printf("DEBUG: Not caching empty repository name for directory '%s'\n", directory)
+	}
+
+	return repoName
+}
+
 // groupEventsByRepositoryConsolidated consolidates events by git repository (default mode)
 func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bool) ([]*models.SessionTimeline, error) {
 	// First group events by directory, then by repository
 	directoryEventMap := make(map[string][]*models.SessionEvent)
 	repoDirectoryMap := make(map[string][]string)
 
+	// First, group events by directory to avoid redundant git operations
 	for _, event := range events {
 		directory := event.Directory
 		if directory == "" {
 			directory = "unknown"
 		}
-
-		// Get repository name for this directory
-		repoName := git.GetRepositoryName(directory)
-		if debug {
-			fmt.Printf("DEBUG: Directory '%s' -> git.GetRepositoryName() = '%s'\n", directory, repoName)
-		}
-		if repoName == "" {
-			// Try to find parent repository by walking up the directory tree
-			repoName = findParentRepository(directory)
-			if debug {
-				fmt.Printf("DEBUG: Directory '%s' -> findParentRepository() = '%s'\n", directory, repoName)
-			}
-			if repoName == "" {
-				repoName = filepath.Base(directory) // fallback to directory name
-				if debug {
-					fmt.Printf("DEBUG: Directory '%s' -> fallback to base name = '%s'\n", directory, repoName)
-				}
-			}
-		}
-		if debug {
-			fmt.Printf("DEBUG: Final mapping: Directory '%s' -> Repository '%s' (events: %d)\n", directory, repoName, 1)
-		}
-
-		// Group by directory first
 		directoryEventMap[directory] = append(directoryEventMap[directory], event)
+	}
+
+	// Now process each unique directory once to get repository information
+	for directory := range directoryEventMap {
+		repoName := getCachedRepositoryName(directory, debug)
+
+		if debug {
+			fmt.Printf("DEBUG: Final mapping: Directory '%s' -> Repository '%s' (events: %d)\n", directory, repoName, len(directoryEventMap[directory]))
+		}
 
 		// Track which directories belong to which repository
 		found := false
@@ -382,8 +419,8 @@ func groupEventsByRepositoryConsolidated(events []*models.SessionEvent, debug bo
 	return timelines, nil
 }
 
-// findParentRepository walks up the directory tree to find a parent git repository
-func findParentRepository(directory string) string {
+// findParentRepositoryCached walks up the directory tree to find a parent git repository with caching
+func findParentRepositoryCached(directory string, debug bool) string {
 	// Clean the directory path
 	cleanPath := filepath.Clean(directory)
 
@@ -396,16 +433,40 @@ func findParentRepository(directory string) string {
 			break
 		}
 
-		// Try to get repository name from parent directory
-		repoName := git.GetRepositoryName(parentDir)
-		if repoName != "" {
-			return repoName
+		// Check cache first
+		if repoName, exists := repositoryCache[parentDir]; exists {
+			if debug {
+				fmt.Printf("DEBUG: Parent cache hit for directory '%s' -> '%s'\n", parentDir, repoName)
+			}
+			if repoName != "" {
+				// Cache this directory's result too
+				repositoryCache[directory] = repoName
+				return repoName
+			}
+		} else {
+			// Try to get repository name from parent directory
+			repoName := git.GetRepositoryName(parentDir)
+			// Cache the parent result (only if not empty)
+			if repoName != "" {
+				repositoryCache[parentDir] = repoName
+				// Cache this directory's result too
+				repositoryCache[directory] = repoName
+				return repoName
+			} else {
+				// Don't cache empty results to avoid empty string pollution
+				// (slightly less efficient but prevents empty project names)
+			}
 		}
 
 		cleanPath = parentDir
 	}
 
 	return ""
+}
+
+// findParentRepository walks up the directory tree to find a parent git repository
+func findParentRepository(directory string) string {
+	return findParentRepositoryCached(directory, false)
 }
 
 // findMainRepositoryDirectory identifies the main repository directory from a list of directories
@@ -470,25 +531,8 @@ func groupEventsByRepositoryWithChildren(events []*models.SessionEvent, debug bo
 	directoryToRepo := make(map[string]string)
 
 	for directory, directoryEvents := range directoryMap {
-		repoName := git.GetRepositoryName(directory)
-		if debug {
-			fmt.Printf("DEBUG: Directory '%s' -> git.GetRepositoryName() = '%s'\n", directory, repoName)
-		}
+		repoName := getCachedRepositoryName(directory, debug)
 
-		if repoName == "" {
-			// Try to find parent repository by walking up the directory tree
-			repoName = findParentRepository(directory)
-			if debug {
-				fmt.Printf("DEBUG: Directory '%s' -> findParentRepository() = '%s'\n", directory, repoName)
-			}
-
-			if repoName == "" {
-				repoName = filepath.Base(directory) // fallback to directory name
-				if debug {
-					fmt.Printf("DEBUG: Directory '%s' -> fallback to base name = '%s'\n", directory, repoName)
-				}
-			}
-		}
 		if debug {
 			fmt.Printf("DEBUG: Final mapping: Directory '%s' -> Repository '%s' (events: %d)\n", directory, repoName, len(directoryEvents))
 		}

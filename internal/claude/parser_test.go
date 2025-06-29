@@ -128,3 +128,35 @@ func BenchmarkParseFilesParallel(b *testing.B) {
 		_ = parseFilesInParallel(jsonlFiles, startTime, false)
 	}
 }
+
+func BenchmarkGroupEventsByRepositoryConsolidated(b *testing.B) {
+	// Create test events for benchmarking
+	var events []*models.SessionEvent
+
+	// Simulate many events from the same directory (realistic scenario)
+	for i := 0; i < 1000; i++ {
+		event := &models.SessionEvent{
+			Timestamp:   time.Now().Add(time.Duration(i) * time.Minute),
+			Directory:   "/home/test/project1", // Same directory for all events
+			MessageType: "assistant",
+		}
+		events = append(events, event)
+	}
+
+	// Add some events from different directories
+	for i := 0; i < 100; i++ {
+		event := &models.SessionEvent{
+			Timestamp:   time.Now().Add(time.Duration(i) * time.Minute),
+			Directory:   "/home/test/project2",
+			MessageType: "user",
+		}
+		events = append(events, event)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Clear cache between runs for consistent benchmarking
+		repositoryCache = make(map[string]string)
+		_, _ = groupEventsByRepositoryConsolidated(events, false)
+	}
+}
