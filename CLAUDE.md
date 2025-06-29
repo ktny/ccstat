@@ -4,66 +4,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ccmonitor is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
+ccstat is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
 
-**Primary Implementation**: Go (recommended for all development)  
-**Legacy Implementation**: Python (maintained but not actively developed)
+**Implementation**: Go (primary and recommended for all development)
 
 ### Key Features
 - Parses session information from Claude Code log files (~/.claude/projects/)
 - Visualizes project activity patterns in timeline format
 - Aggregates and displays Input/Output token usage by project
-- Automatically calculates active time based on message intervals (1-minute threshold)
+- Automatically calculates active time based on message intervals (3-minute threshold)
 - Automatically integrates and groups projects by Git repository
 
 ## Development Environment Setup
 
-### Go Development (Primary)
+### Go Development
 
 ```bash
 # Build the project
 make build
 
 # Or build manually
-go build -o bin/ccmonitor ./cmd/ccmonitor
+go build -o bin/ccstat ./cmd/ccstat
 
 # Install to $GOPATH/bin
 make install
-```
-
-### Python Development (Legacy)
-
-```bash
-# Install uv (first time only)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install dependencies
-uv sync
-
-# Development install (editable mode)
-uv pip install -e .
 ```
 
 ## Command Reference
 
 ### Execution Commands
 
-#### Go Version (Primary)
 ```bash
 # Basic execution (last 1 day)
-./bin/ccmonitor
+./bin/ccstat
 
 # Display activity for the last N days
-./bin/ccmonitor --days 7
+./bin/ccstat --days 7
+
+# Display activity for the last N hours
+./bin/ccstat --hours 6
+# or using short option
+./bin/ccstat -H 6
 
 # Filter display by specific project
-./bin/ccmonitor --project myproject
+./bin/ccstat --project myproject
 
 # Worktree display (separate directories within the same repository)
-./bin/ccmonitor --worktree
+./bin/ccstat --worktree
 
 # Multiple option combinations
-./bin/ccmonitor --days 3 --project myproject --worktree
+./bin/ccstat --days 3 --project myproject --worktree
 
 # Using Makefile shortcuts
 make run        # Build and run with defaults
@@ -71,33 +61,11 @@ make run-days   # Build and run with --days 2
 make run-hours  # Build and run with -H 6
 
 # Display help
-./bin/ccmonitor --help
-```
-
-#### Python Version (Legacy)
-```bash
-# Basic execution (last 1 day)
-uv run ccmonitor
-
-# Display activity for the last N days
-uv run ccmonitor --days 7
-
-# Filter display by specific project
-uv run ccmonitor --project myproject
-
-# Worktree display (separate directories within the same repository)
-uv run ccmonitor --worktree
-
-# Multiple option combinations
-uv run ccmonitor --days 3 --project myproject --worktree
-
-# Display help
-uv run ccmonitor --help
+./bin/ccstat --help
 ```
 
 ### Development Commands
 
-#### Go Development (Primary)
 ```bash
 # Code formatting (ALWAYS run before committing)
 go fmt ./...
@@ -109,119 +77,122 @@ golangci-lint run
 make build
 make test
 
-# Run ccmonitor in development environment  
+# Run ccstat in development environment  
 make run
 make run-days   # --days 2
 make run-hours  # --hours 6
 
 # Clean build artifacts
 make clean
-```
 
-#### Python Development (Legacy)
-```bash
-# Code formatting and linting
-uv run ruff check .       # Lint check
-uv run ruff check . --fix # Auto-fix
-uv run ruff format .      # Code formatting
-
-# Type checking
-uv run pyright
-
-# Test execution
-uv run pytest                    # Run all tests
-uv run pytest -v               # Verbose output
-uv run pytest --cov=ccmonitor  # With coverage
-
-# Run single test file
-uv run pytest tests/test_claude_logs.py
-uv run pytest tests/test_claude_logs.py::TestCalculateActiveDuration
-
-# Run ccmonitor in development environment
-uv run ccmonitor
-uv run ccmonitor --days 7 --worktree
-uv run ccmonitor -H 6  # Use -H for hours
+# Run specific tests
+go test ./cmd/ccstat/
+go test ./internal/claude/
 ```
 
 ## Architecture
 
 ### Core Structure
 ```
-ccmonitor/
-├── __main__.py          # Entry point
-├── timeline_monitor.py  # Main monitoring and control logic
-├── claude_logs.py       # Claude log file analysis
-├── timeline_ui.py       # Rich UI display components
-├── git_utils.py         # Git repository information retrieval
-└── utils.py            # Utility functions (removed)
+ccstat/
+├── cmd/ccstat/              # Main application entry point
+│   ├── main.go             # CLI interface & main execution logic
+│   └── main_test.go        # Basic integration tests
+├── internal/               # Internal packages (not importable externally)
+│   ├── claude/            # Claude log parsing & session analysis
+│   │   ├── parser.go      # Core JSONL parsing & session grouping
+│   │   └── parser_test.go # Unit tests for parser
+│   ├── git/               # Git repository utilities
+│   │   └── utils.go       # Git config parsing & repo name extraction
+│   └── ui/                # User interface & visualization
+│       └── table.go       # Terminal UI using lipgloss
+├── pkg/models/            # Shared data models
+│   └── events.go          # SessionEvent & SessionTimeline structs
+└── Makefile              # Build automation
 ```
 
 ### Major Components
 
-#### claude_logs.py - Log Analysis Engine
-- Parses Claude Code session logs (~/.claude/projects/**.jsonl)
-- `SessionEvent`: Individual message events (timestamp, tokens, content, etc.)
-- `SessionTimeline`: Session aggregation by project (total tokens, active duration, etc.)
-- `calculate_active_duration()`: Active time calculation with 1-minute threshold
-- `calculate_token_totals()`: Input/output token aggregation
+#### cmd/ccstat/main.go - CLI Entry Point
+- Uses Cobra for CLI argument parsing
+- Handles flags: --days, --hours, --project, --worktree, --version, --debug
+- Orchestrates the main data flow: parse CLI → load sessions → create UI → display
 
-#### timeline_ui.py - UI Display Layer
-- Beautiful terminal display using Rich library
-- Project Activity table: Project name, timeline visualization, Events count, Input/Output tokens, Duration
-- Activity density color coding (low activity → high activity with increasing color intensity)
-- Time axis display (hourly for single day, daily for multiple days)
+#### internal/claude/parser.go - Log Analysis Engine
+- Parses Claude Code session logs (~/.claude/projects/*/*.jsonl)
+- `ParseJSONLFile()`: Parses individual JSONL files with large buffer support
+- `LoadSessionsInTimeRange()`: Main orchestrator for loading & filtering
+- `CalculateActiveDuration()`: Smart duration calculation with 3-minute inactivity threshold
+- `groupEventsByProject()`: Groups events by Git repository or directory
 
-#### timeline_monitor.py - Control Layer
-- CLI option processing (--days, --project, --worktree)
-- Log loading process control and UI display management
-- Project filtering functionality
+#### internal/git/utils.go - Git Integration
+- Parses `.git/config` to extract repository names
+- Handles both regular repos and git worktrees
+- Supports SSH and HTTPS Git URLs with fallback to directory names
 
-#### git_utils.py - Project Integration
-- Retrieves Git repository information for directories
-- Integrates and groups different directories within the same repository as projects
+#### internal/ui/table.go - Terminal UI
+- Uses Charmbracelet Lipgloss for styled terminal output
+- Creates timeline visualization with 5-level activity density colors
+- Adaptive time axis (15min intervals to yearly depending on range)
+- Responsive design that adapts to terminal width
+
+#### pkg/models/events.go - Data Models
+- `SessionEvent`: Individual message events with timestamp, directory, content, etc.
+- `SessionTimeline`: Aggregated timeline per project with events, duration, start/end times
+- Supports parent-child project relationships for hierarchical display
 
 ### Data Flow
-1. `timeline_monitor.py` parses CLI options
-2. `claude_logs.py` loads JSONL files from ~/.claude/projects/
-3. Parses session events and extracts token and timestamp information
-4. `git_utils.py` performs project integration and grouping
-5. Executes active time and token aggregation
-6. `timeline_ui.py` provides visualization and display using Rich
+1. CLI parsing with Cobra processes command-line arguments
+2. File discovery scans `~/.claude/projects/` for JSONL files
+3. JSONL parsing extracts events with timestamp filtering
+4. Project grouping by Git repository (consolidated or worktree mode)
+5. Active duration calculation and event statistics
+6. Terminal UI creation with colored timeline visualization
+7. Styled output to terminal
+
+### Key Algorithms
+
+#### Active Duration Calculation
+- Only counts time between consecutive events ≤ 3 minutes as active
+- Excludes long breaks (> 3 minutes) to measure actual work time
+- Minimum 5 minutes for single events
+- Provides realistic work time estimates
+
+#### Project Grouping Logic
+- **Default Mode**: Consolidates all directories within same Git repo
+- **Worktree Mode**: Shows parent-child relationships for complex repos
+- **Repository Detection**: Uses Git config parsing with fallback to directory names
+
+#### Timeline Visualization
+- Maps event count to 5-level color scale for activity density
+- Automatically selects appropriate time intervals based on range
+- Character-based timeline bars using `■` symbols with color coding
 
 ### Important Dependencies
-- **Rich**: Beautiful terminal UI (tables, color coding, panels)
-- **Click**: Command-line argument processing
-- **pathlib/json**: Log file loading and parsing
+- **github.com/spf13/cobra**: CLI framework
+- **github.com/charmbracelet/lipgloss**: Terminal styling
+- **github.com/muesli/reflow**: Text wrapping utilities
+- **golang.org/x/term**: Terminal size detection
 
 ### Configuration and Data Sources
 - **Input Data**: `~/.claude/projects/*/*.jsonl` (Claude Code session logs)
 - **Data Format**: Each line is a JSON event (timestamp, sessionId, cwd, message, usage, etc.)
 - **Token Information**: Extracts `input_tokens` and `output_tokens` from the `usage` field of assistant messages
 
-### Active Time Calculation Logic
-- Only counts time as active when message intervals are within 1 minute
-- Excludes long breaks (>1 minute), measuring only actual work time
-- Treats single events as a minimum of 5 minutes
-
 ## Development Guidelines
 
 ### Code Quality and Formatting
-
-#### Go Development (Primary)
 - **MANDATORY**: Always run `go fmt ./...` before committing any Go code
 - **MANDATORY**: Run `golangci-lint run` and fix all issues before committing
 - Follow Go standard conventions for naming, structure, and documentation
 - Use meaningful package and variable names
 - Add comments for exported functions and types
 
-#### Python Development (Legacy)
-- Run `uv run ruff format .` before committing Python code
-- Ensure all `ruff` and `pyright` checks pass
-
-### TDD (Test-Driven Development)
-- Follow test-driven development principles
-- Create tests first when adding new features, then implement
-- Update related tests first when modifying existing features
+### Testing
+- Run `go test ./...` to execute all tests
+- Follow table-driven test patterns as seen in existing tests
+- Add tests for new functionality, especially core parsing logic
+- Test files follow `*_test.go` naming convention
 
 ### Token Information Handling
 - cache_creation_input_tokens and cache_read_input_tokens are not included in input_tokens
