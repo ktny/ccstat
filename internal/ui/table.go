@@ -50,6 +50,33 @@ func NewTimelineUI(width int) *TimelineUI {
 	}
 }
 
+// calculateOptimalProjectWidth calculates the optimal project column width based on content
+func (ui *TimelineUI) calculateOptimalProjectWidth(timelines []*models.SessionTimeline, minWidth, maxWidth int) int {
+	maxProjectNameLength := minWidth
+
+	for _, timeline := range timelines {
+		projectDisplay := timeline.ProjectName
+		if timeline.ParentProject != nil {
+			projectDisplay = " └─" + timeline.ProjectName
+		}
+
+		// Add some padding for visual spacing
+		nameLength := len(projectDisplay) + 2
+		if nameLength > maxProjectNameLength {
+			maxProjectNameLength = nameLength
+		}
+	}
+
+	// Apply constraints
+	if maxProjectNameLength < minWidth {
+		return minWidth
+	} else if maxProjectNameLength > maxWidth {
+		return maxWidth
+	}
+
+	return maxProjectNameLength
+}
+
 // DisplayTimeline displays the complete timeline with header, table, and summary
 func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, startTime, endTime time.Time, timeUnit string) string {
 	var output strings.Builder
@@ -92,14 +119,34 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 
 // createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths for table with external padding
-	projectWidth := 20
-	eventsWidth := 8
-	durationWidth := 10
-	// Account for table borders and external padding (1,2) = 4 horizontal + 4 borders
-	timelineWidth := ui.width - projectWidth - eventsWidth - durationWidth - 12
-	if timelineWidth < 25 {
-		timelineWidth = 25
+	// Calculate column widths with min/max constraints
+	const (
+		projectMinWidth  = 15
+		projectMaxWidth  = 30
+		timelineMinWidth = 25
+		timelineMaxWidth = 80
+		eventsWidth      = 8
+		durationWidth    = 10
+		borderPadding    = 12 // Account for table borders and external padding
+	)
+
+	// Calculate optimal project width based on content
+	projectWidth := ui.calculateOptimalProjectWidth(timelines, projectMinWidth, projectMaxWidth)
+
+	// Calculate remaining width for timeline
+	availableWidth := ui.width - projectWidth - eventsWidth - durationWidth - borderPadding
+	timelineWidth := availableWidth
+
+	// Apply timeline width constraints
+	if timelineWidth < timelineMinWidth {
+		timelineWidth = timelineMinWidth
+	} else if timelineWidth > timelineMaxWidth {
+		timelineWidth = timelineMaxWidth
+		// Recalculate project width with more space available
+		remainingWidth := ui.width - timelineWidth - eventsWidth - durationWidth - borderPadding
+		if remainingWidth > projectWidth && remainingWidth <= projectMaxWidth {
+			projectWidth = remainingWidth
+		}
 	}
 
 	// Define style function for dynamic styling based on row and column
