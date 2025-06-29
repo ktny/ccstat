@@ -122,7 +122,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 	// Calculate column widths with min/max constraints
 	const (
 		projectMinWidth  = 15
-		projectMaxWidth  = 30
+		projectMaxWidth  = 35  // Increased from 30 to 35
 		timelineMinWidth = 25
 		timelineMaxWidth = 80
 		eventsWidth      = 8
@@ -207,7 +207,7 @@ func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, s
 			projectDisplay = " └─" + timeline.ProjectName
 		}
 
-		projectDisplay = truncate.StringWithTail(projectDisplay, uint(projectWidth-2), "…")
+		projectDisplay = truncate.StringWithTail(projectDisplay, uint(projectWidth), "…")
 
 		t.Row(projectDisplay, timelineStr, fmt.Sprintf("%d", len(timeline.Events)), durationStr)
 	}
