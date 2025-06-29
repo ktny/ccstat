@@ -82,8 +82,8 @@ func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, start
 // createHeader creates the header panel with title and time range info
 func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount int, timeUnit string) string {
 	headerText := fmt.Sprintf("📊 Claude Project Timeline | %s - %s (%s) | %d projects",
-		startTime.Format("01/02/2006 15:04"),
-		endTime.Format("01/02/2006 15:04"),
+		startTime.Format("2006-01-02 15:04"),
+		endTime.Format("2006-01-02 15:04"),
 		timeUnit,
 		sessionCount)
 
