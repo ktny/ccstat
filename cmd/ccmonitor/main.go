@@ -17,19 +17,19 @@ var (
 	versionString = "dev"
 	commitHash    = "unknown"
 	buildDate     = "unknown"
-	
+
 	// CLI flags
-	days       int
-	hours      int
-	project    string
-	worktree   bool
-	debugFlag  bool
+	days        int
+	hours       int
+	project     string
+	worktree    bool
+	debugFlag   bool
 	versionFlag bool
 )
 
 func getVersionInfo() string {
 	v := versionString
-	
+
 	// Try to get version from build info if not set via ldflags
 	if v == "dev" {
 		if info, ok := debug.ReadBuildInfo(); ok {
@@ -38,7 +38,7 @@ func getVersionInfo() string {
 			}
 		}
 	}
-	
+
 	if commitHash != "unknown" || buildDate != "unknown" {
 		return fmt.Sprintf("ccmonitor %s (commit: %s, built: %s)", v, commitHash, buildDate)
 	}
@@ -63,7 +63,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	// Disable flag sorting to maintain custom order
 	rootCmd.Flags().SortFlags = false
-	
+
 	// Define flags in desired display order: --days, --hours, --project, --worktree, --help, --version, --debug
 	rootCmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back (default: 1)")
 	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
