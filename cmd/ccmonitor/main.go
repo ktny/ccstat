@@ -39,13 +39,13 @@ func init() {
 	// Disable flag sorting to maintain custom order
 	rootCmd.Flags().SortFlags = false
 	
-	// Define flags in desired display order: --days, --hours, --project, --worktree, --help, --version
+	// Define flags in desired display order: --days, --hours, --project, --worktree, --help, --version, --debug
 	rootCmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back (default: 1)")
 	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
 	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
 	rootCmd.Flags().BoolVarP(&worktree, "worktree", "w", false, "Show projects as worktree (separate similar repos)")
-	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug output for troubleshooting")
 	rootCmd.Flags().BoolVarP(&version, "version", "v", false, "Show version information")
+	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug output for troubleshooting")
 }
 
 func runMonitor() error {
