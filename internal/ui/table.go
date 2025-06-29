@@ -308,8 +308,36 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 	days := hours / 24
 
 	switch {
+	case hours <= 2:
+		// 1-2 hours: 15-minute intervals with HH:MM format
+		return TimeAxisFormat{
+			formatStr:   "15:04", // HH:MM format
+			interval:    15 * time.Minute,
+			displayName: "minutes",
+		}
+	case hours <= 4:
+		// 3-4 hours: 30-minute intervals with HH:MM format
+		return TimeAxisFormat{
+			formatStr:   "15:04", // HH:MM format
+			interval:    30 * time.Minute,
+			displayName: "minutes",
+		}
+	case hours <= 8:
+		// 5-8 hours: 1-hour intervals with HH:MM format
+		return TimeAxisFormat{
+			formatStr:   "15:04", // HH:MM format
+			interval:    1 * time.Hour,
+			displayName: "hours",
+		}
+	case hours <= 12:
+		// 9-12 hours: 2-hour intervals with HH format
+		return TimeAxisFormat{
+			formatStr:   "15", // HH format
+			interval:    2 * time.Hour,
+			displayName: "hours",
+		}
 	case days <= 2:
-		// 1-2 days: hourly display (4-hour intervals for better spacing)
+		// 13 hours - 2 days: 4-hour intervals with HH format
 		return TimeAxisFormat{
 			formatStr:   "15", // HH format
 			interval:    4 * time.Hour,
@@ -346,70 +374,101 @@ func determineTimeAxisFormat(duration time.Duration) TimeAxisFormat {
 	}
 }
 
-// calculateOptimalTicks calculates optimal tick positions for the time axis
+// calculateOptimalTicks calculates optimal tick positions for the time axis with fallback support
 func calculateOptimalTicks(startTime, endTime time.Time, width int, format TimeAxisFormat) []time.Time {
 	const minTicks = 3
-	const maxTicks = 6
+	const maxTicks = 8
 
-	duration := endTime.Sub(startTime)
-	days := duration.Hours() / 24
+	// Try primary format first, then fallback if too many ticks
+	formats := getFormatFallbackChain(format)
 
-	// Period-specific tick count optimization
-	var targetTicks int
-	switch {
-	case days <= 1:
-		targetTicks = 6 // 1 day: 6 ticks
-	case days <= 2:
-		targetTicks = 6 // 2 days: 6 ticks
-	case days <= 3:
-		targetTicks = 3 // 3 days: 3 ticks
-	case days <= 4:
-		targetTicks = 4 // 4 days: 4 ticks
-	case days <= 5:
-		targetTicks = 5 // 5 days: 5 ticks
-	case days <= 7:
-		targetTicks = 6 // 6-7 days: 6 ticks
-	default:
-		// For longer periods, use dynamic calculation within min/max bounds
-		defaultTickCount := int(duration / format.interval)
-		if defaultTickCount < minTicks {
-			targetTicks = minTicks
-		} else if defaultTickCount > maxTicks {
-			targetTicks = maxTicks
-		} else {
-			targetTicks = defaultTickCount
+	for _, currentFormat := range formats {
+		ticks := generateTicksForFormat(startTime, endTime, currentFormat)
+
+		// Calculate required width for these ticks
+		requiredWidth := calculateRequiredWidth(ticks, currentFormat.formatStr)
+
+		// If ticks fit within available width, use them
+		if requiredWidth <= width && len(ticks) >= minTicks && len(ticks) <= maxTicks {
+			return ticks
 		}
 	}
 
-	// Clamp target ticks to bounds
-	if targetTicks < minTicks {
-		targetTicks = minTicks
-	}
-	if targetTicks > maxTicks {
-		targetTicks = maxTicks
+	// If no format fits perfectly, use the least granular format from chain
+	lastFormat := formats[len(formats)-1]
+	return generateTicksForFormat(startTime, endTime, lastFormat)
+}
+
+// getFormatFallbackChain returns a chain of formats with decreasing granularity
+func getFormatFallbackChain(primary TimeAxisFormat) []TimeAxisFormat {
+	duration := primary.interval
+
+	if duration <= time.Hour {
+		// For sub-hourly intervals, create fallback chain
+		fallbacks := []TimeAxisFormat{primary}
+
+		if duration == 15*time.Minute {
+			fallbacks = append(fallbacks, TimeAxisFormat{"15:04", 30 * time.Minute, "minutes"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"15:04", 1 * time.Hour, "hours"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"15", 2 * time.Hour, "hours"})
+		} else if duration == 30*time.Minute {
+			fallbacks = append(fallbacks, TimeAxisFormat{"15:04", 1 * time.Hour, "hours"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"15", 2 * time.Hour, "hours"})
+		} else if duration == 1*time.Hour {
+			fallbacks = append(fallbacks, TimeAxisFormat{"15", 2 * time.Hour, "hours"})
+			fallbacks = append(fallbacks, TimeAxisFormat{"15", 4 * time.Hour, "hours"})
+		}
+
+		return fallbacks
 	}
 
-	// Generate evenly spaced ticks
+	// For other intervals, return as-is
+	return []TimeAxisFormat{primary}
+}
+
+// generateTicksForFormat generates ticks aligned to interval boundaries
+func generateTicksForFormat(startTime, endTime time.Time, format TimeAxisFormat) []time.Time {
 	var ticks []time.Time
-	if targetTicks == 1 {
-		// Single tick at middle
-		ticks = append(ticks, startTime.Add(duration/2))
-	} else {
-		// Multiple ticks evenly spaced
-		tickInterval := duration / time.Duration(targetTicks-1)
-		for i := 0; i < targetTicks; i++ {
-			tick := startTime.Add(time.Duration(i) * tickInterval)
-			if i == targetTicks-1 {
-				tick = endTime // Ensure last tick is exactly at end
-			}
-			ticks = append(ticks, tick)
-		}
+
+	// Start from a rounded boundary
+	current := roundToInterval(startTime, format.interval)
+
+	// If rounded time is before start time, advance to next interval
+	if current.Before(startTime) {
+		current = current.Add(format.interval)
+	}
+
+	// Generate ticks until we exceed end time
+	for current.Before(endTime) || current.Equal(endTime) {
+		ticks = append(ticks, current)
+		current = current.Add(format.interval)
+	}
+
+	// Ensure we have at least one tick
+	if len(ticks) == 0 {
+		ticks = append(ticks, startTime.Add(endTime.Sub(startTime)/2))
 	}
 
 	return ticks
 }
 
-// roundToInterval rounds a time to the nearest interval
+// calculateRequiredWidth estimates the required width for displaying ticks
+func calculateRequiredWidth(ticks []time.Time, formatStr string) int {
+	if len(ticks) == 0 {
+		return 0
+	}
+
+	// Calculate width of one formatted tick
+	sampleTick := ticks[0].Format(formatStr)
+	tickWidth := len(sampleTick)
+
+	// Add minimum spacing between ticks (2 characters)
+	totalWidth := len(ticks)*tickWidth + (len(ticks)-1)*2
+
+	return totalWidth
+}
+
+// roundToInterval rounds a time to the nearest interval boundary
 func roundToInterval(t time.Time, interval time.Duration) time.Time {
 	if interval >= 24*time.Hour {
 		// For day or longer intervals, round to start of day
@@ -417,6 +476,11 @@ func roundToInterval(t time.Time, interval time.Duration) time.Time {
 	} else if interval >= time.Hour {
 		// For hour intervals, round to start of hour
 		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
+	} else if interval >= time.Minute {
+		// For minute intervals, round to interval boundaries
+		minutes := int(interval.Minutes())
+		roundedMinute := (t.Minute() / minutes) * minutes
+		return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), roundedMinute, 0, 0, t.Location())
 	}
 	// For smaller intervals, return as-is
 	return t
