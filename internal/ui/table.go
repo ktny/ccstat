@@ -50,6 +50,42 @@ func NewTimelineUI(width int) *TimelineUI {
 	}
 }
 
+// calculateProjectWidth calculates the optimal project column width based on project names
+func (ui *TimelineUI) calculateProjectWidth(timelines []*models.SessionTimeline) int {
+	const minWidth = 20
+	const maxWidth = 30
+
+	if len(timelines) == 0 {
+		return minWidth
+	}
+
+	maxNameLength := 0
+	for _, timeline := range timelines {
+		displayName := timeline.ProjectName
+		// Consider indentation for child projects
+		if timeline.ParentProject != nil {
+			displayName = " └─" + timeline.ProjectName
+		}
+
+		if len(displayName) > maxNameLength {
+			maxNameLength = len(displayName)
+		}
+	}
+
+	// Add padding for truncation symbol and some margin
+	calculatedWidth := maxNameLength + 2
+
+	// Clamp to min/max range
+	if calculatedWidth < minWidth {
+		return minWidth
+	}
+	if calculatedWidth > maxWidth {
+		return maxWidth
+	}
+
+	return calculatedWidth
+}
+
 // DisplayTimeline displays the complete timeline with header, table, and summary
 func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, startTime, endTime time.Time, timeUnit string) string {
 	var output strings.Builder
@@ -92,8 +128,8 @@ func (ui *TimelineUI) createHeader(startTime, endTime time.Time, sessionCount in
 
 // createTimelineTable creates the main timeline visualization table using lipgloss/table
 func (ui *TimelineUI) createTimelineTable(timelines []*models.SessionTimeline, startTime, endTime time.Time) string {
-	// Calculate column widths for table with external padding
-	projectWidth := 20
+	// Calculate project width based on maximum project name length
+	projectWidth := ui.calculateProjectWidth(timelines)
 	eventsWidth := 8
 	durationWidth := 10
 	// Account for table borders and external padding (1,2) = 4 horizontal + 4 borders
