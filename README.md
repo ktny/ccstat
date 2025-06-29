@@ -44,7 +44,7 @@ The installer automatically:
 For specific versions or custom installation paths:
 ```bash
 # Install specific version
-curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.0
+curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.3
 
 # Install to custom directory
 curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --prefix $HOME/bin
@@ -56,26 +56,26 @@ Download the latest release binary for your platform from [GitHub Releases](http
 
 ```bash
 # Linux (x86_64)
-wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-linux-amd64
-chmod +x ccstat-v0.1.0-linux-amd64
-sudo mv ccstat-v0.1.0-linux-amd64 /usr/local/bin/ccstat
+wget https://github.com/ktny/ccstat/releases/download/v0.1.3/ccstat-v0.1.3-linux-amd64
+chmod +x ccstat-v0.1.3-linux-amd64
+sudo mv ccstat-v0.1.3-linux-amd64 /usr/local/bin/ccstat
 
 # macOS (Apple Silicon)
-wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-darwin-arm64
-chmod +x ccstat-v0.1.0-darwin-arm64
-sudo mv ccstat-v0.1.0-darwin-arm64 /usr/local/bin/ccstat
+wget https://github.com/ktny/ccstat/releases/download/v0.1.3/ccstat-v0.1.3-darwin-arm64
+chmod +x ccstat-v0.1.3-darwin-arm64
+sudo mv ccstat-v0.1.3-darwin-arm64 /usr/local/bin/ccstat
 
 # macOS (Intel)
-wget https://github.com/ktny/ccstat/releases/download/v0.1.0/ccstat-v0.1.0-darwin-amd64
-chmod +x ccstat-v0.1.0-darwin-amd64
-sudo mv ccstat-v0.1.0-darwin-amd64 /usr/local/bin/ccstat
+wget https://github.com/ktny/ccstat/releases/download/v0.1.3/ccstat-v0.1.3-darwin-amd64
+chmod +x ccstat-v0.1.3-darwin-amd64
+sudo mv ccstat-v0.1.3-darwin-amd64 /usr/local/bin/ccstat
 
 ```
 
 ### Option 2: Go Install (Latest Stable)
 
 ```bash
-go install github.com/ktny/ccstat/cmd/ccstat@v0.1.0
+go install github.com/ktny/ccstat/cmd/ccstat@v0.1.3
 ```
 
 ### Option 3: Build from Source
