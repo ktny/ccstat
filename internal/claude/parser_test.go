@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ktny/ccmonitor/pkg/models"
+	"github.com/ktny/ccstat/pkg/models"
 )
 
 func TestSessionEventBasic(t *testing.T) {

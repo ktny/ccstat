@@ -1,4 +1,4 @@
-module github.com/ktny/ccmonitor
+module github.com/ktny/ccstat
 
 go 1.23.0
 

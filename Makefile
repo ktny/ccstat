@@ -1,7 +1,7 @@
-# Makefile for ccmonitor Go version
+# Makefile for ccstat Go version
 
 # Binary name and output directory
-BINARY_NAME=ccmonitor
+BINARY_NAME=ccstat
 BIN_DIR=bin
 OUTPUT=$(BIN_DIR)/$(BINARY_NAME)
 
@@ -17,7 +17,7 @@ GO_BUILD_FLAGS=-ldflags="-s -w -X 'main.versionString=$(VERSION)' -X 'main.commi
 .PHONY: build
 build:
 	@mkdir -p $(BIN_DIR)
-	go build $(GO_BUILD_FLAGS) -o $(OUTPUT) ./cmd/ccmonitor
+	go build $(GO_BUILD_FLAGS) -o $(OUTPUT) ./cmd/ccstat
 
 # Clean build artifacts
 .PHONY: clean
@@ -51,12 +51,12 @@ test-coverage:
 # Test build without installing
 .PHONY: test-build
 test-build:
-	go run ./cmd/ccmonitor --help
+	go run ./cmd/ccstat --help
 
 # Install to $GOPATH/bin
 .PHONY: install
 install:
-	go install ./cmd/ccmonitor
+	go install ./cmd/ccstat
 
 # Show version information
 .PHONY: version
@@ -66,7 +66,7 @@ version: build
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  build      - Build the binary to bin/ccmonitor"
+	@echo "  build      - Build the binary to bin/ccstat"
 	@echo "  clean      - Remove build artifacts"
 	@echo "  run        - Build and run with default options"
 	@echo "  run-days   - Build and run with --days 2"

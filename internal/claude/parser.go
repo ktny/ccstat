@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ktny/ccmonitor/internal/git"
-	"github.com/ktny/ccmonitor/pkg/models"
+	"github.com/ktny/ccstat/internal/git"
+	"github.com/ktny/ccstat/pkg/models"
 )
 
 // ParseJSONLFile parses a JSONL file and extracts session events
