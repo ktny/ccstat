@@ -63,6 +63,23 @@ install:
 version: build
 	./$(OUTPUT) --version
 
+# Demo data generation
+.PHONY: demo-generate
+demo-generate:
+	@echo "Generating demo data..."
+	@go run ./cmd/ccstat-demo
+	@echo "Demo data generated! Now run 'make demo' to see the results"
+
+.PHONY: demo
+demo: demo-generate build
+	./$(OUTPUT) --project demo
+
+.PHONY: demo-clean
+demo-clean:
+	@echo "Cleaning demo data..."
+	@rm -rf ~/.claude/projects/demo
+	@echo "Demo data cleaned"
+
 .PHONY: help
 help:
 	@echo "Available targets:"
@@ -76,4 +93,7 @@ help:
 	@echo "  test-build - Test build by running with --help"
 	@echo "  install    - Install to \$$GOPATH/bin"
 	@echo "  version    - Build and show version information"
+	@echo "  demo-generate - Generate demo data for screenshots"
+	@echo "  demo       - Generate demo data and run ccstat"
+	@echo "  demo-clean - Remove demo data"
 	@echo "  help       - Show this help message"
