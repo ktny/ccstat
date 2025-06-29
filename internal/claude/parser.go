@@ -158,6 +158,12 @@ func GetAllSessionFiles() ([]string, error) {
 
 // LoadSessionsInTimeRange loads all Claude sessions within a time range, grouped by project directory
 func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string, threads bool, debug bool) ([]*models.SessionTimeline, error) {
+	// Clear repository cache at the start of each execution to avoid stale data
+	repositoryCache = make(map[string]string)
+	if debug {
+		fmt.Printf("DEBUG: Repository cache cleared\n")
+	}
+	
 	var allEvents []*models.SessionEvent
 
 	// Get all JSONL files
@@ -303,10 +309,14 @@ func getCachedRepositoryName(directory string, debug bool) string {
 		}
 	}
 
-	// Cache the result
-	repositoryCache[directory] = repoName
-	if debug {
-		fmt.Printf("DEBUG: Cached mapping: Directory '%s' -> Repository '%s'\n", directory, repoName)
+	// Cache the result (only cache non-empty repository names to avoid empty string pollution)
+	if repoName != "" {
+		repositoryCache[directory] = repoName
+		if debug {
+			fmt.Printf("DEBUG: Cached mapping: Directory '%s' -> Repository '%s'\n", directory, repoName)
+		}
+	} else if debug {
+		fmt.Printf("DEBUG: Not caching empty repository name for directory '%s'\n", directory)
 	}
 
 	return repoName
@@ -438,12 +448,15 @@ func findParentRepositoryCached(directory string, debug bool) string {
 		} else {
 			// Try to get repository name from parent directory
 			repoName := git.GetRepositoryName(parentDir)
-			// Cache the parent result
-			repositoryCache[parentDir] = repoName
+			// Cache the parent result (only if not empty)
 			if repoName != "" {
+				repositoryCache[parentDir] = repoName
 				// Cache this directory's result too
 				repositoryCache[directory] = repoName
 				return repoName
+			} else {
+				// Cache empty result for parent to avoid repeated lookups
+				repositoryCache[parentDir] = ""
 			}
 		}
 
