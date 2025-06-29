@@ -233,7 +233,7 @@ func CalculateActiveDuration(events []*models.SessionEvent) int {
 	})
 
 	activeMinutes := 0.0
-	inactiveThreshold := 3.0 // 3 minute threshold for inactive periods
+	inactiveThreshold := 5.0 // 5 minute threshold for inactive periods
 
 	for i := 1; i < len(events); i++ {
 		prevEvent := events[i-1]
@@ -245,8 +245,6 @@ func CalculateActiveDuration(events []*models.SessionEvent) int {
 		if intervalMinutes <= inactiveThreshold {
 			activeMinutes += intervalMinutes
 		}
-		// If interval is longer than threshold, don't add any time
-		// (this represents an inactive period)
 	}
 
 	return int(activeMinutes)
