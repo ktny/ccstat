@@ -11,6 +11,8 @@
 
 ccstat is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns and gain insights into your development workflow.
 
+![demo](assets/demo.png)
+
 ### 🎯 Key Features
 
 - 📈 **Timeline Visualization** — Color-coded activity blocks showing your coding patterns
@@ -127,13 +129,6 @@ ccstat --days 3 --project myproject --worktree
 - **Timeline**: Visual activity timeline with color-coded density
 - **Events**: Number of messages in the session
 - **Duration**: Active work time in minutes
-
-#### 🎨 Activity Color Coding
-- **■** (gray): Minimal activity
-- **■** (green): Low activity  
-- **■** (yellow): Moderate activity
-- **■** (orange): High activity
-- **■** (red): Very high activity
 
 #### ⏰ Time Axis Display
 - **Hours view**: 15min/30min/1h/2h/3h/4h intervals
