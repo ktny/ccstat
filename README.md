@@ -59,6 +59,8 @@ ccmonitor --days 7
 
 # View last 6 hours
 ccmonitor --hours 6
+# or using short option
+ccmonitor -H 6
 
 # Filter by specific project
 ccmonitor --project myproject

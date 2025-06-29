@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/ktny/ccmonitor/internal/claude"
@@ -12,17 +13,46 @@ import (
 )
 
 var (
-	days     int
-	hours    int
-	project  string
-	worktree bool
-	debug    bool
+	// Build-time variables (can be set via -ldflags)
+	versionString = "dev"
+	commitHash    = "unknown"
+	buildDate     = "unknown"
+
+	// CLI flags
+	days        int
+	hours       int
+	project     string
+	worktree    bool
+	debugFlag   bool
+	versionFlag bool
 )
+
+func getVersionInfo() string {
+	v := versionString
+
+	// Try to get version from build info if not set via ldflags
+	if v == "dev" {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			if info.Main.Version != "(devel)" && info.Main.Version != "" {
+				v = info.Main.Version
+			}
+		}
+	}
+
+	if commitHash != "unknown" || buildDate != "unknown" {
+		return fmt.Sprintf("ccmonitor %s (commit: %s, built: %s)", v, commitHash, buildDate)
+	}
+	return fmt.Sprintf("ccmonitor %s", v)
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "ccmonitor",
 	Short: "Claude Session Timeline - CLI tool for visualizing Claude session activity patterns",
 	Run: func(cmd *cobra.Command, args []string) {
+		if versionFlag {
+			fmt.Println(getVersionInfo())
+			return
+		}
 		if err := runMonitor(); err != nil {
 			fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
 			os.Exit(1)
@@ -31,11 +61,16 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	// Disable flag sorting to maintain custom order
+	rootCmd.Flags().SortFlags = false
+
+	// Define flags in desired display order: --days, --hours, --project, --worktree, --help, --version, --debug
 	rootCmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back (default: 1)")
-	rootCmd.Flags().IntVarP(&hours, "hours", "t", 0, "Number of hours to look back (1-24, overrides --days)")
+	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
 	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
 	rootCmd.Flags().BoolVarP(&worktree, "worktree", "w", false, "Show projects as worktree (separate similar repos)")
-	rootCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug output for troubleshooting")
+	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Show version information")
+	rootCmd.Flags().BoolVar(&debugFlag, "debug", false, "Enable debug output for troubleshooting")
 }
 
 func runMonitor() error {
@@ -63,7 +98,7 @@ func runMonitor() error {
 	fmt.Println(loadingMsg)
 
 	// Load sessions
-	timelines, err := claude.LoadSessionsInTimeRange(startTime, endTime, project, worktree, debug)
+	timelines, err := claude.LoadSessionsInTimeRange(startTime, endTime, project, worktree, debugFlag)
 	if err != nil {
 		return fmt.Errorf("failed to load sessions: %w", err)
 	}
