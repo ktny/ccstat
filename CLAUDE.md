@@ -246,3 +246,4 @@ A custom slash command that creates a new branch with git worktree under `.workt
 ├── feat-task-name-1221-1430/  # Each task's worktree directory
 └── .gitignore                 # .worktree/ is already added to .gitignore
 ```
+
