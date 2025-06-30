@@ -101,6 +101,7 @@ func (ui *TimelineUI) DisplayTimeline(timelines []*models.SessionTimeline, start
 			BorderForeground(lipgloss.Color("11")).
 			Render(noSessionsText)
 		output.WriteString(noSessionsPanel)
+		output.WriteString("\n")
 		return output.String()
 	}
 
