@@ -246,3 +246,48 @@ A custom slash command that creates a new branch with git worktree under `.workt
 ├── feat-task-name-1221-1430/  # Each task's worktree directory
 └── .gitignore                 # .worktree/ is already added to .gitignore
 ```
+
+### `/project:release`
+A custom slash command that automates the release process for ccstat, including version updates and GitHub release creation.
+
+#### Release Process Overview
+1. Merge all necessary PRs to main branch
+2. Execute `/project:release` command
+3. Input new version number (e.g., `v0.1.4`)
+4. The command automatically:
+   - Updates version references in README.md
+   - Creates and pushes a version update commit
+   - Creates a git tag
+   - Pushes the tag to trigger GitHub Actions release workflow
+   - GitHub Actions automatically builds binaries and creates a release
+
+#### Usage Steps
+1. Ensure all features/fixes for the release are merged to main
+2. Execute `/project:release`
+3. Enter the new version number when prompted (format: `vX.Y.Z`)
+4. Review the automated changes
+5. The release will be automatically created via GitHub Actions
+
+#### Automated Tasks
+- Updates installation commands in README.md to use the new version
+- Updates version references in documentation
+- Creates a commit with message: `fix: update installation instructions to use version vX.Y.Z`
+- Creates a lightweight git tag
+- Pushes both the commit and tag to origin
+- GitHub Actions workflow handles:
+  - Building binaries for multiple platforms (Linux/macOS, amd64/arm64)
+  - Creating GitHub release with auto-generated release notes
+  - Uploading binary artifacts
+
+#### Prerequisites
+- All PRs for the release must be merged to main branch
+- You must be on the main branch with a clean working directory
+- Git push permissions to the repository
+- GitHub Actions must be properly configured (`.github/workflows/release.yml`)
+
+#### Version Numbering Guidelines
+- Follow semantic versioning: `vMAJOR.MINOR.PATCH`
+- MAJOR: Breaking changes
+- MINOR: New features (backward compatible)
+- PATCH: Bug fixes and minor improvements
+- Always prefix with 'v' (e.g., v0.1.4, not 0.1.4)
