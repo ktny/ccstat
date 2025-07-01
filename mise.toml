@@ -1,0 +1,64 @@
+[tools]
+go = "1.24.4"
+
+# Development environment management tasks
+[tasks.setup]
+description = "Initialize development environment"
+run = """
+    echo "🚀 Setting up ccstat development environment..."
+    echo "📋 Checking Go installation..."
+    go version
+    echo "📦 Installing development dependencies..."
+    mise run deps
+    echo "🔧 Creating necessary directories..."
+    mkdir -p bin
+    echo "✅ Development environment setup complete!"
+    echo ""
+    echo "Next steps:"
+    echo "  - Run 'make build' to build the project"
+    echo "  - Run 'make test' to run tests"
+    echo "  - Run 'mise run dev' for development mode"
+"""
+
+[tasks.deps]
+description = "Install development dependencies"
+run = """
+    echo "📦 Installing Go development tools..."
+    # Install golangci-lint if not present
+    if ! command -v golangci-lint &> /dev/null; then
+        echo "Installing golangci-lint..."
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+    else
+        echo "golangci-lint already installed"
+    fi
+    
+    # Verify installations
+    echo "✅ Verifying installations:"
+    go version
+    golangci-lint version
+"""
+
+[tasks.lint]
+description = "Run code linting"
+run = "golangci-lint run"
+sources = ["**/*.go", "go.mod", "go.sum"]
+
+[tasks.format]
+description = "Format Go code"
+run = """
+    echo "🎨 Formatting Go code..."
+    go fmt ./...
+    echo "✅ Code formatting complete"
+"""
+sources = ["**/*.go"]
+
+[tasks.dev]
+description = "Development mode with file watching"
+run = """
+    echo "🔄 Starting development mode..."
+    echo "Watching for changes in Go files..."
+    echo "Press Ctrl+C to stop"
+    echo ""
+    mise watch --glob "**/*.go" --glob "go.mod" --glob "go.sum" -- make build
+"""
+sources = ["**/*.go", "go.mod", "go.sum"]
