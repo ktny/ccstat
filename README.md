@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/logo.png" alt="ccstat logo" width="80" />
+  <img src="assets/logo.png" alt="ccstat logo" width="140" />
 </div>
 
 # ccstat
