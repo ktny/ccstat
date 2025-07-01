@@ -1,4 +1,8 @@
-# 📊 ccstat
+<div align="center">
+  <img src="assets/logo.png" alt="ccstat logo" width="80" />
+</div>
+
+# ccstat
 
 > Visualize your Claude Code session activity timeline — fast, beautiful, and insightful!
 
