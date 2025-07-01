@@ -49,54 +49,6 @@ For specific versions or custom installation paths:
 ```bash
 # Install specific version
 curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.3
-
-# Install to custom directory
-curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --prefix $HOME/bin
-```
-
-### Option 1: Download Pre-built Binary (Manual)
-
-Download the latest release binary for your platform from [GitHub Releases](https://github.com/ktny/ccstat/releases):
-
-```bash
-# Linux (x86_64)
-wget https://github.com/ktny/ccstat/releases/download/v0.1.3/ccstat-v0.1.3-linux-amd64
-chmod +x ccstat-v0.1.3-linux-amd64
-sudo mv ccstat-v0.1.3-linux-amd64 /usr/local/bin/ccstat
-
-# macOS (Apple Silicon)
-wget https://github.com/ktny/ccstat/releases/download/v0.1.3/ccstat-v0.1.3-darwin-arm64
-chmod +x ccstat-v0.1.3-darwin-arm64
-sudo mv ccstat-v0.1.3-darwin-arm64 /usr/local/bin/ccstat
-
-# macOS (Intel)
-wget https://github.com/ktny/ccstat/releases/download/v0.1.3/ccstat-v0.1.3-darwin-amd64
-chmod +x ccstat-v0.1.3-darwin-amd64
-sudo mv ccstat-v0.1.3-darwin-amd64 /usr/local/bin/ccstat
-
-```
-
-### Option 2: Go Install (Latest Stable)
-
-```bash
-go install github.com/ktny/ccstat/cmd/ccstat@v0.1.3
-```
-
-### Option 3: Build from Source
-
-```bash
-git clone https://github.com/ktny/ccstat.git
-cd ccstat
-make build
-./bin/ccstat
-```
-
-### Option 4: Development Installation
-
-```bash
-git clone https://github.com/ktny/ccstat.git
-cd ccstat
-make install  # Installs to $GOPATH/bin
 ```
 
 ## 📖 Usage
@@ -141,12 +93,6 @@ ccstat --days 3 --project myproject --worktree
 **Active Time Calculation**: Only counts periods where message intervals are ≤1 minute as active time, excluding long breaks to measure actual work time.
 
 **Git Integration**: Automatically detects and groups projects by Git repository, showing parent-child relationships for complex project structures.
-
-## 📋 Requirements
-
-- **Go 1.21+** for building from source
-- **Claude Code** for generating session logs
-- **Git** (recommended) for project integration features
 
 ## 🖥️ Supported Platforms
 
