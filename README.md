@@ -20,19 +20,13 @@ ccstat is a powerful CLI tool that analyzes your Claude Code session history and
 ### 🎯 Key Features
 
 - 📈 **Timeline Visualization** — Color-coded activity blocks showing your coding patterns
-- ⏱️ **Smart Duration Tracking** — Calculates active work time with intelligent break detection
-- 🎨 **Activity Density** — Five-level visual density indicators from idle to very high
 - 📁 **Git Integration** — Automatically groups projects by repository
-- 🌳 **Worktree Support** — Separate visualization for different worktree directories
 - 🕐 **Flexible Time Ranges** — View activity by days (1+) or hours (1-24)
-- 🔍 **Project Filtering** — Focus on specific projects
 - ⚡ **High Performance** — Optimized file processing for fast results
 
 ## 🚀 Installation
 
-### Quick Install (Recommended)
-
-Install the latest version with a single command:
+Install with a single command:
 
 ```bash
 # Install latest version
@@ -71,25 +65,6 @@ ccstat --worktree
 # Combine options
 ccstat --days 3 --project myproject --worktree
 ```
-
-### Understanding the Output
-
-#### 📊 Project Activity Table
-- **Project**: Git repository name or directory name
-- **Timeline**: Visual activity timeline with color-coded density
-- **Events**: Number of messages in the session
-- **Duration**: Active work time in minutes
-
-#### ⏰ Time Axis Display
-- **Hours view**: 15min/30min/1h/2h/3h/4h intervals
-- **Single day**: Hour markers (0, 6, 12, 18)
-- **Multiple days**: Date intervals
-
-### 🧠 Smart Features
-
-**Active Time Calculation**: Only counts periods where message intervals are ≤1 minute as active time, excluding long breaks to measure actual work time.
-
-**Git Integration**: Automatically detects and groups projects by Git repository, showing parent-child relationships for complex project structures.
 
 ## 🖥️ Supported Platforms
 
