@@ -35,8 +35,11 @@ ccstat is a powerful CLI tool that analyzes your Claude Code session history and
 Install the latest version with a single command:
 
 ```bash
-# Using curl
+# Install latest version
 curl -fsSL https://ktny.github.io/ccstat/install.sh | sh
+
+# Install specific version
+curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.3
 ```
 
 The installer automatically:
@@ -44,12 +47,6 @@ The installer automatically:
 - Downloads the appropriate binary
 - Installs to `/usr/local/bin` (with sudo) or `~/.local/bin` (without sudo)
 - Verifies the installation
-
-For specific versions or custom installation paths:
-```bash
-# Install specific version
-curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.3
-```
 
 ## 📖 Usage
 
