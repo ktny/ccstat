@@ -38,9 +38,7 @@ curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.3
 
 The installer automatically:
 - Detects your OS and architecture
-- Downloads the appropriate binary
 - Installs to `/usr/local/bin` (with sudo) or `~/.local/bin` (without sudo)
-- Verifies the installation
 
 ## 📖 Usage
 
