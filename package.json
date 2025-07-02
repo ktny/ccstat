@@ -1,0 +1,76 @@
+{
+  "name": "ccstat",
+  "version": "2.0.0",
+  "description": "CLI tool that analyzes Claude Code session history and visualizes project activity patterns",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ccstat": "./bin/ccstat.js"
+  },
+  "scripts": {
+    "build": "esbuild src/cli/index.ts --bundle --platform=node --format=esm --outfile=dist/ccstat.js --minify --packages=external",
+    "build:dev": "esbuild src/cli/index.ts --bundle --platform=node --format=esm --outfile=dist/ccstat.js --sourcemap --packages=external",
+    "dev": "tsx src/cli/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "pkg": "pkg dist/ccstat.js -t node18-linux-x64,node18-macos-x64,node18-win-x64 -o bin/ccstat"
+  },
+  "keywords": [
+    "cli",
+    "claude",
+    "claude-code",
+    "session-history",
+    "timeline",
+    "visualization",
+    "typescript"
+  ],
+  "author": "ktny",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ktny/ccstat.git"
+  },
+  "homepage": "https://github.com/ktny/ccstat#readme",
+  "bugs": {
+    "url": "https://github.com/ktny/ccstat/issues"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "date-fns": "^3.6.0",
+    "ink": "^4.4.1",
+    "react": "^18.2.0",
+    "simple-git": "^3.25.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "esbuild": "^0.21.5",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.3",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "jest": "^29.7.0",
+    "pkg": "^5.8.1",
+    "prettier": "^3.3.2",
+    "ts-jest": "^29.1.5",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ]
+}

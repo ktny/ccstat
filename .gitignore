@@ -1,21 +1,44 @@
-# Go binaries and build artifacts
-bin/
+# Node.js / TypeScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+*.tsbuildinfo
+
+# Build artifacts
+bin/ccstat-*
+dist/
 *.exe
+*.js.map
 
-# Go test artifacts
-*.test
-*.out
-
-# Go coverage
+# Test coverage
+coverage/
 *.coverprofile
 coverage.txt
+.nyc_output/
 
-# Go dependency directories
+# TypeScript cache
+*.tscache
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Package lock files (optional - remove if you want to commit them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Legacy Go artifacts (will be removed after full migration)
 vendor/
-
-# Go module proxy cache
 go.sum
 .goproxy/
+*.test
+*.out
 
 # IDE specific files
 .idea/

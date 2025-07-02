@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+bin/
+coverage/
+
+# Git
+.git/
+
+# Ignore all Go files during migration
+*.go
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Config files that should maintain their formatting
+tsconfig.json
+.eslintrc.json
+
+# Temporary
+*.tmp
+*.temp
+.worktree/
