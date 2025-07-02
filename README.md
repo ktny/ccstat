@@ -54,14 +54,8 @@ ccstat --days 7
 # View last 6 hours
 ccstat --hours 6
 
-# Filter by specific project
-ccstat --project myproject
-
 # Show worktree view (separate repos)
 ccstat --worktree
-
-# Combine options
-ccstat --days 3 --project myproject --worktree
 ```
 
 ## 🖥️ Supported Platforms
