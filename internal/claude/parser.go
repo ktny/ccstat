@@ -157,7 +157,7 @@ func GetAllSessionFiles() ([]string, error) {
 }
 
 // LoadSessionsInTimeRange loads all Claude sessions within a time range, grouped by project directory
-func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string, threads bool, debug bool) ([]*models.SessionTimeline, error) {
+func LoadSessionsInTimeRange(startTime, endTime time.Time, threads bool, debug bool) ([]*models.SessionTimeline, error) {
 	// Clear repository cache at the start of each execution to avoid stale data
 	repositoryCache = make(map[string]string)
 	if debug {
@@ -191,7 +191,6 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 		fmt.Printf("DEBUG: Total events parsed: %d\n", len(allEvents))
 		fmt.Printf("DEBUG: Events after time filter: %d\n", len(filteredEvents))
 		fmt.Printf("DEBUG: Time range: %s to %s\n", startTime.Format(time.RFC3339), endTime.Format(time.RFC3339))
-		fmt.Printf("DEBUG: Project filter: '%s'\n", projectFilter)
 	}
 
 	// Sort events by timestamp
@@ -203,25 +202,6 @@ func LoadSessionsInTimeRange(startTime, endTime time.Time, projectFilter string,
 	timelines, err := groupEventsByProject(filteredEvents, threads, debug)
 	if err != nil {
 		return nil, err
-	}
-
-	// Apply project filter if specified
-	if projectFilter != "" {
-		var filteredTimelines []*models.SessionTimeline
-		for _, timeline := range timelines {
-			if strings.Contains(strings.ToLower(timeline.ProjectName), strings.ToLower(projectFilter)) {
-				filteredTimelines = append(filteredTimelines, timeline)
-				if debug {
-					fmt.Printf("DEBUG: Timeline '%s' matches filter '%s'\n", timeline.ProjectName, projectFilter)
-				}
-			} else if debug {
-				fmt.Printf("DEBUG: Timeline '%s' does NOT match filter '%s'\n", timeline.ProjectName, projectFilter)
-			}
-		}
-		if debug {
-			fmt.Printf("DEBUG: Total timelines: %d, Filtered timelines: %d\n", len(timelines), len(filteredTimelines))
-		}
-		return filteredTimelines, nil
 	}
 
 	return timelines, nil

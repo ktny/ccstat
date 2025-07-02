@@ -22,7 +22,6 @@ var (
 	// CLI flags
 	days            int
 	hours           int
-	project         string
 	worktree        bool
 	debugFlag       bool
 	versionFlag     bool
@@ -81,10 +80,9 @@ func init() {
 	// Disable flag sorting to maintain custom order
 	rootCmd.Flags().SortFlags = false
 
-	// Define flags in desired display order: --days, --hours, --project, --worktree, --help, --version, --debug, --update, --check-update
+	// Define flags in desired display order: --days, --hours, --worktree, --help, --version, --debug, --update, --check-update
 	rootCmd.Flags().IntVarP(&days, "days", "d", 1, "Number of days to look back (default: 1)")
 	rootCmd.Flags().IntVarP(&hours, "hours", "H", 0, "Number of hours to look back (1-24, overrides --days)")
-	rootCmd.Flags().StringVarP(&project, "project", "p", "", "Filter by specific project")
 	rootCmd.Flags().BoolVarP(&worktree, "worktree", "w", false, "Show projects as worktree (separate similar repos)")
 	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Show version information")
 	rootCmd.Flags().BoolVar(&debugFlag, "debug", false, "Enable debug output for troubleshooting")
@@ -109,15 +107,11 @@ func runMonitor() error {
 	}
 
 	// Display loading message
-	loadingMsg := fmt.Sprintf("Loading Claude sessions from the last %s", timeUnit)
-	if project != "" {
-		loadingMsg += fmt.Sprintf(" (filtered by project: %s)", project)
-	}
-	loadingMsg += "..."
+	loadingMsg := fmt.Sprintf("Loading Claude sessions from the last %s...", timeUnit)
 	fmt.Println(loadingMsg)
 
 	// Load sessions
-	timelines, err := claude.LoadSessionsInTimeRange(startTime, endTime, project, worktree, debugFlag)
+	timelines, err := claude.LoadSessionsInTimeRange(startTime, endTime, worktree, debugFlag)
 	if err != nil {
 		return fmt.Errorf("failed to load sessions: %w", err)
 	}

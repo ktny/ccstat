@@ -45,14 +45,8 @@ make install
 # or using short option
 ./bin/ccstat -H 6
 
-# Filter display by specific project
-./bin/ccstat --project myproject
-
 # Worktree display (separate directories within the same repository)
 ./bin/ccstat --worktree
-
-# Multiple option combinations
-./bin/ccstat --days 3 --project myproject --worktree
 
 # Using Makefile shortcuts
 make run        # Build and run with defaults
@@ -114,7 +108,7 @@ ccstat/
 
 #### cmd/ccstat/main.go - CLI Entry Point
 - Uses Cobra for CLI argument parsing
-- Handles flags: --days, --hours, --project, --worktree, --version, --debug
+- Handles flags: --days, --hours, --worktree, --version, --debug
 - Orchestrates the main data flow: parse CLI → load sessions → create UI → display
 
 #### internal/claude/parser.go - Log Analysis Engine
