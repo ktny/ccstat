@@ -33,7 +33,7 @@ Install with a single command:
 curl -fsSL https://ktny.github.io/ccstat/install.sh | sh
 
 # Install specific version
-curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v0.1.3
+curl -fsSL https://ktny.github.io/ccstat/install.sh | sh -s -- --version v1.0.0
 ```
 
 The installer automatically:
