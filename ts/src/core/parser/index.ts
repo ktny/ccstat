@@ -116,6 +116,8 @@ async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEve
           for (const file of files) {
             if (file.endsWith('.jsonl')) {
               const filePath = join(dirPath, file);
+              
+              // parseJSONLFile already checks modification time, so just call it
               const events = await parseJSONLFile(filePath, startTime, endTime);
               allEvents.push(...events);
             }
