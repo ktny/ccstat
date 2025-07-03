@@ -1,103 +1,88 @@
-import { readFile } from 'fs/promises';
+import { readFile, stat } from 'fs/promises';
 import { join, dirname, basename } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 
 export function getRepositoryName(directory: string): string | null {
-  const gitConfig = findGitConfig(directory);
-  if (!gitConfig) {
+  try {
+    const gitPath = join(directory, '.git');
+    
+    // Check if .git exists
+    if (!existsSync(gitPath)) {
+      return null;
+    }
+    
+    const stats = require('fs').statSync(gitPath);
+    let configFile: string;
+    
+    if (!stats.isDirectory()) {
+      // Handle git worktree case where .git is a file
+      const gitContent = readFileSync(gitPath, 'utf-8').trim();
+      
+      if (gitContent.startsWith('gitdir: ')) {
+        const actualGitDir = gitContent.substring(8); // Remove "gitdir: " prefix
+        
+        // For worktree, check if commondir exists to find main git dir
+        const commondirFile = join(actualGitDir, 'commondir');
+        if (existsSync(commondirFile)) {
+          const commonContent = readFileSync(commondirFile, 'utf-8').trim();
+          const mainGitDir = join(actualGitDir, commonContent);
+          configFile = join(mainGitDir, 'config');
+        } else {
+          configFile = join(actualGitDir, 'config');
+        }
+      } else {
+        return null;
+      }
+    } else {
+      // Regular git repository
+      configFile = join(gitPath, 'config');
+    }
+    
+    // Check if config file exists
+    if (!existsSync(configFile)) {
+      return null;
+    }
+    
+    // Read config file
+    const content = readFileSync(configFile, 'utf-8');
+    return extractRepoNameFromConfig(content);
+  } catch (error) {
     return null;
   }
-  
-  try {
-    const configContent = readFileSync(gitConfig);
-    const remoteUrl = extractRemoteUrl(configContent);
-    if (remoteUrl) {
-      return extractRepoName(remoteUrl);
-    }
-  } catch (error) {
-    // Fallback to directory name
-  }
-  
-  return basename(dirname(gitConfig));
 }
 
-function findGitConfig(directory: string): string | null {
-  let currentDir = directory;
-  
-  while (currentDir !== '/' && currentDir) {
-    const gitConfigPath = join(currentDir, '.git', 'config');
-    if (existsSync(gitConfigPath)) {
-      return gitConfigPath;
-    }
-    
-    // Check for worktree
-    const gitFilePath = join(currentDir, '.git');
-    if (existsSync(gitFilePath)) {
-      try {
-        const gitFileContent = readFileSync(gitFilePath);
-        const worktreeMatch = gitFileContent.match(/gitdir: (.+)/);
-        if (worktreeMatch) {
-          const worktreeGitDir = worktreeMatch[1];
-          const worktreeConfigPath = join(worktreeGitDir, 'config');
-          if (existsSync(worktreeConfigPath)) {
-            return worktreeConfigPath;
-          }
-        }
-      } catch (error) {
-        // Continue searching
-      }
-    }
-    
-    currentDir = dirname(currentDir);
-  }
-  
-  return null;
-}
-
-function readFileSync(filePath: string): string {
-  const fs = require('fs');
-  return fs.readFileSync(filePath, 'utf-8');
-}
-
-function extractRemoteUrl(configContent: string): string | null {
-  const lines = configContent.split('\n');
-  let inRemoteSection = false;
+function extractRepoNameFromConfig(content: string): string | null {
+  const lines = content.split('\n');
   
   for (const line of lines) {
     const trimmed = line.trim();
     
-    if (trimmed.startsWith('[remote')) {
-      inRemoteSection = true;
-    } else if (trimmed.startsWith('[')) {
-      inRemoteSection = false;
-    } else if (inRemoteSection && trimmed.startsWith('url =')) {
-      return trimmed.substring(5).trim();
+    // Look for URL lines
+    const urlMatch = trimmed.match(/url\s*=\s*(.+)/);
+    if (urlMatch) {
+      const url = urlMatch[1].trim();
+      const repoName = extractRepoNameFromURL(url);
+      if (repoName) {
+        return repoName;
+      }
     }
   }
   
   return null;
 }
 
-function extractRepoName(url: string): string {
-  // Handle SSH URLs (git@github.com:owner/repo.git)
-  const sshMatch = url.match(/git@[^:]+:([^/]+\/[^.]+)/);
+function extractRepoNameFromURL(url: string): string | null {
+  // SSH format: git@github.com:user/repo.git or git@github.com:user/repo
+  const sshMatch = url.match(/[^:/]+\/([^/]+?)(?:\.git)?$/);
   if (sshMatch) {
     return sshMatch[1];
   }
   
-  // Handle HTTPS URLs (https://github.com/owner/repo.git)
-  const httpsMatch = url.match(/https?:\/\/[^/]+\/([^/]+\/[^.]+)/);
+  // HTTPS format: https://github.com/user/repo.git or https://github.com/user/repo
+  const httpsMatch = url.match(/\/([^/]+?)(?:\.git)?$/);
   if (httpsMatch) {
     return httpsMatch[1];
   }
   
-  // Fallback: extract last two path components
-  const parts = url.split('/');
-  if (parts.length >= 2) {
-    const repo = parts[parts.length - 1].replace(/\.git$/, '');
-    const owner = parts[parts.length - 2];
-    return `${owner}/${repo}`;
-  }
-  
-  return url;
+  return null;
 }
