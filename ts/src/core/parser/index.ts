@@ -24,7 +24,7 @@ function getCachedRepositoryName(directory: string): string {
   }
 
   let repoName = getRepositoryName(directory);
-  
+
   if (!repoName) {
     // Try to find parent repository
     repoName = findParentRepository(directory);
@@ -32,25 +32,25 @@ function getCachedRepositoryName(directory: string): string {
       repoName = basename(directory);
     }
   }
-  
+
   if (repoName) {
     repositoryCache.set(directory, repoName);
   }
-  
+
   return repoName;
 }
 
 // Find parent repository by walking up the directory tree
 function findParentRepository(directory: string): string | null {
   let currentDir = directory;
-  
+
   while (currentDir !== '/' && currentDir !== '.') {
     const parentDir = dirname(currentDir);
-    
+
     if (parentDir === currentDir) {
       break;
     }
-    
+
     if (repositoryCache.has(parentDir)) {
       const repoName = repositoryCache.get(parentDir)!;
       if (repoName) {
@@ -65,10 +65,10 @@ function findParentRepository(directory: string): string | null {
         return repoName;
       }
     }
-    
+
     currentDir = parentDir;
   }
-  
+
   return null;
 }
 
@@ -79,12 +79,12 @@ export async function loadSessionsInTimeRange(
 ): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
-  
+
   const events = await loadAllEvents(startTime, endTime);
-  const grouped = worktree 
+  const grouped = worktree
     ? await groupEventsByRepositoryWithChildren(events)
     : await groupEventsByRepositoryConsolidated(events);
-  
+
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
 }
 
@@ -96,23 +96,23 @@ async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEve
     join(homedir(), '.claude', 'projects'),
     join(homedir(), '.config', 'claude', 'projects'),
   ];
-  
+
   let foundAnyDir = false;
-  
+
   for (const projectsDir of projectsDirs) {
     try {
       const dirStat = await stat(projectsDir);
       if (!dirStat.isDirectory()) continue;
-      
+
       foundAnyDir = true;
-      
+
       const dirs = await readdir(projectsDir);
-      
+
       for (const dir of dirs) {
         const dirPath = join(projectsDir, dir);
         try {
           const files = await readdir(dirPath);
-          
+
           for (const file of files) {
             if (file.endsWith('.jsonl')) {
               const filePath = join(dirPath, file);
@@ -130,7 +130,7 @@ async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEve
       continue;
     }
   }
-  
+
   if (!foundAnyDir) {
     throw new Error(`Claude projects directory not found. Checked: ${projectsDirs.join(', ')}`);
   }
@@ -148,29 +148,29 @@ async function parseJSONLFile(
   if (stats.mtime < startTime) {
     return [];
   }
-  
+
   const content = await readFile(filePath, 'utf-8');
   const lines = content.trim().split('\n');
   const events: SessionEvent[] = [];
-  
+
   for (const line of lines) {
     if (!line.trim()) continue;
-    
+
     try {
       const data = JSON.parse(line);
-      
+
       // Validate and parse event
       const validationResult = SessionEventSchema.safeParse(data);
       if (!validationResult.success) {
         continue;
       }
-      
+
       const event = validationResult.data;
       const eventTime = new Date(event.timestamp);
-      
+
       // Convert to local time
       const localEventTime = new Date(eventTime.toLocaleString());
-      
+
       if (localEventTime >= startTime && localEventTime <= endTime) {
         events.push({
           ...event,
@@ -182,7 +182,7 @@ async function parseJSONLFile(
       continue;
     }
   }
-  
+
   return events;
 }
 
@@ -192,7 +192,7 @@ async function groupEventsByRepositoryConsolidated(
 ): Promise<Map<string, SessionTimeline>> {
   const directoryEventMap = new Map<string, SessionEvent[]>();
   const repoDirectoryMap = new Map<string, string[]>();
-  
+
   // Group events by directory first
   for (const event of events) {
     const directory = event.cwd || 'unknown';
@@ -201,34 +201,34 @@ async function groupEventsByRepositoryConsolidated(
     }
     directoryEventMap.get(directory)!.push(event);
   }
-  
+
   // Process each directory to get repository information
   for (const directory of directoryEventMap.keys()) {
     const repoName = getCachedRepositoryName(directory);
-    
+
     if (!repoDirectoryMap.has(repoName)) {
       repoDirectoryMap.set(repoName, []);
     }
     repoDirectoryMap.get(repoName)!.push(directory);
   }
-  
+
   const timelines = new Map<string, SessionTimeline>();
-  
+
   for (const [repoName, directories] of repoDirectoryMap.entries()) {
     const allRepoEvents: SessionEvent[] = [];
-    
+
     for (const directory of directories) {
       const events = directoryEventMap.get(directory) || [];
       allRepoEvents.push(...events);
     }
-    
+
     if (allRepoEvents.length === 0) continue;
-    
+
     // Sort events by timestamp
-    allRepoEvents.sort((a, b) => 
+    allRepoEvents.sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-    
+
     const timeline: SessionTimeline = {
       projectName: repoName,
       directory: '',
@@ -239,10 +239,10 @@ async function groupEventsByRepositoryConsolidated(
       startTime: new Date(allRepoEvents[0].timestamp),
       endTime: new Date(allRepoEvents[allRepoEvents.length - 1].timestamp),
     };
-    
+
     timelines.set(repoName, timeline);
   }
-  
+
   return timelines;
 }
 
@@ -252,7 +252,7 @@ async function groupEventsByRepositoryWithChildren(
 ): Promise<Map<string, SessionTimeline>> {
   const directoryMap = new Map<string, SessionEvent[]>();
   const repoMap = new Map<string, Map<string, SessionEvent[]>>();
-  
+
   // Group events by directory
   for (const event of events) {
     const directory = event.cwd || 'unknown';
@@ -261,33 +261,33 @@ async function groupEventsByRepositoryWithChildren(
     }
     directoryMap.get(directory)!.push(event);
   }
-  
+
   // Group directories by repository
   for (const [directory, directoryEvents] of directoryMap.entries()) {
     const repoName = getCachedRepositoryName(directory);
-    
+
     if (!repoMap.has(repoName)) {
       repoMap.set(repoName, new Map());
     }
     repoMap.get(repoName)!.set(directory, directoryEvents);
   }
-  
+
   const timelines = new Map<string, SessionTimeline>();
-  
+
   for (const [repoName, repoDirs] of repoMap.entries()) {
     const directories = Array.from(repoDirs.keys());
-    
+
     if (directories.length === 1) {
       // Single directory - create simple timeline
       const directory = directories[0];
       const events = repoDirs.get(directory)!;
-      
+
       if (events.length === 0) continue;
-      
-      events.sort((a, b) => 
+
+      events.sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
-      
+
       const timeline: SessionTimeline = {
         projectName: repoName,
         directory,
@@ -298,20 +298,20 @@ async function groupEventsByRepositoryWithChildren(
         startTime: new Date(events[0].timestamp),
         endTime: new Date(events[events.length - 1].timestamp),
       };
-      
+
       timelines.set(`${repoName}_${directory}`, timeline);
     } else {
       // Multiple directories - create parent and children
       const mainDir = findMainRepositoryDirectory(directories);
-      
+
       // Create parent timeline
       if (repoDirs.has(mainDir)) {
         const mainEvents = repoDirs.get(mainDir)!;
         if (mainEvents.length > 0) {
-          mainEvents.sort((a, b) => 
+          mainEvents.sort((a, b) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
-          
+
           const parentTimeline: SessionTimeline = {
             projectName: repoName,
             directory: mainDir,
@@ -322,21 +322,21 @@ async function groupEventsByRepositoryWithChildren(
             startTime: new Date(mainEvents[0].timestamp),
             endTime: new Date(mainEvents[mainEvents.length - 1].timestamp),
           };
-          
+
           timelines.set(repoName, parentTimeline);
         }
       }
-      
+
       // Create child timelines
       for (const [directory, events] of repoDirs.entries()) {
         if (directory === mainDir || events.length === 0) continue;
-        
-        events.sort((a, b) => 
+
+        events.sort((a, b) =>
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
-        
+
         const childName = generateChildProjectName(directory, mainDir);
-        
+
         const childTimeline: SessionTimeline = {
           projectName: childName,
           directory,
@@ -348,29 +348,29 @@ async function groupEventsByRepositoryWithChildren(
           startTime: new Date(events[0].timestamp),
           endTime: new Date(events[events.length - 1].timestamp),
         };
-        
+
         timelines.set(`${repoName}_${directory}`, childTimeline);
       }
     }
   }
-  
+
   return sortTimelinesWithHierarchy(timelines);
 }
 
 // Find the main repository directory
 function findMainRepositoryDirectory(directories: string[]): string {
   if (directories.length === 0) return '';
-  
+
   // Sort by path length
   directories.sort((a, b) => a.length - b.length);
-  
+
   // Prefer directories with .git
   for (const dir of directories) {
     if (existsSync(join(dir, '.git'))) {
       return dir;
     }
   }
-  
+
   return directories[0];
 }
 
@@ -380,7 +380,7 @@ function generateChildProjectName(childDir: string, parentDir: string): string {
     let relPath = relative(parentDir, childDir);
     relPath = relPath.replace(/^\.worktree\//, '');
     relPath = relPath.replace(/^\.git\/worktrees\//, '');
-    
+
     const parts = relPath.split('/');
     if (parts.length > 0 && parts[parts.length - 1]) {
       return parts[parts.length - 1];
@@ -388,7 +388,7 @@ function generateChildProjectName(childDir: string, parentDir: string): string {
   } catch (error) {
     // Fallback to basename
   }
-  
+
   return basename(childDir);
 }
 
@@ -398,7 +398,7 @@ function sortTimelinesWithHierarchy(
 ): Map<string, SessionTimeline> {
   const parentProjects: SessionTimeline[] = [];
   const childProjectsMap = new Map<string, SessionTimeline[]>();
-  
+
   // Separate parents and children
   for (const timeline of timelines.values()) {
     if (!timeline.isChild) {
@@ -411,27 +411,27 @@ function sortTimelinesWithHierarchy(
       childProjectsMap.get(parentName)!.push(timeline);
     }
   }
-  
+
   // Sort parents by event count
   parentProjects.sort((a, b) => b.eventCount - a.eventCount);
-  
+
   // Sort children within each parent
   for (const children of childProjectsMap.values()) {
     children.sort((a, b) => b.eventCount - a.eventCount);
   }
-  
+
   // Build sorted result
   const sorted = new Map<string, SessionTimeline>();
-  
+
   for (const parent of parentProjects) {
     sorted.set(parent.projectName, parent);
-    
+
     const children = childProjectsMap.get(parent.projectName) || [];
     for (const child of children) {
       sorted.set(`${parent.projectName}_${child.directory}`, child);
     }
   }
-  
+
   return sorted;
 }
 
