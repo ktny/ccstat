@@ -22,9 +22,9 @@ const ACTIVITY_COLORS = [
 function calculateProjectWidth(timelines: SessionTimeline[]): number {
   const minWidth = 20;
   const maxWidth = 30;
-  
+
   if (timelines.length === 0) return minWidth;
-  
+
   let maxNameLength = 0;
   for (const timeline of timelines) {
     let displayName = timeline.projectName;
@@ -35,7 +35,7 @@ function calculateProjectWidth(timelines: SessionTimeline[]): number {
       maxNameLength = displayName.length;
     }
   }
-  
+
   const calculatedWidth = maxNameLength + 2;
   return Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
 }
@@ -44,12 +44,12 @@ function calculateProjectWidth(timelines: SessionTimeline[]): number {
 function createTimeAxis(startTime: Date, endTime: Date, width: number): string {
   const duration = endTime.getTime() - startTime.getTime();
   const axisChars = new Array(width).fill(' ');
-  
+
   // Determine appropriate time format and interval
   const hours = duration / (1000 * 60 * 60);
   let interval: number;
   let formatStr: string;
-  
+
   if (hours <= 2) {
     interval = 15 * 60 * 1000; // 15 minutes
     formatStr = 'HH:mm';
@@ -63,17 +63,17 @@ function createTimeAxis(startTime: Date, endTime: Date, width: number): string {
     interval = 24 * 60 * 60 * 1000; // 1 day
     formatStr = 'MM/dd';
   }
-  
+
   // Generate ticks
   const startTimestamp = startTime.getTime();
   let current = Math.ceil(startTimestamp / interval) * interval;
-  
+
   while (current <= endTime.getTime()) {
     const position = Math.floor(((current - startTimestamp) / duration) * width);
     if (position >= 0 && position < width) {
       const tickTime = new Date(current);
       const label = format(tickTime, formatStr);
-      
+
       // Place label centered on position
       const startPos = Math.max(0, Math.min(width - label.length, position - Math.floor(label.length / 2)));
       for (let i = 0; i < label.length && startPos + i < width; i++) {
@@ -82,31 +82,31 @@ function createTimeAxis(startTime: Date, endTime: Date, width: number): string {
     }
     current += interval;
   }
-  
+
   return axisChars.join('');
 }
 
 export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hours }) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
-  
+
   if (timelines.length === 0) {
     return <Text>🔍 No Claude sessions found in the specified time range</Text>;
   }
 
   const totalEvents = timelines.reduce((sum, t) => sum + t.eventCount, 0);
   const totalDuration = timelines.reduce((sum, t) => sum + t.activeDuration, 0);
-  
+
   const startTime = new Date();
   const endTime = new Date();
-  
+
   if (hours) {
     startTime.setHours(endTime.getHours() - hours);
   } else {
     startTime.setDate(endTime.getDate() - (days || 1));
   }
 
-  const timeRangeText = hours 
+  const timeRangeText = hours
     ? `${hours} hours`
     : `${days || 1} days`;
 
@@ -123,7 +123,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
           📊 Claude Project Timeline | {format(startTime, 'yyyy-MM-dd HH:mm')} - {format(endTime, 'yyyy-MM-dd HH:mm')} ({timeRangeText}) | {timelines.length} projects
         </Text>
       </Box>
-      
+
       <Box marginTop={1} borderStyle="round" flexDirection="column">
         {/* Header row */}
         <Box paddingX={1} paddingY={1}>
@@ -140,7 +140,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
             <Text bold color="yellow">Duration</Text>
           </Box>
         </Box>
-        
+
         {/* Time axis row */}
         <Box paddingX={1}>
           <Box width={projectWidth}>
@@ -156,18 +156,18 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
             <Text> </Text>
           </Box>
         </Box>
-        
+
         {/* Separator */}
         <Box paddingX={1}>
           <Text dimColor>{'─'.repeat(terminalWidth - 6)}</Text>
         </Box>
-        
+
         {/* Data rows */}
         {timelines.map((timeline, index) => (
-          <ProjectRow 
-            key={index} 
-            timeline={timeline} 
-            startTime={startTime} 
+          <ProjectRow
+            key={index}
+            timeline={timeline}
+            startTime={startTime}
             endTime={endTime}
             projectWidth={projectWidth}
             timelineWidth={timelineWidth}
@@ -176,7 +176,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
           />
         ))}
       </Box>
-      
+
       <Box marginTop={1}>
         <Text>
           Summary Statistics:{'\n'}
@@ -199,20 +199,20 @@ interface ProjectRowProps {
   durationWidth: number;
 }
 
-const ProjectRow: React.FC<ProjectRowProps> = ({ 
-  timeline, 
-  startTime, 
-  endTime, 
-  projectWidth, 
-  timelineWidth, 
-  eventsWidth, 
-  durationWidth 
+const ProjectRow: React.FC<ProjectRowProps> = ({
+  timeline,
+  startTime,
+  endTime,
+  projectWidth,
+  timelineWidth,
+  eventsWidth,
+  durationWidth
 }) => {
-  const projectName = timeline.isChild 
+  const projectName = timeline.isChild
     ? ` └─${timeline.projectName}`
     : timeline.projectName;
-  
-  const truncatedName = projectName.length > projectWidth - 2 
+
+  const truncatedName = projectName.length > projectWidth - 2
     ? projectName.substring(0, projectWidth - 5) + '…'
     : projectName;
 
@@ -222,11 +222,11 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
         <Text>{truncatedName}</Text>
       </Box>
       <Box width={timelineWidth}>
-        <TimelineBar 
-          timeline={timeline} 
-          startTime={startTime} 
-          endTime={endTime} 
-          width={timelineWidth - 2} 
+        <TimelineBar
+          timeline={timeline}
+          startTime={startTime}
+          endTime={endTime}
+          width={timelineWidth - 2}
         />
       </Box>
       <Box width={eventsWidth} justifyContent="flex-end">
@@ -249,27 +249,27 @@ interface TimelineBarProps {
 const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime, width }) => {
   const totalDuration = endTime.getTime() - startTime.getTime();
   const activityCounts = new Array(width).fill(0);
-  
+
   // Count events per time position
   for (const event of timeline.events) {
     const eventTime = new Date(event.timestamp);
     const eventOffset = eventTime.getTime() - startTime.getTime();
     const position = Math.floor((eventOffset / totalDuration) * width);
-    
+
     // Clamp position to valid range
     const clampedPosition = Math.max(0, Math.min(width - 1, position));
     activityCounts[clampedPosition]++;
   }
-  
+
   // Find max activity for normalization
   const maxActivity = Math.max(...activityCounts, 1);
-  
+
   // Create timeline elements with density-based coloring
   const timelineElements: React.ReactNode[] = [];
-  
+
   for (let i = 0; i < width; i++) {
     const count = activityCounts[i];
-    
+
     if (count === 0) {
       // No activity
       timelineElements.push(
@@ -280,12 +280,12 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime,
       const densityLevel = Math.min(4, Math.floor((count / maxActivity) * 4) + 1);
       const colorIndex = densityLevel;
       const color = ACTIVITY_COLORS[colorIndex];
-      
+
       timelineElements.push(
         <Text key={i} color={color}>■</Text>
       );
     }
   }
-  
+
   return <>{timelineElements}</>;
 };
