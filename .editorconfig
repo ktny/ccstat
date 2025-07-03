@@ -3,42 +3,27 @@
 # top-most EditorConfig file
 root = true
 
-# Unix-style newlines with a newline ending every file
+# All files
 [*]
+charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
-charset = utf-8
 
-# YAML files
-[*.{yml,yaml}]
-indent_style = space
-indent_size = 2
-
-# TOML files
-[*.toml]
-indent_style = space
-indent_size = 4
-
-# JSON files
-[*.json]
+# TypeScript, JavaScript, JSON files
+[*.{ts,tsx,js,jsx,json}]
 indent_style = space
 indent_size = 2
 
 # Markdown files
 [*.md]
 trim_trailing_whitespace = false
-max_line_length = off
 
-# Go files
-[*.go]
-indent_style = tab
-indent_size = 4
+# YAML files
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
 
 # Makefile
 [Makefile]
 indent_style = tab
-
-# Batch files
-[*.{cmd,bat}]
-end_of_line = crlf
