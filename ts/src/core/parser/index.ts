@@ -23,9 +23,13 @@ async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEve
   try {
     const dirs = await readdir(CLAUDE_PROJECTS_DIR);
 
+    console.log(`Found ${dirs.length} directories in Claude projects folder.`);
+
     for (const dir of dirs) {
       const dirPath = join(CLAUDE_PROJECTS_DIR, dir);
       const files = await readdir(dirPath);
+
+      console.log(`Processing directory: ${dir} (${files.length} files)`);
 
       for (const file of files) {
         if (file.endsWith('.jsonl')) {
