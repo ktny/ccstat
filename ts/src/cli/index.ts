@@ -19,12 +19,14 @@ program
 async function main() {
   const options = program.opts();
 
-  const app = render(React.createElement(App, {
-    days: options.hours ? undefined : parseInt(options.days),
-    hours: options.hours ? parseInt(options.hours) : undefined,
-    worktree: options.worktree || false,
-    debug: options.debug || false,
-  }));
+  const app = render(
+    React.createElement(App, {
+      days: options.hours ? undefined : parseInt(options.days),
+      hours: options.hours ? parseInt(options.hours) : undefined,
+      worktree: options.worktree || false,
+      debug: options.debug || false,
+    })
+  );
 
   try {
     await app.waitUntilExit();
