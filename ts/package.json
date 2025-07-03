@@ -5,11 +5,13 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "ccstat": "./bin/ccstat"
+    "ccstat": "./dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/cli/index.ts",
-    "build": "esbuild src/cli/index.ts --bundle --platform=node --target=node18 --outdir=dist --format=cjs",
+    "dev:days": "tsx src/cli/index.ts --days 2",
+    "dev:hours": "tsx src/cli/index.ts --hours 6",
+    "build": "tsc --outDir dist --target ES2022 --module ESNext --moduleResolution Bundler --allowSyntheticDefaultImports --esModuleInterop && cp dist/cli/index.js dist/index.js",
     "start": "node dist/index.js",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
