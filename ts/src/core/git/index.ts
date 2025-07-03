@@ -1,5 +1,4 @@
-import { readFile, stat } from 'fs/promises';
-import { join, dirname, basename } from 'path';
+import { join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 
 export function getRepositoryName(directory: string): string | null {

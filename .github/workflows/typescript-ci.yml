@@ -1,0 +1,51 @@
+name: TypeScript CI
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'ts/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'ts/**' ]
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ts
+
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ts/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linter
+      run: npm run lint
+
+    - name: Run type check
+      run: npm run type-check
+
+    - name: Run tests
+      run: npm run test
+
+    - name: Build project
+      run: npm run build
+
+    - name: Test build output
+      run: |
+        node dist/index.js --help
+        node dist/index.js --hours 1

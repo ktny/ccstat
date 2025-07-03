@@ -5,9 +5,7 @@ import { existsSync } from 'fs';
 import { SessionEvent, SessionEventSchema, SessionTimeline } from '../../models/events';
 import { getRepositoryName } from '../git';
 
-const CLAUDE_PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go version
-const MAX_BUFFER_SIZE = 1024 * 1024; // 1MB buffer for large JSON lines
 
 // Repository cache to avoid redundant git operations
 const repositoryCache = new Map<string, string>();
