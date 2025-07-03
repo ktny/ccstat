@@ -11,7 +11,7 @@ interface AppProps {
   debug: boolean;
 }
 
-export const App: React.FC<AppProps> = ({ days = 1, hours, worktree, debug }) => {
+export const App: React.FC<AppProps> = ({ days = 1, hours, worktree }) => {
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
