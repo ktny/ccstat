@@ -57,16 +57,16 @@ export function getColorScheme(theme: ColorTheme): ColorScheme {
 }
 
 // Helper function to get border color for each theme
-export function getBorderColor(theme: ColorTheme): string | ((text: string) => string) {
+export function getBorderColor(theme: ColorTheme): string {
   switch (theme) {
     case 'blue':
-      return chalk.hex('#2563eb'); // Blue-600
+      return 'blue'; // Blue theme
     case 'green':
-      return chalk.hex('#16a34a'); // Green-600
+      return 'green'; // Green theme
     case 'orange':
-      return chalk.hex('#ea580c'); // Orange-600
+      return 'yellow'; // Orange theme (closest terminal color)
     case 'purple':
-      return chalk.hex('#7c3aed'); // Violet-600
+      return 'magenta'; // Purple theme
     case 'classic':
     default:
       return 'cyan'; // Keep classic cyan for classic theme

@@ -119,28 +119,18 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
 
   return (
     <Box flexDirection="column">
-      <Box borderStyle="round" paddingX={1} borderColor={typeof borderColor === 'function' ? undefined : borderColor}>
-        {typeof borderColor === 'function' ? (
-          <Text>{borderColor('📊 Claude Project Timeline | ' + format(startTime, 'yyyy-MM-dd HH:mm') + ' - ' + format(endTime, 'yyyy-MM-dd HH:mm') + ' (' + timeRangeText + ') | ' + timelines.length + ' projects')}</Text>
-        ) : (
-          <Text>
-            📊 Claude Project Timeline | {format(startTime, 'yyyy-MM-dd HH:mm')} -{' '}
-            {format(endTime, 'yyyy-MM-dd HH:mm')} ({timeRangeText}) | {timelines.length} projects
-          </Text>
-        )}
+      <Box borderStyle="round" paddingX={1} borderColor={borderColor}>
+        <Text>
+          📊 Claude Project Timeline | {format(startTime, 'yyyy-MM-dd HH:mm')} -{' '}
+          {format(endTime, 'yyyy-MM-dd HH:mm')} ({timeRangeText}) | {timelines.length} projects
+        </Text>
       </Box>
 
-      <Box borderStyle="round" flexDirection="column" borderColor={typeof borderColor === 'function' ? undefined : borderColor}>
+      <Box borderStyle="round" flexDirection="column" borderColor={borderColor}>
         {/* Header row */}
         <Box paddingX={1}>
           <Box width={projectWidth}>
-            {typeof borderColor === 'function' ? (
-              <Text bold>{borderColor('Project')}</Text>
-            ) : (
-              <Text bold color={borderColor}>
-                Project
-              </Text>
-            )}
+            <Text bold>Project</Text>
           </Box>
           <Box width={timelineWidth}>
             <Text bold color="whiteBright">
@@ -155,13 +145,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
             </Text>
           </Box>
           <Box width={eventsWidth} justifyContent="flex-end">
-            {typeof borderColor === 'function' ? (
-              <Text bold>{borderColor('Events')}</Text>
-            ) : (
-              <Text bold color={borderColor}>
-                Events
-              </Text>
-            )}
+            <Text bold>Events</Text>
           </Box>
           <Box width={durationWidth} justifyContent="flex-end">
             <Text bold color="yellow">
