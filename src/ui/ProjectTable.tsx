@@ -3,7 +3,8 @@ import { Box, Text, useStdout } from 'ink';
 import { SessionTimeline } from '../models/events';
 import { ColorTheme, getColorScheme, getBorderColor } from './colorThemes';
 import { calculateProjectWidth } from './utils/tableUtils';
-import { TableHeader } from './components/TableHeader';
+import { TitleRow } from './components/TitleRow';
+import { HeaderRow } from './components/HeaderRow';
 import { TableTimeAxis } from './components/TableTimeAxis';
 import { ProjectRow } from './components/ProjectRow';
 import { SummaryStatistics } from './components/SummaryStatistics';
@@ -53,11 +54,13 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
   return (
     <Box flexDirection="column">
       <Box borderStyle="round" flexDirection="column" borderColor={borderColor}>
-        <TableHeader
+        <TitleRow
           startTime={startTime}
           endTime={endTime}
           timeRangeText={timeRangeText}
           projectCount={timelines.length}
+        />
+        <HeaderRow
           projectWidth={projectWidth}
           timelineWidth={timelineWidth}
           eventsWidth={eventsWidth}
