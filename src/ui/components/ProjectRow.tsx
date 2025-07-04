@@ -32,7 +32,7 @@ export const ProjectRow: React.FC<ProjectRowProps> = ({
       : projectName;
 
   return (
-    <Box paddingX={1}>
+    <Box>
       <Box width={projectWidth}>
         <Text>{truncatedName}</Text>
       </Box>

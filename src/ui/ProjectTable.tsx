@@ -53,13 +53,14 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
 
   return (
     <Box flexDirection="column">
-      <Box borderStyle="round" flexDirection="column" borderColor={borderColor}>
+      <Box borderStyle="round" flexDirection="column" borderColor={borderColor} paddingX={1}>
         <TitleRow
           startTime={startTime}
           endTime={endTime}
           timeRangeText={timeRangeText}
           projectCount={timelines.length}
         />
+
         <HeaderRow
           projectWidth={projectWidth}
           timelineWidth={timelineWidth}

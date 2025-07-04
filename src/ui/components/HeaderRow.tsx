@@ -17,7 +17,7 @@ export const HeaderRow: React.FC<HeaderRowProps> = ({
   activityColors,
 }) => {
   return (
-    <Box paddingX={1}>
+    <Box paddingTop={1}>
       <Box width={projectWidth}>
         <Text bold>Project</Text>
       </Box>
