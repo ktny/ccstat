@@ -3,15 +3,17 @@ import { Box, Text } from 'ink';
 import { SessionTimeline } from '../models/events';
 import { loadSessionsInTimeRange } from '../core/parser';
 import { ProjectTable } from './ProjectTable';
+import { ColorTheme } from './colorThemes';
 
 interface AppProps {
   days?: number;
   hours?: number;
   worktree: boolean;
+  color: ColorTheme;
   debug: boolean;
 }
 
-export const App: React.FC<AppProps> = ({ days = 1, hours, worktree }) => {
+export const App: React.FC<AppProps> = ({ days = 1, hours, worktree, color }) => {
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, worktree }) => {
 
   return (
     <Box flexDirection="column">
-      <ProjectTable timelines={timelines} days={days} hours={hours} />
+      <ProjectTable timelines={timelines} days={days} hours={hours} color={color} />
     </Box>
   );
 };

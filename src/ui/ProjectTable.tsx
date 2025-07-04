@@ -1,22 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { SessionTimeline } from '../models/events';
 import { format } from 'date-fns';
+import { ColorTheme, getColorScheme } from './colorThemes';
 
 interface ProjectTableProps {
   timelines: SessionTimeline[];
   days?: number;
   hours?: number;
+  color: ColorTheme;
 }
-
-// Activity density colors (using standard terminal colors)
-const ACTIVITY_COLORS = [
-  'gray', // No activity
-  'yellow', // Low activity
-  'cyan', // Medium-low activity
-  'green', // Medium-high activity
-  'red', // High activity
-];
 
 // Calculate optimal project column width
 function calculateProjectWidth(timelines: SessionTimeline[]): number {
@@ -89,9 +82,12 @@ function createTimeAxis(startTime: Date, endTime: Date, width: number): string {
   return axisChars.join('');
 }
 
-export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hours }) => {
+export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hours, color }) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
+  
+  const colorScheme = useMemo(() => getColorScheme(color), [color]);
+  const activityColors = colorScheme.colors;
 
   if (timelines.length === 0) {
     return <Text>🔍 No Claude sessions found in the specified time range</Text>;
@@ -140,11 +136,9 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
           <Box width={timelineWidth}>
             <Text bold color="whiteBright">
               <Text>Timeline | less </Text>
-              <Text color="gray">■</Text>
-              <Text color="yellow">■</Text>
-              <Text color="cyan">■</Text>
-              <Text color="green">■</Text>
-              <Text color="red">■</Text>
+              {activityColors.map((color, index) => (
+                <Text key={index} color={color}>■</Text>
+              ))}
               <Text> more</Text>
             </Text>
           </Box>
@@ -187,6 +181,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
             timelineWidth={timelineWidth}
             eventsWidth={eventsWidth}
             durationWidth={durationWidth}
+            activityColors={activityColors}
           />
         ))}
       </Box>
@@ -213,6 +208,7 @@ interface ProjectRowProps {
   timelineWidth: number;
   eventsWidth: number;
   durationWidth: number;
+  activityColors: string[];
 }
 
 const ProjectRow: React.FC<ProjectRowProps> = ({
@@ -223,6 +219,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
   timelineWidth,
   eventsWidth,
   durationWidth,
+  activityColors,
 }) => {
   const projectName = timeline.isChild ? ` └─${timeline.projectName}` : timeline.projectName;
 
@@ -242,6 +239,7 @@ const ProjectRow: React.FC<ProjectRowProps> = ({
           startTime={startTime}
           endTime={endTime}
           width={timelineWidth - 2}
+          activityColors={activityColors}
         />
       </Box>
       <Box width={eventsWidth} justifyContent="flex-end">
@@ -259,9 +257,10 @@ interface TimelineBarProps {
   startTime: Date;
   endTime: Date;
   width: number;
+  activityColors: string[];
 }
 
-const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime, width }) => {
+const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime, width, activityColors }) => {
   const totalDuration = endTime.getTime() - startTime.getTime();
   const activityCounts = new Array(width).fill(0);
 
@@ -296,7 +295,7 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime,
       // Calculate density level (1-4 scale mapped to our colors)
       const densityLevel = Math.min(4, Math.floor((count / maxActivity) * 4) + 1);
       const colorIndex = densityLevel;
-      const color = ACTIVITY_COLORS[colorIndex];
+      const color = activityColors[colorIndex];
 
       timelineElements.push(
         <Text key={i} color={color}>
