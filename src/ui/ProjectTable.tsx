@@ -136,9 +136,12 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
           <Box width={timelineWidth}>
             <Text bold color="whiteBright">
               <Text>Timeline | less </Text>
-              {activityColors.map((color, index) => (
-                <Text key={index} color={color}>■</Text>
-              ))}
+              {activityColors.map((color, index) => {
+                if (typeof color === 'function') {
+                  return <Text key={index}>{color('■')}</Text>;
+                }
+                return <Text key={index} color={color}>■</Text>;
+              })}
               <Text> more</Text>
             </Text>
           </Box>
@@ -208,7 +211,7 @@ interface ProjectRowProps {
   timelineWidth: number;
   eventsWidth: number;
   durationWidth: number;
-  activityColors: string[];
+  activityColors: (string | ((text: string) => string))[];
 }
 
 const ProjectRow: React.FC<ProjectRowProps> = ({
@@ -257,7 +260,7 @@ interface TimelineBarProps {
   startTime: Date;
   endTime: Date;
   width: number;
-  activityColors: string[];
+  activityColors: (string | ((text: string) => string))[];
 }
 
 const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime, width, activityColors }) => {
@@ -297,11 +300,17 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime,
       const colorIndex = densityLevel;
       const color = activityColors[colorIndex];
 
-      timelineElements.push(
-        <Text key={i} color={color}>
-          ■
-        </Text>
-      );
+      if (typeof color === 'function') {
+        timelineElements.push(
+          <Text key={i}>{color('■')}</Text>
+        );
+      } else {
+        timelineElements.push(
+          <Text key={i} color={color}>
+            ■
+          </Text>
+        );
+      }
     }
   }
 
