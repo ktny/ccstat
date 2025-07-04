@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-export type ColorTheme = 'blue' | 'green' | 'red' | 'purple' | 'classic' | 'random';
+export type ColorTheme = 'blue' | 'green' | 'orange' | 'purple' | 'classic' | 'random';
 
 export interface ColorScheme {
   name: string;
@@ -30,13 +30,13 @@ export const COLOR_THEMES: Record<ColorTheme, ColorScheme> = {
     '#14532d',  // Green-800 (very dark green)
   ], 'Green'),
   
-  red: createHexGradient([
+  orange: createHexGradient([
     '#9ca3af',  // Gray-400 (neutral base)
-    '#fecaca',  // Red-200 (very light red)
-    '#f87171',  // Red-400 (medium red)
-    '#dc2626',  // Red-600 (bright red)
-    '#991b1b',  // Red-800 (very dark red)
-  ], 'Red'),
+    '#fed7aa',  // Orange-200 (very light orange)
+    '#fb923c',  // Orange-400 (medium orange)
+    '#ea580c',  // Orange-600 (bright orange)
+    '#9a3412',  // Orange-800 (very dark orange)
+  ], 'Orange'),
   
   purple: createHexGradient([
     '#9ca3af',  // Gray-400 (neutral base)
