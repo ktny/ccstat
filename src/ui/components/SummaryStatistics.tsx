@@ -15,12 +15,9 @@ export const SummaryStatistics: React.FC<SummaryStatisticsProps> = ({
   return (
     <Box marginTop={1}>
       <Text>
-        Summary Statistics:{'\n'}
-        {'  '}- Total Projects: {projectCount}
-        {'\n'}
-        {'  '}- Total Events: {totalEvents}
-        {'\n'}
-        {'  '}- Total Duration: {totalDuration} minutes
+        Summary Statistics:{'\n'} - Total Projects: {projectCount}
+        {'\n'} - Total Events: {totalEvents}
+        {'\n'} - Total Duration: {totalDuration} minutes
       </Text>
     </Box>
   );

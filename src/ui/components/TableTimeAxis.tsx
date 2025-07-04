@@ -20,7 +20,7 @@ export const TableTimeAxis: React.FC<TableTimeAxisProps> = ({
   durationWidth,
 }) => {
   return (
-    <Box paddingX={1} paddingTop={1}>
+    <Box>
       <Box width={projectWidth}>
         <Text> </Text>
       </Box>
