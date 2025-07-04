@@ -11,7 +11,7 @@ interface ProjectTableProps {
 
 // Activity density colors (using standard terminal colors)
 const ACTIVITY_COLORS = [
-  'dim', // No activity
+  'gray', // No activity
   'yellow', // Low activity
   'cyan', // Medium-low activity
   'green', // Medium-high activity
@@ -129,21 +129,23 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
         </Text>
       </Box>
 
-      <Box marginTop={1} borderStyle="round" flexDirection="column">
+      <Box borderStyle="round" flexDirection="column">
         {/* Header row */}
-        <Box paddingX={1} paddingY={1}>
+        <Box paddingX={1}>
           <Box width={projectWidth}>
             <Text bold color="cyan">
               Project
             </Text>
           </Box>
           <Box width={timelineWidth}>
-            <Text bold>
-              Timeline | less <Text color="dim">■</Text>
+            <Text bold color="whiteBright">
+              <Text>Timeline | less </Text>
+              <Text color="gray">■</Text>
               <Text color="yellow">■</Text>
               <Text color="cyan">■</Text>
               <Text color="green">■</Text>
-              <Text color="red">■</Text> more
+              <Text color="red">■</Text>
+              <Text> more</Text>
             </Text>
           </Box>
           <Box width={eventsWidth} justifyContent="flex-end">
@@ -159,12 +161,12 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
         </Box>
 
         {/* Time axis row */}
-        <Box paddingX={1}>
+        <Box paddingX={1} paddingTop={1}>
           <Box width={projectWidth}>
             <Text> </Text>
           </Box>
           <Box width={timelineWidth}>
-            <Text color="dim">{createTimeAxis(startTime, endTime, timelineWidth - 2)}</Text>
+            <Text>{createTimeAxis(startTime, endTime, timelineWidth - 2)}</Text>
           </Box>
           <Box width={eventsWidth}>
             <Text> </Text>
@@ -172,11 +174,6 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
           <Box width={durationWidth}>
             <Text> </Text>
           </Box>
-        </Box>
-
-        {/* Separator */}
-        <Box paddingX={1}>
-          <Text dimColor>{'─'.repeat(terminalWidth - 6)}</Text>
         </Box>
 
         {/* Data rows */}
@@ -291,7 +288,7 @@ const TimelineBar: React.FC<TimelineBarProps> = ({ timeline, startTime, endTime,
     if (count === 0) {
       // No activity
       timelineElements.push(
-        <Text key={i} color="dim">
+        <Text key={i} color="gray">
           ■
         </Text>
       );
