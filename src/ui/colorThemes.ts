@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-export type ColorTheme = 'blue' | 'green' | 'orange' | 'purple' | 'classic' | 'random';
+export type ColorTheme = 'blue' | 'green' | 'orange' | 'purple' | 'classic';
 
 export interface ColorScheme {
   name: string;
@@ -21,7 +21,7 @@ export const COLOR_THEMES: Record<ColorTheme, ColorScheme> = {
     '#2563eb',  // Blue-600 (bright blue)
     '#1e3a8a',  // Blue-800 (very dark blue)
   ], 'Blue'),
-  
+
   green: createHexGradient([
     '#9ca3af',  // Gray-400 (neutral base)
     '#bbf7d0',  // Green-200 (very light green)
@@ -29,7 +29,7 @@ export const COLOR_THEMES: Record<ColorTheme, ColorScheme> = {
     '#16a34a',  // Green-600 (bright green)
     '#14532d',  // Green-800 (very dark green)
   ], 'Green'),
-  
+
   orange: createHexGradient([
     '#9ca3af',  // Gray-400 (neutral base)
     '#fed7aa',  // Orange-200 (very light orange)
@@ -37,7 +37,7 @@ export const COLOR_THEMES: Record<ColorTheme, ColorScheme> = {
     '#ea580c',  // Orange-600 (bright orange)
     '#9a3412',  // Orange-800 (very dark orange)
   ], 'Orange'),
-  
+
   purple: createHexGradient([
     '#9ca3af',  // Gray-400 (neutral base)
     '#ddd6fe',  // Violet-200 (very light purple)
@@ -45,24 +45,30 @@ export const COLOR_THEMES: Record<ColorTheme, ColorScheme> = {
     '#7c3aed',  // Violet-600 (bright purple)
     '#4c1d95',  // Violet-800 (very dark purple)
   ], 'Purple'),
-  
+
   classic: {
     name: 'Classic (GitHub Style)',
     colors: ['gray', 'green', 'greenBright', 'yellow', 'red'],
   },
-  
-  random: {
-    name: 'Random',
-    colors: [], // Will be selected randomly
-  },
 };
 
-const THEME_KEYS = Object.keys(COLOR_THEMES).filter(key => key !== 'random') as ColorTheme[];
-
 export function getColorScheme(theme: ColorTheme): ColorScheme {
-  if (theme === 'random') {
-    const randomTheme = THEME_KEYS[Math.floor(Math.random() * THEME_KEYS.length)];
-    return COLOR_THEMES[randomTheme];
-  }
   return COLOR_THEMES[theme];
+}
+
+// Helper function to get border color for each theme
+export function getBorderColor(theme: ColorTheme): string | ((text: string) => string) {
+  switch (theme) {
+    case 'blue':
+      return chalk.hex('#2563eb'); // Blue-600
+    case 'green':
+      return chalk.hex('#16a34a'); // Green-600
+    case 'orange':
+      return chalk.hex('#ea580c'); // Orange-600
+    case 'purple':
+      return chalk.hex('#7c3aed'); // Violet-600
+    case 'classic':
+    default:
+      return 'cyan'; // Keep classic cyan for classic theme
+  }
 }

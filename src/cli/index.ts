@@ -13,7 +13,7 @@ program
   .option('-d, --days <number>', 'display activity for the last N days', '1')
   .option('-H, --hours <number>', 'display activity for the last N hours')
   .option('--worktree', 'display directories separately even within the same repository')
-  .option('--color <theme>', 'color theme: blue, green, orange, purple, classic, random', 'random')
+  .option('--color <theme>', 'color theme: blue, green, orange, purple, classic', 'green')
   .option('--debug', 'enable debug output')
   .parse(process.argv);
 
