@@ -1,47 +1,64 @@
 import { SessionTimeline } from '../models/events';
 
-export type SortOption =
-  | 'project:asc'
-  | 'project:desc'
-  | 'created:asc'
-  | 'created:desc'
-  | 'events:asc'
-  | 'events:desc'
-  | 'duration:asc'
-  | 'duration:desc';
+export type SortField = 'project' | 'timeline' | 'events' | 'duration';
+export type SortOrder = 'asc' | 'desc';
+
+export interface SortOptions {
+  field: SortField;
+  order: SortOrder;
+}
+
+export function createSortOptions(field?: string, reverse?: boolean): SortOptions {
+  const defaultField: SortField = 'timeline';
+  const defaultOrder: SortOrder = 'asc';
+
+  const validField = isValidSortField(field) ? field : defaultField;
+  const order = reverse ? 'desc' : defaultOrder;
+
+  return {
+    field: validField,
+    order: order,
+  };
+}
+
+function isValidSortField(field?: string): field is SortField {
+  return field === 'project' || field === 'timeline' || field === 'events' || field === 'duration';
+}
 
 export function sortTimelines(
   timelines: SessionTimeline[],
-  sortOption: SortOption
+  sortOptions: SortOptions
 ): SessionTimeline[] {
   const sorted = [...timelines];
+  const { field, order } = sortOptions;
 
-  switch (sortOption) {
-    case 'project:asc':
-      return sorted.sort((a, b) => a.projectName.localeCompare(b.projectName));
+  const compare = (a: SessionTimeline, b: SessionTimeline): number => {
+    let result: number;
 
-    case 'project:desc':
-      return sorted.sort((a, b) => b.projectName.localeCompare(a.projectName));
+    switch (field) {
+      case 'project':
+        result = a.projectName.localeCompare(b.projectName);
+        break;
 
-    case 'created:asc':
-      return sorted.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      case 'timeline':
+        result = a.startTime.getTime() - b.startTime.getTime();
+        break;
 
-    case 'created:desc':
-      return sorted.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+      case 'events':
+        result = a.eventCount - b.eventCount;
+        break;
 
-    case 'events:asc':
-      return sorted.sort((a, b) => a.eventCount - b.eventCount);
+      case 'duration':
+        result = a.activeDuration - b.activeDuration;
+        break;
 
-    case 'events:desc':
-      return sorted.sort((a, b) => b.eventCount - a.eventCount);
+      default:
+        result = 0;
+        break;
+    }
 
-    case 'duration:asc':
-      return sorted.sort((a, b) => a.activeDuration - b.activeDuration);
+    return order === 'desc' ? -result : result;
+  };
 
-    case 'duration:desc':
-      return sorted.sort((a, b) => b.activeDuration - a.activeDuration);
-
-    default:
-      return sorted;
-  }
+  return sorted.sort(compare);
 }
