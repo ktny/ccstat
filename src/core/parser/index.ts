@@ -3,7 +3,6 @@ import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
 import { SessionEvent, SessionEventSchema, SessionTimeline } from '../../models/events';
 import { getRepositoryName } from '../git';
-import { PerformanceTimer, logPerformanceMetrics } from '../../utils/performance';
 
 const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go version
 
@@ -103,9 +102,6 @@ interface FilterOptions {
 }
 
 async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<SessionEvent[]> {
-  const timer = new PerformanceTimer();
-  timer.start();
-
   // Check both possible directories
   const projectsDirs = [
     join(homedir(), '.claude', 'projects'),
@@ -113,7 +109,6 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
   ];
 
   let foundAnyDir = false;
-  let fileCount = 0;
   const fileProcessingTasks: Promise<SessionEvent[]>[] = [];
 
   for (const projectsDir of projectsDirs) {
@@ -125,18 +120,25 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
 
       const dirs = await readdir(projectsDir);
 
-      for (const dir of dirs) {
+      // Process directories in parallel
+      const dirPromises = dirs.map(async dir => {
         const dirPath = join(projectsDir, dir);
         try {
+          const files = await readdir(dirPath);
+
+          // Check if directory has any jsonl files before processing
+          const hasJsonlFiles = files.some(file => file.endsWith('.jsonl'));
+          if (!hasJsonlFiles) {
+            return;
+          }
+
           // Early project filtering - check if directory should be processed
           if (filterOptions?.projectNames?.length) {
             const repoName = getCachedRepositoryName(dirPath);
             if (!filterOptions.projectNames.includes(repoName)) {
-              continue; // Skip this entire directory
+              return; // Skip this entire directory
             }
           }
-
-          const files = await readdir(dirPath);
 
           for (const file of files) {
             if (file.endsWith('.jsonl')) {
@@ -145,14 +147,14 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
               // Create a promise for parallel processing
               const task = parseJSONLFile(filePath, filterOptions);
               fileProcessingTasks.push(task);
-              fileCount++;
             }
           }
         } catch (error) {
           // Skip inaccessible directories
-          continue;
         }
-      }
+      });
+
+      await Promise.all(dirPromises);
     } catch (error) {
       // Directory doesn't exist, try the next one
       continue;
@@ -177,15 +179,6 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
     }
   }
 
-  const duration = timer.stop();
-  logPerformanceMetrics('loadEventsFromProjects', {
-    totalDuration: duration,
-    fileCount,
-    eventCount: totalLength,
-    avgFileProcessingTime: fileCount > 0 ? duration / fileCount : 0,
-    avgEventsPerFile: fileCount > 0 ? totalLength / fileCount : 0,
-  });
-
   return allEvents;
 }
 
@@ -194,7 +187,8 @@ async function parseJSONLFile(
   filterOptions?: FilterOptions
 ): Promise<SessionEvent[]> {
   // Check file modification time for performance optimization
-  if (filterOptions && filterOptions.startTime) {
+  // Skip stat check for --all-time (when no time filter is specified)
+  if (filterOptions && filterOptions.startTime && filterOptions.endTime) {
     const stats = await stat(filePath);
     if (stats.mtime < filterOptions.startTime) {
       return [];
