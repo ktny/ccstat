@@ -6,18 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ccstat is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
 
-**Available Implementations**:
-
-- **TypeScript** (primary): Modern, feature-rich implementation in project root
-- **Go** (secondary): High-performance implementation in `/go` directory
-
-**Development Priority**: TypeScript version is the main implementation and should be prioritized for new features and development.
+**Implementation**: TypeScript - Modern, feature-rich implementation with React-based terminal UI.
 
 ### Key Features
 
 - Parses session information from Claude Code log files (~/.claude/projects/)
 - Visualizes project activity patterns in timeline format
-- Automatically calculates active time based on message intervals (5-minute threshold for TypeScript, 3-minute for Go)
+- Automatically calculates active time based on message intervals (5-minute threshold)
 - Automatically integrates and groups projects by Git repository
 
 ## Development Environment Setup
@@ -38,22 +33,7 @@ npm run build
 npm run check
 ```
 
-### Go Development (Secondary)
-
-```bash
-# Build the project (from /go directory)
-cd go && make build
-
-# Or build manually
-cd go && go build -o bin/ccstat ./cmd/ccstat
-
-# Install to $GOPATH/bin
-cd go && make install
-```
-
 ## Command Reference
-
-### TypeScript Version Commands
 
 ```bash
 # Basic execution (last 1 day)
@@ -67,6 +47,18 @@ ccstat --days 7
 # Display activity for the last N hours
 ccstat --hours 6
 
+# Show all session history across all time periods
+ccstat --all-time
+
+# Filter by project names (space-separated)
+ccstat --project project1 project2
+
+# Sort by different fields with optional reverse order
+ccstat --sort project --reverse
+ccstat --sort events
+ccstat --sort duration
+ccstat --sort timeline  # default
+
 # Worktree display (separate directories within the same repository)
 ccstat --worktree
 
@@ -79,35 +71,7 @@ npm run test          # Run tests
 npm run check         # Run all quality checks
 ```
 
-### Go Version Commands
-
-```bash
-# Basic execution (last 1 day) - from /go directory
-./bin/ccstat
-
-# Display activity for the last N days
-./bin/ccstat --days 7
-
-# Display activity for the last N hours
-./bin/ccstat --hours 6
-# or using short option
-./bin/ccstat -H 6
-
-# Worktree display (separate directories within the same repository)
-./bin/ccstat --worktree
-
-# Using Makefile shortcuts (from /go directory)
-make run        # Build and run with defaults
-make run-days   # Build and run with --days 2
-make run-hours  # Build and run with -H 6
-
-# Display help
-./bin/ccstat --help
-```
-
 ### Development Commands
-
-#### TypeScript Version
 
 ```bash
 # Code formatting and linting
@@ -129,90 +93,37 @@ npm run test -- --testNamePattern="parser"
 npm run clean
 ```
 
-#### Go Version
-
-```bash
-# Code formatting (ALWAYS run before committing)
-cd go && go fmt ./...
-
-# Code linting
-cd go && golangci-lint run
-
-# Build and test
-cd go && make build
-cd go && make test
-
-# Run specific tests
-cd go && go test ./cmd/ccstat/
-cd go && go test ./internal/claude/
-
-# Clean build artifacts
-cd go && make clean
-```
-
 ## Architecture
 
-### TypeScript Version Structure
+### Project Structure
 
 ```
 src/
 ├── cli/              # CLI entry point
 │   └── index.ts     # Main CLI definition
 ├── core/            # Core business logic
-│   ├── analyzer/    # Session analysis
 │   ├── parser/      # Claude log parsing
 │   └── git/         # Git integration
 ├── ui/              # UI components (Ink)
 │   ├── App.tsx
-│   └── ProjectTable.tsx
+│   ├── ProjectTable.tsx
+│   └── components/  # UI components
 ├── models/          # Type definitions
 │   └── events.ts
 └── utils/           # Utilities
 ```
 
-### Go Version Structure
-
-```
-go/
-├── cmd/ccstat/              # Main application entry point
-│   ├── main.go             # CLI interface & main execution logic
-│   └── main_test.go        # Basic integration tests
-├── internal/               # Internal packages
-│   ├── claude/            # Claude log parsing & session analysis
-│   │   ├── parser.go      # Core JSONL parsing & session grouping
-│   │   └── parser_test.go # Unit tests for parser
-│   ├── git/               # Git repository utilities
-│   │   └── utils.go       # Git config parsing & repo name extraction
-│   └── ui/                # User interface & visualization
-│       └── table.go       # Terminal UI using lipgloss
-├── pkg/models/            # Shared data models
-│   └── events.go          # SessionEvent & SessionTimeline structs
-└── Makefile              # Build automation
-```
-
 ### Major Components
-
-#### TypeScript Version
 
 - **CLI**: Commander.js for argument parsing
 - **UI**: Ink (React-like) for terminal interfaces
-- **Parser**: JSONL parsing with event filtering
+- **Parser**: JSONL parsing with event filtering and parallel processing
 - **Git**: simple-git for repository integration
 - **Models**: Zod schemas for type validation
-
-#### Go Version
-
-- **CLI**: Cobra for argument parsing
-- **UI**: Lipgloss for styled terminal output
-- **Parser**: Native Go JSONL parsing with concurrent processing
-- **Git**: Native Git config parsing
-- **Models**: Go structs for data representation
 
 ## Development Guidelines
 
 ### Code Quality and Formatting
-
-#### TypeScript Version
 
 - **MANDATORY**: Run `npm run check` before committing
 - **MANDATORY**: All ESLint warnings must be fixed
@@ -220,29 +131,12 @@ go/
 - Follow React/Ink patterns for UI components
 - Use Zod for runtime type validation
 
-#### Go Version
-
-- **MANDATORY**: Always run `go fmt ./...` before committing any Go code
-- **MANDATORY**: Run `golangci-lint run` and fix all issues before committing
-- Follow Go standard conventions for naming, structure, and documentation
-- Use meaningful package and variable names
-- Add comments for exported functions and types
-
 ### Testing
-
-#### TypeScript Version
 
 - Run `npm run test` to execute all tests
 - Use Jest for unit testing
 - Test components using Ink testing utilities
 - Follow test-driven development where possible
-
-#### Go Version
-
-- Run `go test ./...` to execute all tests
-- Follow table-driven test patterns as seen in existing tests
-- Add tests for new functionality, especially core parsing logic
-- Test files follow `*_test.go` naming convention
 
 ### Project Integration Logic
 
@@ -266,11 +160,8 @@ go/
 # Create a new feature branch
 git checkout -b feat/new-feature
 
-# For TypeScript development
-npm run check  # Ensure all quality checks pass
-
-# For Go development
-cd go && go fmt ./... && golangci-lint run
+# Ensure all quality checks pass
+npm run check
 
 # Commit changes
 git add .
@@ -308,34 +199,18 @@ A custom slash command that creates a new branch with git worktree under `.workt
 └── .gitignore                 # .worktree/ is already added to .gitignore
 ```
 
-## Version Selection Guidelines
-
-### When to Use TypeScript Version
-
-- Default choice for most development
-- UI/UX improvements
-- New features development
-- Cross-platform compatibility
-- npm package distribution
-
-### When to Use Go Version
-
-- Performance-critical scenarios
-- Large log file processing
-- Memory-constrained environments
-- Single binary distribution
-- System integration
-
 ## Configuration and Data Sources
 
 ### Input Data
 
-- **TypeScript**: `~/.claude/projects/*/*.jsonl` and `~/.config/claude/projects/*/*.jsonl`
-- **Go**: `~/.claude/projects/*/*.jsonl`
+ccstat reads Claude Code session logs from:
+
+- `~/.claude/projects/*/*.jsonl` (primary)
+- `~/.config/claude/projects/*/*.jsonl` (fallback)
 
 ### Data Format
 
-Both versions parse the same JSONL format:
+The application parses JSONL format:
 
 ```json
 {
@@ -352,18 +227,9 @@ Both versions parse the same JSONL format:
 ### File Organization
 
 - **TypeScript files**: Located in project root
-- **Go files**: Located in `/go` directory
-- Both versions maintain their own README.md files
-- Shared assets (logos, documentation) in project root
+- **Assets**: Shared assets (logos, documentation) in project root
 
 ### CI/CD
 
-- **Main CI**: Tests TypeScript version (`.github/workflows/ci.yml`)
-- **Go CI**: Tests Go version (`.github/workflows/go-ci.yml`)
-- Both run on pushes and PRs affecting their respective code
-
-### Development Focus
-
-- **Primary development**: TypeScript version
-- **Maintenance**: Go version receives bug fixes and critical updates
-- **Feature parity**: Not required, each version can have unique features based on their strengths
+- **Main CI**: Tests TypeScript implementation (`.github/workflows/ci.yml`)
+- Runs on pushes and PRs affecting code
