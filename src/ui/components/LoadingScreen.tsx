@@ -7,20 +7,15 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
-  const { totalFiles, processedFiles, currentFile, currentProject, stage } = progress;
+  const { totalFiles, processedFiles } = progress;
 
   const getStageMessage = (): string => {
-    switch (stage) {
-      case 'discovering':
-        return '🔍 Discovering Claude project files...';
-      case 'processing':
-        return '📁 Processing project files...';
-      case 'analyzing':
-        return '📊 Analyzing sessions and calculating timelines...';
-      case 'complete':
-        return '✅ Processing complete!';
-      default:
-        return '🔄 Loading ccstat...';
+    if (totalFiles === 0) {
+      return '🔍 Discovering Claude project files...';
+    } else if (processedFiles < totalFiles) {
+      return '📁 Processing project files...';
+    } else {
+      return '📊 Analyzing sessions and calculating timelines...';
     }
   };
 
@@ -36,14 +31,6 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
     const emptyBar = '░'.repeat(emptyLength);
 
     return `${filledBar}${emptyBar}`;
-  };
-
-  const getCurrentFileName = (): string => {
-    if (!currentFile) return '';
-
-    // Extract just the filename from the full path
-    const fileName = currentFile.split('/').pop() || currentFile;
-    return fileName;
   };
 
   const getProgressPercentage = (): number => {
@@ -63,7 +50,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
         <Text>{getStageMessage()}</Text>
       </Box>
 
-      {stage === 'processing' && totalFiles > 0 && (
+      {totalFiles > 0 && (
         <>
           <Box marginBottom={1}>
             <Text>
@@ -77,31 +64,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
               <Text color="blue">{totalFiles}</Text>
             </Text>
           </Box>
-
-          {currentProject && (
-            <Box marginBottom={1}>
-              <Text>
-                Current project: <Text color="yellow">{currentProject}</Text>
-              </Text>
-            </Box>
-          )}
-
-          {currentFile && (
-            <Box marginBottom={1}>
-              <Text>
-                Processing: <Text color="gray">{getCurrentFileName()}</Text>
-              </Text>
-            </Box>
-          )}
         </>
-      )}
-
-      {stage === 'analyzing' && (
-        <Box marginBottom={1}>
-          <Text>
-            <Text color="cyan">{'█'.repeat(40)}</Text> 100%
-          </Text>
-        </Box>
       )}
     </Box>
   );

@@ -7,9 +7,6 @@ describe('ProgressTracker', () => {
 
     expect(update.totalFiles).toBe(0);
     expect(update.processedFiles).toBe(0);
-    expect(update.stage).toBe('discovering');
-    expect(update.currentFile).toBeUndefined();
-    expect(update.currentProject).toBeUndefined();
   });
 
   it('should calculate progress percentage correctly', () => {
@@ -28,26 +25,6 @@ describe('ProgressTracker', () => {
     expect(tracker.getProgressPercentage()).toBe(30);
   });
 
-  it('should update stage correctly', () => {
-    const tracker = new ProgressTracker();
-
-    tracker.setStage('processing');
-    expect(tracker.getCurrentUpdate().stage).toBe('processing');
-
-    tracker.setStage('analyzing');
-    expect(tracker.getCurrentUpdate().stage).toBe('analyzing');
-  });
-
-  it('should track current file and project', () => {
-    const tracker = new ProgressTracker();
-
-    tracker.setCurrentFile('/path/to/file.jsonl', 'my-project');
-    const update = tracker.getCurrentUpdate();
-
-    expect(update.currentFile).toBe('/path/to/file.jsonl');
-    expect(update.currentProject).toBe('my-project');
-  });
-
   it('should call callback when progress updates', () => {
     const callback = jest.fn();
     const tracker = new ProgressTracker(callback);
@@ -56,7 +33,6 @@ describe('ProgressTracker', () => {
     expect(callback).toHaveBeenCalledWith(
       expect.objectContaining({
         totalFiles: 5,
-        stage: 'processing',
       })
     );
 
@@ -73,16 +49,11 @@ describe('ProgressTracker', () => {
 
     tracker.setTotalFiles(10);
     tracker.incrementProcessedFiles();
-    tracker.setCurrentFile('/path/file.jsonl', 'project');
-    tracker.setStage('analyzing');
 
     tracker.reset();
 
     const update = tracker.getCurrentUpdate();
     expect(update.totalFiles).toBe(0);
     expect(update.processedFiles).toBe(0);
-    expect(update.stage).toBe('discovering');
-    expect(update.currentFile).toBeUndefined();
-    expect(update.currentProject).toBeUndefined();
   });
 });

@@ -32,7 +32,6 @@ export const App: React.FC<AppProps> = ({
   const [progress, setProgress] = useState<ProgressUpdate>({
     totalFiles: 0,
     processedFiles: 0,
-    stage: 'discovering',
   });
 
   useEffect(() => {
@@ -74,7 +73,6 @@ export const App: React.FC<AppProps> = ({
         setProgress({
           totalFiles: 0,
           processedFiles: 0,
-          stage: 'discovering',
         });
       } finally {
         setLoading(false);

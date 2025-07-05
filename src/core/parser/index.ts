@@ -84,15 +84,7 @@ export async function loadSessionsInTimeRange(
     progressTracker
   );
 
-  if (progressTracker) {
-    progressTracker.setStage('analyzing');
-  }
-
   const grouped = await groupEventsByRepositoryConsolidated(events);
-
-  if (progressTracker) {
-    progressTracker.setStage('complete');
-  }
 
   // Always use consolidated mode - sort by event count
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
@@ -107,15 +99,7 @@ export async function loadAllSessions(
 
   const events = await loadEventsFromProjects({ projectNames }, progressTracker);
 
-  if (progressTracker) {
-    progressTracker.setStage('analyzing');
-  }
-
   const grouped = await groupEventsByRepositoryConsolidated(events);
-
-  if (progressTracker) {
-    progressTracker.setStage('complete');
-  }
 
   // Always use consolidated mode - sort by event count
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
@@ -141,9 +125,6 @@ async function loadEventsFromProjects(
   const allFilePaths: { filePath: string; projectName: string }[] = [];
 
   // First pass: discover all files
-  if (progressTracker) {
-    progressTracker.setStage('discovering');
-  }
 
   for (const projectsDir of projectsDirs) {
     try {
@@ -198,15 +179,9 @@ async function loadEventsFromProjects(
   }
 
   // Process files with progress tracking
-  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(
-    ({ filePath, projectName }) => {
-      if (progressTracker) {
-        progressTracker.setCurrentFile(filePath, projectName);
-      }
-
-      return parseJSONLFile(filePath, filterOptions, progressTracker);
-    }
-  );
+  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(({ filePath }) => {
+    return parseJSONLFile(filePath, filterOptions, progressTracker);
+  });
 
   // Process all files in parallel and efficiently concatenate results
   const allEventArrays = await Promise.all(fileProcessingTasks);

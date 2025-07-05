@@ -1,9 +1,6 @@
 export interface ProgressUpdate {
   totalFiles: number;
   processedFiles: number;
-  currentFile?: string;
-  currentProject?: string;
-  stage: 'discovering' | 'processing' | 'analyzing' | 'complete';
 }
 
 export type ProgressCallback = (update: ProgressUpdate) => void;
@@ -11,9 +8,6 @@ export type ProgressCallback = (update: ProgressUpdate) => void;
 export class ProgressTracker {
   private totalFiles: number = 0;
   private processedFiles: number = 0;
-  private currentFile?: string;
-  private currentProject?: string;
-  private stage: ProgressUpdate['stage'] = 'discovering';
   private callback?: ProgressCallback;
 
   constructor(callback?: ProgressCallback) {
@@ -22,23 +16,11 @@ export class ProgressTracker {
 
   setTotalFiles(total: number): void {
     this.totalFiles = total;
-    this.stage = 'processing';
-    this.notifyCallback();
-  }
-
-  setCurrentFile(filePath: string, projectName?: string): void {
-    this.currentFile = filePath;
-    this.currentProject = projectName;
     this.notifyCallback();
   }
 
   incrementProcessedFiles(): void {
     this.processedFiles++;
-    this.notifyCallback();
-  }
-
-  setStage(stage: ProgressUpdate['stage']): void {
-    this.stage = stage;
     this.notifyCallback();
   }
 
@@ -51,9 +33,6 @@ export class ProgressTracker {
     return {
       totalFiles: this.totalFiles,
       processedFiles: this.processedFiles,
-      currentFile: this.currentFile,
-      currentProject: this.currentProject,
-      stage: this.stage,
     };
   }
 
@@ -71,9 +50,6 @@ export class ProgressTracker {
   reset(): void {
     this.totalFiles = 0;
     this.processedFiles = 0;
-    this.currentFile = undefined;
-    this.currentProject = undefined;
-    this.stage = 'discovering';
     this.notifyCallback();
   }
 }
