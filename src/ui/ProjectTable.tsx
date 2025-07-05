@@ -8,15 +8,23 @@ import { HeaderRow } from './components/HeaderRow';
 import { TableTimeAxis } from './components/TableTimeAxis';
 import { ProjectRow } from './components/ProjectRow';
 import { SummaryStatistics } from './components/SummaryStatistics';
+import { sortTimelines, SortOption } from '../utils/sort';
 
 interface ProjectTableProps {
   timelines: SessionTimeline[];
   days?: number;
   hours?: number;
   color: ColorTheme;
+  sort?: SortOption;
 }
 
-export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hours, color }) => {
+export const ProjectTable: React.FC<ProjectTableProps> = ({
+  timelines,
+  days,
+  hours,
+  color,
+  sort,
+}) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
 
@@ -24,12 +32,20 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
   const activityColors = colorScheme.colors;
   const borderColor = useMemo(() => getBorderColor(color), [color]);
 
-  if (timelines.length === 0) {
+  // Apply sorting if sort option is provided
+  const sortedTimelines = useMemo(() => {
+    if (sort) {
+      return sortTimelines(timelines, sort);
+    }
+    return timelines;
+  }, [timelines, sort]);
+
+  if (sortedTimelines.length === 0) {
     return <Text>🔍 No Claude sessions found in the specified time range</Text>;
   }
 
-  const totalEvents = timelines.reduce((sum, t) => sum + t.eventCount, 0);
-  const totalDuration = timelines.reduce((sum, t) => sum + t.activeDuration, 0);
+  const totalEvents = sortedTimelines.reduce((sum, t) => sum + t.eventCount, 0);
+  const totalDuration = sortedTimelines.reduce((sum, t) => sum + t.activeDuration, 0);
 
   const startTime = new Date();
   const endTime = new Date();
@@ -43,7 +59,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
   const timeRangeText = hours ? `${hours} hours` : `${days || 1} days`;
 
   // Calculate responsive column widths
-  const projectWidth = calculateProjectWidth(timelines);
+  const projectWidth = calculateProjectWidth(sortedTimelines);
   const eventsWidth = 8;
   const durationWidth = 10;
   const timelineWidth = Math.max(
@@ -58,7 +74,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
           startTime={startTime}
           endTime={endTime}
           timeRangeText={timeRangeText}
-          projectCount={timelines.length}
+          projectCount={sortedTimelines.length}
         />
 
         <HeaderRow
@@ -79,7 +95,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
         />
 
         {/* Data rows */}
-        {timelines.map((timeline, index) => (
+        {sortedTimelines.map((timeline, index) => (
           <ProjectRow
             key={index}
             timeline={timeline}
@@ -95,7 +111,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ timelines, days, hou
       </Box>
 
       <SummaryStatistics
-        projectCount={timelines.length}
+        projectCount={sortedTimelines.length}
         totalEvents={totalEvents}
         totalDuration={totalDuration}
       />
