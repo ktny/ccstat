@@ -3,6 +3,7 @@ import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
 import { SessionEvent, SessionEventSchema, SessionTimeline } from '../../models/events';
 import { getRepositoryName } from '../git';
+import { ProgressTracker } from '../../utils/progressTracker';
 
 const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go version
 
@@ -72,24 +73,49 @@ function findParentRepository(directory: string): string | null {
 export async function loadSessionsInTimeRange(
   startTime: Date,
   endTime: Date,
-  projectNames?: string[]
+  projectNames?: string[],
+  progressTracker?: ProgressTracker
 ): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
-  const events = await loadEventsFromProjects({ startTime, endTime, projectNames });
+  const events = await loadEventsFromProjects(
+    { startTime, endTime, projectNames },
+    progressTracker
+  );
+
+  if (progressTracker) {
+    progressTracker.setStage('analyzing');
+  }
+
   const grouped = await groupEventsByRepositoryConsolidated(events);
+
+  if (progressTracker) {
+    progressTracker.setStage('complete');
+  }
 
   // Always use consolidated mode - sort by event count
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
 }
 
-export async function loadAllSessions(projectNames?: string[]): Promise<SessionTimeline[]> {
+export async function loadAllSessions(
+  projectNames?: string[],
+  progressTracker?: ProgressTracker
+): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
-  const events = await loadEventsFromProjects({ projectNames });
+  const events = await loadEventsFromProjects({ projectNames }, progressTracker);
+
+  if (progressTracker) {
+    progressTracker.setStage('analyzing');
+  }
+
   const grouped = await groupEventsByRepositoryConsolidated(events);
+
+  if (progressTracker) {
+    progressTracker.setStage('complete');
+  }
 
   // Always use consolidated mode - sort by event count
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
@@ -101,7 +127,10 @@ interface FilterOptions {
   projectNames?: string[];
 }
 
-async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<SessionEvent[]> {
+async function loadEventsFromProjects(
+  filterOptions?: FilterOptions,
+  progressTracker?: ProgressTracker
+): Promise<SessionEvent[]> {
   // Check both possible directories
   const projectsDirs = [
     join(homedir(), '.claude', 'projects'),
@@ -109,7 +138,12 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
   ];
 
   let foundAnyDir = false;
-  const fileProcessingTasks: Promise<SessionEvent[]>[] = [];
+  const allFilePaths: { filePath: string; projectName: string }[] = [];
+
+  // First pass: discover all files
+  if (progressTracker) {
+    progressTracker.setStage('discovering');
+  }
 
   for (const projectsDir of projectsDirs) {
     try {
@@ -117,11 +151,9 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
       if (!dirStat.isDirectory()) continue;
 
       foundAnyDir = true;
-
       const dirs = await readdir(projectsDir);
 
-      // Process directories in parallel
-      const dirPromises = dirs.map(async dir => {
+      for (const dir of dirs) {
         const dirPath = join(projectsDir, dir);
         try {
           const files = await readdir(dirPath);
@@ -129,32 +161,27 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
           // Check if directory has any jsonl files before processing
           const hasJsonlFiles = files.some(file => file.endsWith('.jsonl'));
           if (!hasJsonlFiles) {
-            return;
+            continue;
           }
 
           // Early project filtering - check if directory should be processed
+          const repoName = getCachedRepositoryName(dirPath);
           if (filterOptions?.projectNames?.length) {
-            const repoName = getCachedRepositoryName(dirPath);
             if (!filterOptions.projectNames.includes(repoName)) {
-              return; // Skip this entire directory
+              continue; // Skip this entire directory
             }
           }
 
           for (const file of files) {
             if (file.endsWith('.jsonl')) {
               const filePath = join(dirPath, file);
-
-              // Create a promise for parallel processing
-              const task = parseJSONLFile(filePath, filterOptions);
-              fileProcessingTasks.push(task);
+              allFilePaths.push({ filePath, projectName: repoName });
             }
           }
         } catch (error) {
           // Skip inaccessible directories
         }
-      });
-
-      await Promise.all(dirPromises);
+      }
     } catch (error) {
       // Directory doesn't exist, try the next one
       continue;
@@ -164,6 +191,22 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
   if (!foundAnyDir) {
     throw new Error(`Claude projects directory not found. Checked: ${projectsDirs.join(', ')}`);
   }
+
+  // Set total files count
+  if (progressTracker) {
+    progressTracker.setTotalFiles(allFilePaths.length);
+  }
+
+  // Process files with progress tracking
+  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(
+    ({ filePath, projectName }) => {
+      if (progressTracker) {
+        progressTracker.setCurrentFile(filePath, projectName);
+      }
+
+      return parseJSONLFile(filePath, filterOptions, progressTracker);
+    }
+  );
 
   // Process all files in parallel and efficiently concatenate results
   const allEventArrays = await Promise.all(fileProcessingTasks);
@@ -184,7 +227,8 @@ async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<Se
 
 async function parseJSONLFile(
   filePath: string,
-  filterOptions?: FilterOptions
+  filterOptions?: FilterOptions,
+  progressTracker?: ProgressTracker
 ): Promise<SessionEvent[]> {
   // Check file modification time for performance optimization
   // Skip stat check for --all-time (when no time filter is specified)
@@ -239,6 +283,11 @@ async function parseJSONLFile(
       // Skip invalid lines
       continue;
     }
+  }
+
+  // Increment progress after processing file
+  if (progressTracker) {
+    progressTracker.incrementProcessedFiles();
   }
 
   return events;
