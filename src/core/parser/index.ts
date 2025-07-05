@@ -71,18 +71,21 @@ function findParentRepository(directory: string): string | null {
 }
 
 export async function loadSessionsInTimeRange(
-  startTime: Date,
-  endTime: Date,
+  startTime?: Date,
+  endTime?: Date,
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
-  const events = await loadEventsFromProjects(
-    { startTime, endTime, projectNames },
-    progressTracker
-  );
+  const filterOptions: FilterOptions = { projectNames };
+  if (startTime && endTime) {
+    filterOptions.startTime = startTime;
+    filterOptions.endTime = endTime;
+  }
+
+  const events = await loadEventsFromProjects(filterOptions, progressTracker);
 
   const grouped = await groupEventsByRepositoryConsolidated(events);
 
@@ -93,14 +96,7 @@ export async function loadAllSessions(
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<SessionTimeline[]> {
-  // Clear repository cache at the start of each execution
-  clearRepositoryCache();
-
-  const events = await loadEventsFromProjects({ projectNames }, progressTracker);
-
-  const grouped = await groupEventsByRepositoryConsolidated(events);
-
-  return Array.from(grouped.values());
+  return loadSessionsInTimeRange(undefined, undefined, projectNames, progressTracker);
 }
 
 interface FilterOptions {
@@ -122,13 +118,8 @@ async function loadEventsFromProjects(
   let foundAnyDir = false;
   const allFilePaths: { filePath: string; projectName: string }[] = [];
 
-  // First pass: discover all files
-
   for (const projectsDir of projectsDirs) {
     try {
-      const dirStat = await stat(projectsDir);
-      if (!dirStat.isDirectory()) continue;
-
       foundAnyDir = true;
       const dirs = await readdir(projectsDir);
 
@@ -136,12 +127,6 @@ async function loadEventsFromProjects(
         const dirPath = join(projectsDir, dir);
         try {
           const files = await readdir(dirPath);
-
-          // Check if directory has any jsonl files before processing
-          const hasJsonlFiles = files.some(file => file.endsWith('.jsonl'));
-          if (!hasJsonlFiles) {
-            continue;
-          }
 
           // Early project filtering - check if directory should be processed
           const repoName = getCachedRepositoryName(dirPath);
