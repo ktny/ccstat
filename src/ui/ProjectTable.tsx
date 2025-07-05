@@ -8,14 +8,15 @@ import { HeaderRow } from './components/HeaderRow';
 import { TableTimeAxis } from './components/TableTimeAxis';
 import { ProjectRow } from './components/ProjectRow';
 import { SummaryStatistics } from './components/SummaryStatistics';
-import { sortTimelines, SortOption } from '../utils/sort';
+import { sortTimelines, createSortOptions } from '../utils/sort';
 
 interface ProjectTableProps {
   timelines: SessionTimeline[];
   days?: number;
   hours?: number;
   color: ColorTheme;
-  sort?: SortOption;
+  sort?: string;
+  reverse?: boolean;
 }
 
 export const ProjectTable: React.FC<ProjectTableProps> = ({
@@ -24,6 +25,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   hours,
   color,
   sort,
+  reverse,
 }) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
@@ -32,13 +34,11 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   const activityColors = colorScheme.colors;
   const borderColor = useMemo(() => getBorderColor(color), [color]);
 
-  // Apply sorting if sort option is provided
+  // Apply sorting
   const sortedTimelines = useMemo(() => {
-    if (sort) {
-      return sortTimelines(timelines, sort);
-    }
-    return timelines;
-  }, [timelines, sort]);
+    const sortOptions = createSortOptions(sort, reverse);
+    return sortTimelines(timelines, sortOptions);
+  }, [timelines, sort, reverse]);
 
   if (sortedTimelines.length === 0) {
     return <Text>🔍 No Claude sessions found in the specified time range</Text>;

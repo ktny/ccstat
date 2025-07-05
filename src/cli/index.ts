@@ -14,9 +14,11 @@ program
   .option('-H, --hours <number>', 'display activity for the last N hours')
   .option('--color <theme>', 'color theme: blue, green, orange, purple, classic', 'green')
   .option(
-    '--sort <option>',
-    'sort by: project:asc, project:desc, created:asc, created:desc, events:asc, events:desc, duration:asc, duration:desc'
+    '--sort <field>',
+    'sort by field: project, timeline, events, duration (default: timeline)',
+    'timeline'
   )
+  .option('--reverse', 'reverse sort order (default: ascending)')
   .parse(process.argv);
 
 async function main() {
@@ -28,6 +30,7 @@ async function main() {
       hours: options.hours ? parseInt(options.hours) : undefined,
       color: options.color || 'random',
       sort: options.sort,
+      reverse: options.reverse || false,
     })
   );
 

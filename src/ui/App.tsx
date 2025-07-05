@@ -4,16 +4,16 @@ import { SessionTimeline } from '../models/events';
 import { loadSessionsInTimeRange } from '../core/parser';
 import { ProjectTable } from './ProjectTable';
 import { ColorTheme } from './colorThemes';
-import { SortOption } from '../utils/sort';
 
 interface AppProps {
   days?: number;
   hours?: number;
   color: ColorTheme;
-  sort?: SortOption;
+  sort?: string;
+  reverse?: boolean;
 }
 
-export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort }) => {
+export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse }) => {
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +52,14 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort }) => {
 
   return (
     <Box flexDirection="column">
-      <ProjectTable timelines={timelines} days={days} hours={hours} color={color} sort={sort} />
+      <ProjectTable
+        timelines={timelines}
+        days={days}
+        hours={hours}
+        color={color}
+        sort={sort}
+        reverse={reverse}
+      />
     </Box>
   );
 };
