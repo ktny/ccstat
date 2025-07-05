@@ -2,17 +2,9 @@
 
 [![npm version](https://badge.fury.io/js/%40ktny%2Fccstat.svg)](https://badge.fury.io/js/%40ktny%2Fccstat)
 [![CI](https://github.com/ktny/ccstat/actions/workflows/ci.yml/badge.svg)](https://github.com/ktny/ccstat/actions/workflows/ci.yml)
-[![Go CI](https://github.com/ktny/ccstat/actions/workflows/go-ci.yml/badge.svg)](https://github.com/ktny/ccstat/actions/workflows/go-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
-
-**ccstat** is available in two implementations:
-
-- **TypeScript version** (default): Modern, feature-rich implementation with React-based UI
-- **Go version**: High-performance implementation for heavy usage scenarios
-
-> 📝 **Note**: This README covers the TypeScript version. For the Go version, see [go/README.md](go/README.md).
 
 ## ✨ Features
 
@@ -196,7 +188,7 @@ Each line in the JSONL files represents a session event:
 ```bash
 # Clone the repository
 git clone https://github.com/ktny/ccstat.git
-cd ccstat/ts
+cd ccstat
 
 # Install dependencies
 npm install
@@ -268,7 +260,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Built with [Ink](https://github.com/vadimdemedes/ink) for beautiful terminal UIs
-- Inspired by the original Go version of ccstat
+- Inspired by Git activity visualization tools
 - Thanks to the Claude Code team for the session logging format
 
 ## 📞 Support
