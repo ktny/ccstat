@@ -140,25 +140,53 @@ export function createTimeAxis(startTime: Date, endTime: Date, width: number): s
     current += interval;
   }
 
-  // Filter overlapping labels by ensuring minimum spacing
-  const minSpacing = 3; // Minimum characters between labels
+  // Filter overlapping labels with smart fitting
   const filteredLabels = [];
-  let lastEndPos = -1;
 
-  for (const labelInfo of labels) {
-    const startPos = Math.max(
-      0,
-      Math.min(
-        width - labelInfo.label.length,
-        labelInfo.position - Math.floor(labelInfo.label.length / 2)
-      )
-    );
-    const endPos = startPos + labelInfo.label.length;
+  // Try to fit as many labels as possible by selecting every Nth label if needed
+  const labelLength = labels.length > 0 ? labels[0].label.length : 5;
+  const minSpaceNeeded = labelLength + 1; // label + 1 space
+  const maxPossibleLabels = Math.floor(width / minSpaceNeeded);
 
-    // Only add if it doesn't overlap with the previous label
-    if (startPos > lastEndPos + minSpacing) {
-      filteredLabels.push({ ...labelInfo, startPos });
-      lastEndPos = endPos;
+  if (labels.length <= maxPossibleLabels) {
+    // We can fit all labels, use normal positioning
+    let lastEndPos = -1;
+
+    for (const labelInfo of labels) {
+      const startPos = Math.max(
+        0,
+        Math.min(
+          width - labelInfo.label.length,
+          labelInfo.position - Math.floor(labelInfo.label.length / 2)
+        )
+      );
+      const endPos = startPos + labelInfo.label.length - 1;
+
+      if (startPos > lastEndPos + 1 || lastEndPos === -1) {
+        filteredLabels.push({ ...labelInfo, startPos });
+        lastEndPos = endPos;
+      }
+    }
+  } else {
+    // Too many labels, select every Nth label to fit
+    const step = Math.max(1, Math.floor(labels.length / maxPossibleLabels));
+    let lastEndPos = -1;
+
+    for (let i = 0; i < labels.length; i += step) {
+      const labelInfo = labels[i];
+      const startPos = Math.max(
+        0,
+        Math.min(
+          width - labelInfo.label.length,
+          labelInfo.position - Math.floor(labelInfo.label.length / 2)
+        )
+      );
+      const endPos = startPos + labelInfo.label.length - 1;
+
+      if (startPos > lastEndPos + 1 || lastEndPos === -1) {
+        filteredLabels.push({ ...labelInfo, startPos });
+        lastEndPos = endPos;
+      }
     }
   }
 
