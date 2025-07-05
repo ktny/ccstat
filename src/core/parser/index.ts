@@ -23,8 +23,6 @@ function getCachedRepositoryName(directory: string): string {
 
   let repoName = getRepositoryName(directory);
 
-  console.log({ repoName });
-
   if (!repoName) {
     // Try to find parent repository
     repoName = findParentRepository(directory);
@@ -32,6 +30,8 @@ function getCachedRepositoryName(directory: string): string {
       repoName = basename(directory);
     }
   }
+
+  console.log(`Repository name for ${directory}: ${repoName}`);
 
   if (repoName) {
     repositoryCache.set(directory, repoName);
@@ -117,7 +117,7 @@ async function loadEventsFromProjects(
     join(homedir(), '.config', 'claude', 'projects'),
   ];
 
-  const allFilePaths: { filePath: string; projectName: string }[] = [];
+  const allFilePaths: string[] = [];
 
   for (const projectsDir of projectsDirs) {
     try {
@@ -143,18 +143,10 @@ async function loadEventsFromProjects(
 
       const files = await readdir(dirPath);
 
-      // Early project filtering - check if directory should be processed
-      const repoName = getCachedRepositoryName(dirPath);
-      if (filterOptions?.projectNames?.length) {
-        if (!filterOptions.projectNames.includes(repoName)) {
-          continue; // Skip this entire directory
-        }
-      }
-
       for (const file of files) {
         if (file.endsWith('.jsonl')) {
           const filePath = join(dirPath, file);
-          allFilePaths.push({ filePath, projectName: repoName });
+          allFilePaths.push(filePath);
         }
       }
     }
@@ -166,7 +158,7 @@ async function loadEventsFromProjects(
   }
 
   // Process files with progress tracking
-  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(({ filePath }) => {
+  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(filePath => {
     return parseJSONLFile(filePath, filterOptions, progressTracker);
   });
 
