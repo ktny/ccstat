@@ -1,7 +1,6 @@
 import { readdir, readFile, stat } from 'fs/promises';
-import { join, dirname, basename, relative } from 'path';
+import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
-import { existsSync } from 'fs';
 import { SessionEvent, SessionEventSchema, SessionTimeline } from '../../models/events';
 import { getRepositoryName } from '../git';
 
@@ -72,24 +71,16 @@ function findParentRepository(directory: string): string | null {
 
 export async function loadSessionsInTimeRange(
   startTime: Date,
-  endTime: Date,
-  worktree: boolean
+  endTime: Date
 ): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
   const events = await loadAllEvents(startTime, endTime);
-  const grouped = worktree
-    ? await groupEventsByRepositoryWithChildren(events)
-    : await groupEventsByRepositoryConsolidated(events);
+  const grouped = await groupEventsByRepositoryConsolidated(events);
 
-  // For worktree mode, the order is already established by sortTimelinesWithHierarchy
-  // For consolidated mode, sort by event count
-  if (worktree) {
-    return Array.from(grouped.values());
-  } else {
-    return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
-  }
+  // Always use consolidated mode - sort by event count
+  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
 }
 
 async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEvent[]> {
@@ -248,235 +239,6 @@ async function groupEventsByRepositoryConsolidated(
   }
 
   return timelines;
-}
-
-// Worktree mode implementation with parent-child support
-async function groupEventsByRepositoryWithChildren(
-  events: SessionEvent[]
-): Promise<Map<string, SessionTimeline>> {
-  const directoryMap = new Map<string, SessionEvent[]>();
-  const repoMap = new Map<string, Map<string, SessionEvent[]>>();
-
-  // Group events by directory
-  for (const event of events) {
-    const directory = event.cwd || 'unknown';
-    if (!directoryMap.has(directory)) {
-      directoryMap.set(directory, []);
-    }
-    directoryMap.get(directory)!.push(event);
-  }
-
-  // Group directories by repository
-  for (const [directory, directoryEvents] of directoryMap.entries()) {
-    const repoName = getCachedRepositoryName(directory);
-
-    if (!repoMap.has(repoName)) {
-      repoMap.set(repoName, new Map());
-    }
-    repoMap.get(repoName)!.set(directory, directoryEvents);
-  }
-
-  const timelines = new Map<string, SessionTimeline>();
-
-  for (const [repoName, repoDirs] of repoMap.entries()) {
-    const directories = Array.from(repoDirs.keys());
-
-    if (directories.length === 1) {
-      // Single directory - create simple timeline
-      const directory = directories[0];
-      const events = repoDirs.get(directory)!;
-
-      if (events.length === 0) continue;
-
-      events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-      const timeline: SessionTimeline = {
-        projectName: repoName,
-        directory,
-        repository: repoName,
-        events,
-        eventCount: events.length,
-        activeDuration: calculateActiveDuration(events),
-        startTime: new Date(events[0].timestamp),
-        endTime: new Date(events[events.length - 1].timestamp),
-      };
-
-      timelines.set(`${repoName}_${directory}`, timeline);
-    } else {
-      // Multiple directories - create parent and children
-      const mainDir = findMainRepositoryDirectory(directories);
-
-      // Create parent timeline
-      if (repoDirs.has(mainDir)) {
-        const mainEvents = repoDirs.get(mainDir)!;
-        if (mainEvents.length > 0) {
-          mainEvents.sort(
-            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          );
-
-          const parentTimeline: SessionTimeline = {
-            projectName: repoName,
-            directory: mainDir,
-            repository: repoName,
-            events: mainEvents,
-            eventCount: mainEvents.length,
-            activeDuration: calculateActiveDuration(mainEvents),
-            startTime: new Date(mainEvents[0].timestamp),
-            endTime: new Date(mainEvents[mainEvents.length - 1].timestamp),
-          };
-
-          timelines.set(repoName, parentTimeline);
-        }
-      }
-
-      // Create child timelines
-      for (const [directory, events] of repoDirs.entries()) {
-        if (directory === mainDir || events.length === 0) continue;
-
-        events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-        const childName = generateChildProjectName(directory, mainDir);
-
-        const childTimeline: SessionTimeline = {
-          projectName: childName,
-          directory,
-          repository: repoName,
-          isChild: true,
-          events,
-          eventCount: events.length,
-          activeDuration: calculateActiveDuration(events),
-          startTime: new Date(events[0].timestamp),
-          endTime: new Date(events[events.length - 1].timestamp),
-        };
-
-        timelines.set(`${repoName}_${directory}`, childTimeline);
-      }
-    }
-  }
-
-  return sortTimelinesWithHierarchy(timelines);
-}
-
-// Find the main repository directory
-function findMainRepositoryDirectory(directories: string[]): string {
-  if (directories.length === 0) return '';
-
-  // Sort by path length
-  directories.sort((a, b) => a.length - b.length);
-
-  // Prefer directories with .git
-  for (const dir of directories) {
-    if (existsSync(join(dir, '.git'))) {
-      return dir;
-    }
-  }
-
-  return directories[0];
-}
-
-// Generate meaningful child project name
-function generateChildProjectName(childDir: string, parentDir: string): string {
-  try {
-    let relPath = relative(parentDir, childDir);
-    relPath = relPath.replace(/^\.worktree\//, '');
-    relPath = relPath.replace(/^\.git\/worktrees\//, '');
-
-    const parts = relPath.split('/');
-    if (parts.length > 0 && parts[parts.length - 1]) {
-      return parts[parts.length - 1];
-    }
-  } catch (error) {
-    // Fallback to basename
-  }
-
-  return basename(childDir);
-}
-
-// Sort timelines maintaining parent-child hierarchy
-function sortTimelinesWithHierarchy(
-  timelines: Map<string, SessionTimeline>
-): Map<string, SessionTimeline> {
-  const parentProjects: SessionTimeline[] = [];
-  const childProjectsMap = new Map<string, SessionTimeline[]>();
-  const allRepositoryNames = new Set<string>();
-
-  // First pass: collect all repository names and separate parents/children
-  for (const timeline of timelines.values()) {
-    if (timeline.repository) {
-      allRepositoryNames.add(timeline.repository);
-    }
-
-    if (!timeline.isChild) {
-      parentProjects.push(timeline);
-    } else {
-      const parentName = timeline.repository!;
-      if (!childProjectsMap.has(parentName)) {
-        childProjectsMap.set(parentName, []);
-      }
-      childProjectsMap.get(parentName)!.push(timeline);
-    }
-  }
-
-  // Create synthetic parent projects for orphaned children
-  for (const repoName of allRepositoryNames) {
-    const hasParent = parentProjects.some(p => p.projectName === repoName);
-    const hasChildren = childProjectsMap.has(repoName);
-
-    if (!hasParent && hasChildren) {
-      // Create a synthetic parent with 0 events
-      const children = childProjectsMap.get(repoName)!;
-      const syntheticParent: SessionTimeline = {
-        projectName: repoName,
-        directory: '',
-        repository: repoName,
-        events: [],
-        eventCount: 0,
-        activeDuration: 0,
-        startTime: children[0].startTime,
-        endTime: children[0].endTime,
-      };
-      parentProjects.push(syntheticParent);
-    }
-  }
-
-  // Sort parents by event count (descending)
-  parentProjects.sort((a, b) => b.eventCount - a.eventCount);
-
-  // Sort children within each parent by event count (descending)
-  for (const children of childProjectsMap.values()) {
-    children.sort((a, b) => b.eventCount - a.eventCount);
-  }
-
-  // Build sorted result
-  const sorted = new Map<string, SessionTimeline>();
-
-  // First, collect all children's event counts per parent
-  const parentTotalEvents = new Map<string, number>();
-  for (const [parentName, children] of childProjectsMap.entries()) {
-    const totalChildEvents = children.reduce((sum, child) => sum + child.eventCount, 0);
-    parentTotalEvents.set(parentName, totalChildEvents);
-  }
-
-  // Sort parents considering both their own events and their children's events
-  parentProjects.sort((a, b) => {
-    const aTotal = a.eventCount + (parentTotalEvents.get(a.projectName) || 0);
-    const bTotal = b.eventCount + (parentTotalEvents.get(b.projectName) || 0);
-    return bTotal - aTotal;
-  });
-
-  for (const parent of parentProjects) {
-    // Only add parent if it has events (skip synthetic parents with 0 events)
-    if (parent.eventCount > 0) {
-      sorted.set(parent.projectName, parent);
-    }
-
-    const children = childProjectsMap.get(parent.projectName) || [];
-    for (const child of children) {
-      sorted.set(`${parent.projectName}_${child.directory}`, child);
-    }
-  }
-
-  return sorted;
 }
 
 function calculateActiveDuration(events: SessionEvent[]): number {

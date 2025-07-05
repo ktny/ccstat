@@ -9,13 +9,11 @@ import { SortOption } from '../utils/sort';
 interface AppProps {
   days?: number;
   hours?: number;
-  worktree: boolean;
   color: ColorTheme;
   sort?: SortOption;
-  debug: boolean;
 }
 
-export const App: React.FC<AppProps> = ({ days = 1, hours, worktree, color, sort }) => {
+export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort }) => {
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +30,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, worktree, color, sort
           startTime.setDate(now.getDate() - days);
         }
 
-        const sessions = await loadSessionsInTimeRange(startTime, now, worktree);
+        const sessions = await loadSessionsInTimeRange(startTime, now);
         setTimelines(sessions);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -42,7 +40,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, worktree, color, sort
     }
 
     loadData();
-  }, [days, hours, worktree]);
+  }, [days, hours]);
 
   if (loading) {
     return <Text>Loading Claude sessions...</Text>;
