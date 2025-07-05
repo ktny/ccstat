@@ -83,6 +83,17 @@ export async function loadSessionsInTimeRange(
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
 }
 
+export async function loadAllSessions(): Promise<SessionTimeline[]> {
+  // Clear repository cache at the start of each execution
+  clearRepositoryCache();
+
+  const events = await loadAllEventsWithoutTimeFilter();
+  const grouped = await groupEventsByRepositoryConsolidated(events);
+
+  // Always use consolidated mode - sort by event count
+  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+}
+
 async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEvent[]> {
   const allEvents: SessionEvent[] = [];
 
@@ -114,6 +125,58 @@ async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEve
 
               // parseJSONLFile already checks modification time, so just call it
               const events = await parseJSONLFile(filePath, startTime, endTime);
+              allEvents.push(...events);
+            }
+          }
+        } catch (error) {
+          // Skip inaccessible directories
+          continue;
+        }
+      }
+    } catch (error) {
+      // Directory doesn't exist, try the next one
+      continue;
+    }
+  }
+
+  if (!foundAnyDir) {
+    throw new Error(`Claude projects directory not found. Checked: ${projectsDirs.join(', ')}`);
+  }
+
+  return allEvents;
+}
+
+async function loadAllEventsWithoutTimeFilter(): Promise<SessionEvent[]> {
+  const allEvents: SessionEvent[] = [];
+
+  // Check both possible directories
+  const projectsDirs = [
+    join(homedir(), '.claude', 'projects'),
+    join(homedir(), '.config', 'claude', 'projects'),
+  ];
+
+  let foundAnyDir = false;
+
+  for (const projectsDir of projectsDirs) {
+    try {
+      const dirStat = await stat(projectsDir);
+      if (!dirStat.isDirectory()) continue;
+
+      foundAnyDir = true;
+
+      const dirs = await readdir(projectsDir);
+
+      for (const dir of dirs) {
+        const dirPath = join(projectsDir, dir);
+        try {
+          const files = await readdir(dirPath);
+
+          for (const file of files) {
+            if (file.endsWith('.jsonl')) {
+              const filePath = join(dirPath, file);
+
+              // Parse all events without time filtering
+              const events = await parseJSONLFileWithoutTimeFilter(filePath);
               allEvents.push(...events);
             }
           }
@@ -174,6 +237,39 @@ async function parseJSONLFile(
           timestamp: eventTime.toISOString(),
         });
       }
+    } catch (error) {
+      // Skip invalid lines
+      continue;
+    }
+  }
+
+  return events;
+}
+
+async function parseJSONLFileWithoutTimeFilter(filePath: string): Promise<SessionEvent[]> {
+  const content = await readFile(filePath, 'utf-8');
+  const lines = content.trim().split('\n');
+  const events: SessionEvent[] = [];
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+
+    try {
+      const data = JSON.parse(line);
+
+      // Validate and parse event
+      const validationResult = SessionEventSchema.safeParse(data);
+      if (!validationResult.success) {
+        continue;
+      }
+
+      const event = validationResult.data;
+      const eventTime = new Date(event.timestamp);
+
+      events.push({
+        ...event,
+        timestamp: eventTime.toISOString(),
+      });
     } catch (error) {
       // Skip invalid lines
       continue;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 import { SessionTimeline } from '../models/events';
-import { loadSessionsInTimeRange } from '../core/parser';
+import { loadSessionsInTimeRange, loadAllSessions } from '../core/parser';
 import { ProjectTable } from './ProjectTable';
 import { ColorTheme } from './colorThemes';
 
@@ -11,9 +11,10 @@ interface AppProps {
   color: ColorTheme;
   sort?: string;
   reverse?: boolean;
+  allTime?: boolean;
 }
 
-export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse }) => {
+export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse, allTime }) => {
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,16 +22,25 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse 
   useEffect(() => {
     async function loadData() {
       try {
-        const now = new Date();
-        const startTime = new Date();
+        let sessions: SessionTimeline[];
 
-        if (hours) {
-          startTime.setHours(now.getHours() - hours);
+        if (allTime) {
+          // Load all sessions without time filtering
+          sessions = await loadAllSessions();
         } else {
-          startTime.setDate(now.getDate() - days);
+          // Load sessions with time range filtering
+          const now = new Date();
+          const startTime = new Date();
+
+          if (hours) {
+            startTime.setHours(now.getHours() - hours);
+          } else {
+            startTime.setDate(now.getDate() - days);
+          }
+
+          sessions = await loadSessionsInTimeRange(startTime, now);
         }
 
-        const sessions = await loadSessionsInTimeRange(startTime, now);
         setTimelines(sessions);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -40,7 +50,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse 
     }
 
     loadData();
-  }, [days, hours]);
+  }, [days, hours, allTime]);
 
   if (loading) {
     return <Text>Loading Claude sessions...</Text>;
@@ -59,6 +69,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse 
         color={color}
         sort={sort}
         reverse={reverse}
+        allTime={allTime}
       />
     </Box>
   );
