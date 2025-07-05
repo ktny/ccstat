@@ -18,6 +18,7 @@ interface ProjectTableProps {
   sort?: string;
   reverse?: boolean;
   allTime?: boolean;
+  project?: string[];
 }
 
 export const ProjectTable: React.FC<ProjectTableProps> = ({
@@ -28,6 +29,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   sort,
   reverse,
   allTime,
+  project = [],
 }) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
@@ -43,7 +45,11 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   }, [timelines, sort, reverse]);
 
   if (sortedTimelines.length === 0) {
-    return <Text>🔍 No Claude sessions found in the specified time range</Text>;
+    const message =
+      project.length > 0
+        ? `🔍 No Claude sessions found for project(s): ${project.join(', ')}`
+        : '🔍 No Claude sessions found in the specified time range';
+    return <Text>{message}</Text>;
   }
 
   const totalEvents = sortedTimelines.reduce((sum, t) => sum + t.eventCount, 0);

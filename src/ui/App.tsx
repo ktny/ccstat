@@ -12,9 +12,18 @@ interface AppProps {
   sort?: string;
   reverse?: boolean;
   allTime?: boolean;
+  project?: string[];
 }
 
-export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse, allTime }) => {
+export const App: React.FC<AppProps> = ({
+  days = 1,
+  hours,
+  color,
+  sort,
+  reverse,
+  allTime,
+  project = [],
+}) => {
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +50,16 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse,
           sessions = await loadSessionsInTimeRange(startTime, now);
         }
 
-        setTimelines(sessions);
+        // Apply project filtering if specified
+        let filteredSessions = sessions;
+        if (project.length > 0) {
+          const projectFilters = project.map(p => p.toLowerCase());
+          filteredSessions = sessions.filter(session =>
+            projectFilters.some(filter => session.projectName.toLowerCase().includes(filter))
+          );
+        }
+
+        setTimelines(filteredSessions);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -50,7 +68,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse,
     }
 
     loadData();
-  }, [days, hours, allTime]);
+  }, [days, hours, allTime, project]);
 
   if (loading) {
     return <Text>Loading Claude sessions...</Text>;
@@ -70,6 +88,7 @@ export const App: React.FC<AppProps> = ({ days = 1, hours, color, sort, reverse,
         sort={sort}
         reverse={reverse}
         allTime={allTime}
+        project={project}
       />
     </Box>
   );
