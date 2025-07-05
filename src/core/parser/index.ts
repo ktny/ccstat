@@ -117,16 +117,28 @@ async function loadEventsFromProjects(
     join(homedir(), '.config', 'claude', 'projects'),
   ];
 
-  let foundAnyDir = false;
   const allFilePaths: { filePath: string; projectName: string }[] = [];
 
   for (const projectsDir of projectsDirs) {
-    foundAnyDir = true;
+    try {
+      const dirStat = await stat(projectsDir);
+      if (!dirStat.isDirectory()) continue;
+    } catch (error) {
+      continue;
+    }
+
     const dirs = await readdir(projectsDir);
 
     for (const dir of dirs) {
       const dirPath = join(projectsDir, dir);
-      const dirStats = await stat(dirPath);
+
+      let dirStats;
+      try {
+        dirStats = await stat(dirPath);
+      } catch (error) {
+        continue;
+      }
+
       if (!dirStats.isDirectory()) continue;
 
       const files = await readdir(dirPath);
@@ -148,10 +160,6 @@ async function loadEventsFromProjects(
     }
   }
 
-  if (!foundAnyDir) {
-    throw new Error(`Claude projects directory not found. Checked: ${projectsDirs.join(', ')}`);
-  }
-
   // Set total files count
   if (progressTracker) {
     progressTracker.setTotalFiles(allFilePaths.length);
@@ -162,21 +170,9 @@ async function loadEventsFromProjects(
     return parseJSONLFile(filePath, filterOptions, progressTracker);
   });
 
-  // Process all files in parallel and efficiently concatenate results
+  // Process all files in parallel and flatten results
   const allEventArrays = await Promise.all(fileProcessingTasks);
-
-  // Calculate total length for better memory allocation
-  const totalLength = allEventArrays.reduce((sum, events) => sum + events.length, 0);
-  const allEvents: SessionEvent[] = new Array(totalLength);
-
-  let index = 0;
-  for (const events of allEventArrays) {
-    for (const event of events) {
-      allEvents[index++] = event;
-    }
-  }
-
-  return allEvents;
+  return allEventArrays.flat();
 }
 
 async function parseJSONLFile(
