@@ -4,6 +4,8 @@ import { SessionTimeline } from '../models/events';
 import { loadSessionsInTimeRange, loadAllSessions } from '../core/parser';
 import { ProjectTable } from './ProjectTable';
 import { ColorTheme } from './colorThemes';
+import { LoadingScreen } from './components/LoadingScreen';
+import { ProgressTracker, ProgressUpdate } from '../utils/progressTracker';
 
 interface AppProps {
   days?: number;
@@ -27,10 +29,19 @@ export const App: React.FC<AppProps> = ({
   const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ProgressUpdate>({
+    totalFiles: 0,
+    processedFiles: 0,
+  });
 
   useEffect(() => {
     async function loadData() {
       try {
+        // Create progress tracker
+        const progressTracker = new ProgressTracker(update => {
+          setProgress(update);
+        });
+
         let sessions: SessionTimeline[];
 
         // Pass project filtering to parser level for performance optimization
@@ -38,7 +49,7 @@ export const App: React.FC<AppProps> = ({
 
         if (allTime) {
           // Load all sessions without time filtering
-          sessions = await loadAllSessions(projectNames);
+          sessions = await loadAllSessions(projectNames, progressTracker);
         } else {
           // Load sessions with time range filtering
           const now = new Date();
@@ -50,12 +61,19 @@ export const App: React.FC<AppProps> = ({
             startTime.setDate(now.getDate() - days);
           }
 
-          sessions = await loadSessionsInTimeRange(startTime, now, projectNames);
+          sessions = await loadSessionsInTimeRange(startTime, now, projectNames, progressTracker);
         }
 
         setTimelines(sessions);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(errorMessage);
+
+        // Reset progress on error
+        setProgress({
+          totalFiles: 0,
+          processedFiles: 0,
+        });
       } finally {
         setLoading(false);
       }
@@ -65,7 +83,7 @@ export const App: React.FC<AppProps> = ({
   }, [days, hours, allTime, project]);
 
   if (loading) {
-    return <Text>Loading Claude sessions...</Text>;
+    return <LoadingScreen progress={progress} />;
   }
 
   if (error) {
