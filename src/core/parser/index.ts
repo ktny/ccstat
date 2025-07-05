@@ -23,6 +23,8 @@ function getCachedRepositoryName(directory: string): string {
 
   let repoName = getRepositoryName(directory);
 
+  console.log({ repoName });
+
   if (!repoName) {
     // Try to find parent repository
     repoName = findParentRepository(directory);
@@ -119,36 +121,30 @@ async function loadEventsFromProjects(
   const allFilePaths: { filePath: string; projectName: string }[] = [];
 
   for (const projectsDir of projectsDirs) {
-    try {
-      foundAnyDir = true;
-      const dirs = await readdir(projectsDir);
+    foundAnyDir = true;
+    const dirs = await readdir(projectsDir);
 
-      for (const dir of dirs) {
-        const dirPath = join(projectsDir, dir);
-        try {
-          const files = await readdir(dirPath);
+    for (const dir of dirs) {
+      const dirPath = join(projectsDir, dir);
+      const dirStats = await stat(dirPath);
+      if (!dirStats.isDirectory()) continue;
 
-          // Early project filtering - check if directory should be processed
-          const repoName = getCachedRepositoryName(dirPath);
-          if (filterOptions?.projectNames?.length) {
-            if (!filterOptions.projectNames.includes(repoName)) {
-              continue; // Skip this entire directory
-            }
-          }
+      const files = await readdir(dirPath);
 
-          for (const file of files) {
-            if (file.endsWith('.jsonl')) {
-              const filePath = join(dirPath, file);
-              allFilePaths.push({ filePath, projectName: repoName });
-            }
-          }
-        } catch (error) {
-          // Skip inaccessible directories
+      // Early project filtering - check if directory should be processed
+      const repoName = getCachedRepositoryName(dirPath);
+      if (filterOptions?.projectNames?.length) {
+        if (!filterOptions.projectNames.includes(repoName)) {
+          continue; // Skip this entire directory
         }
       }
-    } catch (error) {
-      // Directory doesn't exist, try the next one
-      continue;
+
+      for (const file of files) {
+        if (file.endsWith('.jsonl')) {
+          const filePath = join(dirPath, file);
+          allFilePaths.push({ filePath, projectName: repoName });
+        }
+      }
     }
   }
 

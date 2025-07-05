@@ -5,6 +5,8 @@ export function getRepositoryName(directory: string): string | null {
   try {
     const gitPath = join(directory, '.git');
 
+    console.log(gitPath);
+
     // Check if .git exists
     if (!existsSync(gitPath)) {
       return null;
