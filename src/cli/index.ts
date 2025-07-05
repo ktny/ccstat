@@ -20,6 +20,7 @@ program
   )
   .option('--reverse', 'reverse sort order (default: ascending)')
   .option('--all-time', 'display all session history across all time periods')
+  .option('-p, --project <names...>', 'filter by project names (space-separated)')
   .parse(process.argv);
 
 async function main() {
@@ -33,6 +34,7 @@ async function main() {
       sort: options.sort,
       reverse: options.reverse || false,
       allTime: options.allTime || false,
+      project: options.project || [],
     })
   );
 
