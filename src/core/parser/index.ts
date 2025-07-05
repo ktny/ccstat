@@ -86,8 +86,7 @@ export async function loadSessionsInTimeRange(
 
   const grouped = await groupEventsByRepositoryConsolidated(events);
 
-  // Always use consolidated mode - sort by event count
-  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+  return Array.from(grouped.values());
 }
 
 export async function loadAllSessions(
@@ -101,8 +100,7 @@ export async function loadAllSessions(
 
   const grouped = await groupEventsByRepositoryConsolidated(events);
 
-  // Always use consolidated mode - sort by event count
-  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+  return Array.from(grouped.values());
 }
 
 interface FilterOptions {

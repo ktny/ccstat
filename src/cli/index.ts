@@ -30,7 +30,7 @@ async function main() {
     React.createElement(App, {
       days: options.hours ? undefined : parseInt(options.days),
       hours: options.hours ? parseInt(options.hours) : undefined,
-      color: options.color || 'random',
+      color: options.color,
       sort: options.sort,
       reverse: options.reverse || false,
       allTime: options.allTime || false,
