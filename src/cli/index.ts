@@ -14,6 +14,10 @@ program
   .option('-H, --hours <number>', 'display activity for the last N hours')
   .option('--worktree', 'display directories separately even within the same repository')
   .option('--color <theme>', 'color theme: blue, green, orange, purple, classic', 'green')
+  .option(
+    '--sort <option>',
+    'sort by: project:asc, project:desc, created:asc, created:desc, events:asc, events:desc, duration:asc, duration:desc'
+  )
   .option('--debug', 'enable debug output')
   .parse(process.argv);
 
@@ -26,6 +30,7 @@ async function main() {
       hours: options.hours ? parseInt(options.hours) : undefined,
       worktree: options.worktree || false,
       color: options.color || 'random',
+      sort: options.sort,
       debug: options.debug || false,
     })
   );
