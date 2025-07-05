@@ -19,6 +19,7 @@ program
     'timeline'
   )
   .option('--reverse', 'reverse sort order (default: ascending)')
+  .option('--all-time', 'display all session history across all time periods')
   .parse(process.argv);
 
 async function main() {
@@ -31,6 +32,7 @@ async function main() {
       color: options.color || 'random',
       sort: options.sort,
       reverse: options.reverse || false,
+      allTime: options.allTime || false,
     })
   );
 

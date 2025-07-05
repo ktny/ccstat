@@ -17,6 +17,7 @@ interface ProjectTableProps {
   color: ColorTheme;
   sort?: string;
   reverse?: boolean;
+  allTime?: boolean;
 }
 
 export const ProjectTable: React.FC<ProjectTableProps> = ({
@@ -26,6 +27,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   color,
   sort,
   reverse,
+  allTime,
 }) => {
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
@@ -47,16 +49,44 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   const totalEvents = sortedTimelines.reduce((sum, t) => sum + t.eventCount, 0);
   const totalDuration = sortedTimelines.reduce((sum, t) => sum + t.activeDuration, 0);
 
-  const startTime = new Date();
-  const endTime = new Date();
+  const { startTime, endTime, timeRangeText } = useMemo(() => {
+    if (allTime) {
+      // Calculate actual time range from the data
+      if (sortedTimelines.length === 0) {
+        const now = new Date();
+        return {
+          startTime: now,
+          endTime: now,
+          timeRangeText: 'all time',
+        };
+      }
 
-  if (hours) {
-    startTime.setHours(endTime.getHours() - hours);
-  } else {
-    startTime.setDate(endTime.getDate() - (days || 1));
-  }
+      const allStartTimes = sortedTimelines.map(t => t.startTime);
+      const allEndTimes = sortedTimelines.map(t => t.endTime);
 
-  const timeRangeText = hours ? `${hours} hours` : `${days || 1} days`;
+      return {
+        startTime: new Date(Math.min(...allStartTimes.map(t => t.getTime()))),
+        endTime: new Date(Math.max(...allEndTimes.map(t => t.getTime()))),
+        timeRangeText: 'all time',
+      };
+    } else {
+      // Use provided time range
+      const endTime = new Date();
+      const startTime = new Date();
+
+      if (hours) {
+        startTime.setHours(endTime.getHours() - hours);
+      } else {
+        startTime.setDate(endTime.getDate() - (days || 1));
+      }
+
+      return {
+        startTime,
+        endTime,
+        timeRangeText: hours ? `${hours} hours` : `${days || 1} days`,
+      };
+    }
+  }, [allTime, sortedTimelines, hours, days]);
 
   // Calculate responsive column widths
   const projectWidth = calculateProjectWidth(sortedTimelines);
