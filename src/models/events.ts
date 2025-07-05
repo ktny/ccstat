@@ -25,7 +25,6 @@ export interface SessionTimeline {
   projectName: string;
   directory: string;
   repository?: string;
-  isChild?: boolean;
   events: SessionEvent[];
   eventCount: number;
   activeDuration: number;

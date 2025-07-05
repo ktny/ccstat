@@ -40,12 +40,8 @@ describe('loadSessionsInTimeRange after removing worktree option', () => {
       // and not show parent-child relationships (worktree behavior)
       expect(Array.isArray(result)).toBe(true);
 
-      // In consolidated mode, no timeline should have isChild property
-      if (result.length > 0) {
-        result.forEach(timeline => {
-          expect(timeline.isChild).toBeUndefined();
-        });
-      }
+      // In consolidated mode, timelines should not have isChild property
+      // (isChild has been removed from the interface entirely)
     } catch (error) {
       // Expected to fail due to missing Claude projects directory in test environment
       expect(error).toBeDefined();
