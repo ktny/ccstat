@@ -33,9 +33,12 @@ export const App: React.FC<AppProps> = ({
       try {
         let sessions: SessionTimeline[];
 
+        // Pass project filtering to parser level for performance optimization
+        const projectNames = project.length > 0 ? project : undefined;
+
         if (allTime) {
           // Load all sessions without time filtering
-          sessions = await loadAllSessions();
+          sessions = await loadAllSessions(projectNames);
         } else {
           // Load sessions with time range filtering
           const now = new Date();
@@ -47,19 +50,10 @@ export const App: React.FC<AppProps> = ({
             startTime.setDate(now.getDate() - days);
           }
 
-          sessions = await loadSessionsInTimeRange(startTime, now);
+          sessions = await loadSessionsInTimeRange(startTime, now, projectNames);
         }
 
-        // Apply project filtering if specified
-        let filteredSessions = sessions;
-        if (project.length > 0) {
-          const projectFilters = project.map(p => p.toLowerCase());
-          filteredSessions = sessions.filter(session =>
-            projectFilters.some(filter => session.projectName.toLowerCase().includes(filter))
-          );
-        }
-
-        setTimelines(filteredSessions);
+        setTimelines(sessions);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {

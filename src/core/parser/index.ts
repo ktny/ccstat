@@ -3,6 +3,7 @@ import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
 import { SessionEvent, SessionEventSchema, SessionTimeline } from '../../models/events';
 import { getRepositoryName } from '../git';
+import { PerformanceTimer, logPerformanceMetrics } from '../../utils/performance';
 
 const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go version
 
@@ -71,36 +72,39 @@ function findParentRepository(directory: string): string | null {
 
 export async function loadSessionsInTimeRange(
   startTime: Date,
-  endTime: Date
+  endTime: Date,
+  projectNames?: string[]
 ): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
-  const events = await loadEventsFromProjects({ startTime, endTime });
+  const events = await loadEventsFromProjects({ startTime, endTime, projectNames });
   const grouped = await groupEventsByRepositoryConsolidated(events);
 
   // Always use consolidated mode - sort by event count
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
 }
 
-export async function loadAllSessions(): Promise<SessionTimeline[]> {
+export async function loadAllSessions(projectNames?: string[]): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
-  const events = await loadEventsFromProjects();
+  const events = await loadEventsFromProjects({ projectNames });
   const grouped = await groupEventsByRepositoryConsolidated(events);
 
   // Always use consolidated mode - sort by event count
   return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
 }
 
-interface TimeFilterOptions {
+interface FilterOptions {
   startTime?: Date;
   endTime?: Date;
+  projectNames?: string[];
 }
 
-async function loadEventsFromProjects(timeFilter?: TimeFilterOptions): Promise<SessionEvent[]> {
-  const allEvents: SessionEvent[] = [];
+async function loadEventsFromProjects(filterOptions?: FilterOptions): Promise<SessionEvent[]> {
+  const timer = new PerformanceTimer();
+  timer.start();
 
   // Check both possible directories
   const projectsDirs = [
@@ -109,6 +113,8 @@ async function loadEventsFromProjects(timeFilter?: TimeFilterOptions): Promise<S
   ];
 
   let foundAnyDir = false;
+  let fileCount = 0;
+  const fileProcessingTasks: Promise<SessionEvent[]>[] = [];
 
   for (const projectsDir of projectsDirs) {
     try {
@@ -122,16 +128,24 @@ async function loadEventsFromProjects(timeFilter?: TimeFilterOptions): Promise<S
       for (const dir of dirs) {
         const dirPath = join(projectsDir, dir);
         try {
+          // Early project filtering - check if directory should be processed
+          if (filterOptions?.projectNames?.length) {
+            const repoName = getCachedRepositoryName(dirPath);
+            if (!filterOptions.projectNames.includes(repoName)) {
+              continue; // Skip this entire directory
+            }
+          }
+
           const files = await readdir(dirPath);
 
           for (const file of files) {
             if (file.endsWith('.jsonl')) {
               const filePath = join(dirPath, file);
 
-              // Apply time filtering based on options
-              const events = await parseJSONLFile(filePath, timeFilter);
-
-              allEvents.push(...events);
+              // Create a promise for parallel processing
+              const task = parseJSONLFile(filePath, filterOptions);
+              fileProcessingTasks.push(task);
+              fileCount++;
             }
           }
         } catch (error) {
@@ -149,17 +163,40 @@ async function loadEventsFromProjects(timeFilter?: TimeFilterOptions): Promise<S
     throw new Error(`Claude projects directory not found. Checked: ${projectsDirs.join(', ')}`);
   }
 
+  // Process all files in parallel and efficiently concatenate results
+  const allEventArrays = await Promise.all(fileProcessingTasks);
+
+  // Calculate total length for better memory allocation
+  const totalLength = allEventArrays.reduce((sum, events) => sum + events.length, 0);
+  const allEvents: SessionEvent[] = new Array(totalLength);
+
+  let index = 0;
+  for (const events of allEventArrays) {
+    for (const event of events) {
+      allEvents[index++] = event;
+    }
+  }
+
+  const duration = timer.stop();
+  logPerformanceMetrics('loadEventsFromProjects', {
+    totalDuration: duration,
+    fileCount,
+    eventCount: totalLength,
+    avgFileProcessingTime: fileCount > 0 ? duration / fileCount : 0,
+    avgEventsPerFile: fileCount > 0 ? totalLength / fileCount : 0,
+  });
+
   return allEvents;
 }
 
 async function parseJSONLFile(
   filePath: string,
-  timeFilter?: TimeFilterOptions
+  filterOptions?: FilterOptions
 ): Promise<SessionEvent[]> {
   // Check file modification time for performance optimization
-  if (timeFilter && timeFilter.startTime) {
+  if (filterOptions && filterOptions.startTime) {
     const stats = await stat(filePath);
-    if (stats.mtime < timeFilter.startTime) {
+    if (stats.mtime < filterOptions.startTime) {
       return [];
     }
   }
@@ -174,6 +211,11 @@ async function parseJSONLFile(
     try {
       const data = JSON.parse(line);
 
+      // Fast check for required fields before expensive validation
+      if (!data || typeof data !== 'object' || !data.timestamp || !data.sessionId) {
+        continue;
+      }
+
       // Validate and parse event
       const validationResult = SessionEventSchema.safeParse(data);
       if (!validationResult.success) {
@@ -184,22 +226,20 @@ async function parseJSONLFile(
       const eventTime = new Date(event.timestamp);
 
       // Apply time filtering if provided
-      if (timeFilter && timeFilter.startTime && timeFilter.endTime) {
+      if (filterOptions && filterOptions.startTime && filterOptions.endTime) {
         // Convert to local time
         const localEventTime = new Date(eventTime.toLocaleString());
 
-        if (localEventTime >= timeFilter.startTime && localEventTime <= timeFilter.endTime) {
-          events.push({
-            ...event,
-            timestamp: eventTime.toISOString(),
-          });
+        if (localEventTime >= filterOptions.startTime && localEventTime <= filterOptions.endTime) {
+          // Optimize object creation by directly modifying timestamp
+          event.timestamp = eventTime.toISOString();
+          events.push(event);
         }
       } else {
         // No time filtering, include all events
-        events.push({
-          ...event,
-          timestamp: eventTime.toISOString(),
-        });
+        // Optimize object creation by directly modifying timestamp
+        event.timestamp = eventTime.toISOString();
+        events.push(event);
       }
     } catch (error) {
       // Skip invalid lines

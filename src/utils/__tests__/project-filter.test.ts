@@ -1,6 +1,6 @@
 import { SessionTimeline } from '../../models/events';
 
-// Helper function to simulate project filtering logic
+// Helper function to simulate project filtering logic (exact match with case sensitivity)
 function filterProjectsByNames(
   timelines: SessionTimeline[],
   projectNames: string[]
@@ -9,10 +9,8 @@ function filterProjectsByNames(
     return timelines;
   }
 
-  const projectFilters = projectNames.map(p => p.toLowerCase());
-  return timelines.filter(session =>
-    projectFilters.some(filter => session.projectName.toLowerCase().includes(filter))
-  );
+  // Exact match with case sensitivity
+  return timelines.filter(session => projectNames.some(filter => session.projectName === filter));
 }
 
 describe('Project filtering logic', () => {
@@ -78,26 +76,24 @@ describe('Project filtering logic', () => {
       expect(result.map(t => t.projectName)).toEqual(['project-alpha', 'project-beta']);
     });
 
-    it('should support case-insensitive filtering', () => {
+    it('should be case-sensitive (not match different case)', () => {
       const result = filterProjectsByNames(mockTimelines, ['PROJECT-ALPHA']);
-      expect(result).toHaveLength(1);
-      expect(result[0].projectName).toBe('project-alpha');
+      expect(result).toHaveLength(0); // Should not match due to case sensitivity
     });
 
-    it('should support case-insensitive filtering with mixed case input', () => {
-      const result = filterProjectsByNames(mockTimelines, ['myproject']);
+    it('should be case-sensitive with mixed case projects', () => {
+      const result = filterProjectsByNames(mockTimelines, ['MyProject']);
       expect(result).toHaveLength(1);
       expect(result[0].projectName).toBe('MyProject');
+
+      // Should not match lowercase
+      const result2 = filterProjectsByNames(mockTimelines, ['myproject']);
+      expect(result2).toHaveLength(0);
     });
 
-    it('should support partial matching', () => {
+    it('should require exact match (not partial)', () => {
       const result = filterProjectsByNames(mockTimelines, ['project']);
-      expect(result).toHaveLength(4); // All 4 projects contain "project"
-      const projectNames = result.map(t => t.projectName);
-      expect(projectNames).toContain('project-alpha');
-      expect(projectNames).toContain('project-beta');
-      expect(projectNames).toContain('other-project');
-      expect(projectNames).toContain('MyProject'); // MyProject also contains "project"
+      expect(result).toHaveLength(0); // Should not match any because "project" is not an exact match
     });
 
     it('should return empty array when no projects match', () => {
@@ -111,25 +107,23 @@ describe('Project filtering logic', () => {
       expect(result[0].projectName).toBe('project-alpha');
     });
 
-    it('should handle multiple filters with overlapping matches', () => {
-      const result = filterProjectsByNames(mockTimelines, ['project', 'alpha']);
-      expect(result).toHaveLength(4); // All projects match either "project" or "alpha"
+    it('should handle multiple exact matches', () => {
+      const result = filterProjectsByNames(mockTimelines, ['project-alpha', 'MyProject']);
+      expect(result).toHaveLength(2);
       const projectNames = result.map(t => t.projectName);
       expect(projectNames).toContain('project-alpha');
-      expect(projectNames).toContain('project-beta');
-      expect(projectNames).toContain('other-project');
       expect(projectNames).toContain('MyProject');
     });
 
     it('should maintain original order of filtered results', () => {
-      const result = filterProjectsByNames(mockTimelines, ['project']);
+      const result = filterProjectsByNames(mockTimelines, ['other-project', 'project-alpha']);
       const projectNames = result.map(t => t.projectName);
-      expect(projectNames).toEqual(['project-alpha', 'project-beta', 'other-project', 'MyProject']);
+      expect(projectNames).toEqual(['project-alpha', 'other-project']); // Order based on original array order
     });
 
     it('should handle empty string filter', () => {
       const result = filterProjectsByNames(mockTimelines, ['']);
-      expect(result).toHaveLength(4); // Empty string matches all projects
+      expect(result).toHaveLength(0); // Empty string should not match any projects
     });
 
     it('should handle whitespace in project filters', () => {
