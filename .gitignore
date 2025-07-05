@@ -1,45 +1,12 @@
-# Go binaries and build artifacts
-bin/
-*.exe
-
-# Go test artifacts
-*.test
-*.out
-
-# Go coverage
-*.coverprofile
-coverage.txt
-
-# Go dependency directories
-vendor/
-
-# Go module proxy cache
-go.sum
-.goproxy/
-
-# IDE specific files
-.idea/
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+coverage/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
-
-# OS specific files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Environment files
-.env
-.env.local
-.env.production
-
-# Log files
-*.log
-
-# Project specific
 .worktree/

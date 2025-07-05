@@ -6,35 +6,83 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ccstat is a CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
 
-**Implementation**: Go (primary and recommended for all development)
+**Available Implementations**:
+
+- **TypeScript** (primary): Modern, feature-rich implementation in project root
+- **Go** (secondary): High-performance implementation in `/go` directory
+
+**Development Priority**: TypeScript version is the main implementation and should be prioritized for new features and development.
 
 ### Key Features
+
 - Parses session information from Claude Code log files (~/.claude/projects/)
 - Visualizes project activity patterns in timeline format
-- Automatically calculates active time based on message intervals (3-minute threshold)
+- Automatically calculates active time based on message intervals (5-minute threshold for TypeScript, 3-minute for Go)
 - Automatically integrates and groups projects by Git repository
 
 ## Development Environment Setup
 
-### Go Development
+### TypeScript Development (Primary)
 
 ```bash
+# Install dependencies
+npm ci
+
+# Run in development mode
+npm run dev
+
 # Build the project
-make build
+npm run build
+
+# Run tests and quality checks
+npm run check
+```
+
+### Go Development (Secondary)
+
+```bash
+# Build the project (from /go directory)
+cd go && make build
 
 # Or build manually
-go build -o bin/ccstat ./cmd/ccstat
+cd go && go build -o bin/ccstat ./cmd/ccstat
 
 # Install to $GOPATH/bin
-make install
+cd go && make install
 ```
 
 ## Command Reference
 
-### Execution Commands
+### TypeScript Version Commands
 
 ```bash
 # Basic execution (last 1 day)
+npx @ktny/ccstat
+# or if installed globally
+ccstat
+
+# Display activity for the last N days
+ccstat --days 7
+
+# Display activity for the last N hours
+ccstat --hours 6
+
+# Worktree display (separate directories within the same repository)
+ccstat --worktree
+
+# Development commands
+npm run dev           # Run in development mode
+npm run dev:days      # Run with --days 2
+npm run dev:hours     # Run with --hours 6
+npm run build         # Build for production
+npm run test          # Run tests
+npm run check         # Run all quality checks
+```
+
+### Go Version Commands
+
+```bash
+# Basic execution (last 1 day) - from /go directory
 ./bin/ccstat
 
 # Display activity for the last N days
@@ -48,7 +96,7 @@ make install
 # Worktree display (separate directories within the same repository)
 ./bin/ccstat --worktree
 
-# Using Makefile shortcuts
+# Using Makefile shortcuts (from /go directory)
 make run        # Build and run with defaults
 make run-days   # Build and run with --days 2
 make run-hours  # Build and run with -H 6
@@ -59,39 +107,77 @@ make run-hours  # Build and run with -H 6
 
 ### Development Commands
 
-```bash
-# Code formatting (ALWAYS run before committing)
-go fmt ./...
+#### TypeScript Version
 
-# Code linting
-golangci-lint run
+```bash
+# Code formatting and linting
+npm run format
+npm run lint
+npm run lint:fix
+
+# Type checking
+npm run type-check
 
 # Build and test
-make build
-make test
-
-# Run ccstat in development environment  
-make run
-make run-days   # --days 2
-make run-hours  # --hours 6
-
-# Clean build artifacts
-make clean
+npm run build
+npm run test
 
 # Run specific tests
-go test ./cmd/ccstat/
-go test ./internal/claude/
+npm run test -- --testNamePattern="parser"
+
+# Clean build artifacts
+npm run clean
+```
+
+#### Go Version
+
+```bash
+# Code formatting (ALWAYS run before committing)
+cd go && go fmt ./...
+
+# Code linting
+cd go && golangci-lint run
+
+# Build and test
+cd go && make build
+cd go && make test
+
+# Run specific tests
+cd go && go test ./cmd/ccstat/
+cd go && go test ./internal/claude/
+
+# Clean build artifacts
+cd go && make clean
 ```
 
 ## Architecture
 
-### Core Structure
+### TypeScript Version Structure
+
 ```
-ccstat/
+src/
+├── cli/              # CLI entry point
+│   └── index.ts     # Main CLI definition
+├── core/            # Core business logic
+│   ├── analyzer/    # Session analysis
+│   ├── parser/      # Claude log parsing
+│   └── git/         # Git integration
+├── ui/              # UI components (Ink)
+│   ├── App.tsx
+│   └── ProjectTable.tsx
+├── models/          # Type definitions
+│   └── events.ts
+└── utils/           # Utilities
+```
+
+### Go Version Structure
+
+```
+go/
 ├── cmd/ccstat/              # Main application entry point
 │   ├── main.go             # CLI interface & main execution logic
 │   └── main_test.go        # Basic integration tests
-├── internal/               # Internal packages (not importable externally)
+├── internal/               # Internal packages
 │   ├── claude/            # Claude log parsing & session analysis
 │   │   ├── parser.go      # Core JSONL parsing & session grouping
 │   │   └── parser_test.go # Unit tests for parser
@@ -106,74 +192,36 @@ ccstat/
 
 ### Major Components
 
-#### cmd/ccstat/main.go - CLI Entry Point
-- Uses Cobra for CLI argument parsing
-- Handles flags: --days, --hours, --worktree, --version, --debug
-- Orchestrates the main data flow: parse CLI → load sessions → create UI → display
+#### TypeScript Version
 
-#### internal/claude/parser.go - Log Analysis Engine
-- Parses Claude Code session logs (~/.claude/projects/*/*.jsonl)
-- `ParseJSONLFile()`: Parses individual JSONL files with large buffer support
-- `LoadSessionsInTimeRange()`: Main orchestrator for loading & filtering
-- `CalculateActiveDuration()`: Smart duration calculation with 3-minute inactivity threshold
-- `groupEventsByProject()`: Groups events by Git repository or directory
+- **CLI**: Commander.js for argument parsing
+- **UI**: Ink (React-like) for terminal interfaces
+- **Parser**: JSONL parsing with event filtering
+- **Git**: simple-git for repository integration
+- **Models**: Zod schemas for type validation
 
-#### internal/git/utils.go - Git Integration
-- Parses `.git/config` to extract repository names
-- Handles both regular repos and git worktrees
-- Supports SSH and HTTPS Git URLs with fallback to directory names
+#### Go Version
 
-#### internal/ui/table.go - Terminal UI
-- Uses Charmbracelet Lipgloss for styled terminal output
-- Creates timeline visualization with 5-level activity density colors
-- Adaptive time axis (15min intervals to yearly depending on range)
-- Responsive design that adapts to terminal width
-
-#### pkg/models/events.go - Data Models
-- `SessionEvent`: Individual message events with timestamp, directory, content, etc.
-- `SessionTimeline`: Aggregated timeline per project with events, duration, start/end times
-- Supports parent-child project relationships for hierarchical display
-
-### Data Flow
-1. CLI parsing with Cobra processes command-line arguments
-2. File discovery scans `~/.claude/projects/` for JSONL files
-3. JSONL parsing extracts events with timestamp filtering
-4. Project grouping by Git repository (consolidated or worktree mode)
-5. Active duration calculation and event statistics
-6. Terminal UI creation with colored timeline visualization
-7. Styled output to terminal
-
-### Key Algorithms
-
-#### Active Duration Calculation
-- Only counts time between consecutive events ≤ 3 minutes as active
-- Excludes long breaks (> 3 minutes) to measure actual work time
-- Minimum 5 minutes for single events
-- Provides realistic work time estimates
-
-#### Project Grouping Logic
-- **Default Mode**: Consolidates all directories within same Git repo
-- **Worktree Mode**: Shows parent-child relationships for complex repos
-- **Repository Detection**: Uses Git config parsing with fallback to directory names
-
-#### Timeline Visualization
-- Maps event count to 5-level color scale for activity density
-- Automatically selects appropriate time intervals based on range
-- Character-based timeline bars using `■` symbols with color coding
-
-### Important Dependencies
-- **github.com/spf13/cobra**: CLI framework
-- **github.com/charmbracelet/lipgloss**: Terminal styling
-- **github.com/muesli/reflow**: Text wrapping utilities
-- **golang.org/x/term**: Terminal size detection
-
-### Configuration and Data Sources
-- **Input Data**: `~/.claude/projects/*/*.jsonl` (Claude Code session logs)
-- **Data Format**: Each line is a JSON event (timestamp, sessionId, cwd, message, usage, etc.)
+- **CLI**: Cobra for argument parsing
+- **UI**: Lipgloss for styled terminal output
+- **Parser**: Native Go JSONL parsing with concurrent processing
+- **Git**: Native Git config parsing
+- **Models**: Go structs for data representation
 
 ## Development Guidelines
 
 ### Code Quality and Formatting
+
+#### TypeScript Version
+
+- **MANDATORY**: Run `npm run check` before committing
+- **MANDATORY**: All ESLint warnings must be fixed
+- Use TypeScript strict mode
+- Follow React/Ink patterns for UI components
+- Use Zod for runtime type validation
+
+#### Go Version
+
 - **MANDATORY**: Always run `go fmt ./...` before committing any Go code
 - **MANDATORY**: Run `golangci-lint run` and fix all issues before committing
 - Follow Go standard conventions for naming, structure, and documentation
@@ -181,12 +229,23 @@ ccstat/
 - Add comments for exported functions and types
 
 ### Testing
+
+#### TypeScript Version
+
+- Run `npm run test` to execute all tests
+- Use Jest for unit testing
+- Test components using Ink testing utilities
+- Follow test-driven development where possible
+
+#### Go Version
+
 - Run `go test ./...` to execute all tests
 - Follow table-driven test patterns as seen in existing tests
 - Add tests for new functionality, especially core parsing logic
 - Test files follow `*_test.go` naming convention
 
 ### Project Integration Logic
+
 - Groups same projects by detecting Git repositories
 - With --worktree option, displays directories separately even within the same repository
 - Shows parent-child relationships (└─ indicates child projects)
@@ -194,6 +253,7 @@ ccstat/
 ### Pull Request Guidelines
 
 #### Creating Pull Requests
+
 - **Always create separate branches for different features/fixes**
 - Use descriptive branch names: `feat/feature-name`, `fix/issue-description`, `setup/tool-configuration`
 - Ensure all linting and formatting checks pass before creating PR
@@ -201,13 +261,16 @@ ccstat/
 - Include relevant tests for new functionality
 
 #### Branch Workflow
+
 ```bash
 # Create a new feature branch
 git checkout -b feat/new-feature
 
-# Make changes and ensure formatting
-go fmt ./...
-golangci-lint run
+# For TypeScript development
+npm run check  # Ensure all quality checks pass
+
+# For Go development
+cd go && go fmt ./... && golangci-lint run
 
 # Commit changes
 git add .
@@ -221,9 +284,11 @@ gh pr create --title "Add new feature" --body "Description of changes"
 ## Custom Commands
 
 ### `/project:worktree-task`
+
 A custom slash command that creates a new branch with git worktree under `.worktree` and creates a PR after task completion.
 
 #### Usage
+
 1. Execute `/project:worktree-task`
 2. Input task description
 3. A new worktree branch is automatically created
@@ -231,13 +296,74 @@ A custom slash command that creates a new branch with git worktree under `.workt
 5. After completion, automatically executes commit, push, and PR creation
 
 #### Prerequisites
+
 - GitHub CLI must be set up
 - Must have push permissions to remote repository
 
 #### Directory Structure
+
 ```
 .worktree/
 ├── feat-task-name-1221-1430/  # Each task's worktree directory
 └── .gitignore                 # .worktree/ is already added to .gitignore
 ```
 
+## Version Selection Guidelines
+
+### When to Use TypeScript Version
+
+- Default choice for most development
+- UI/UX improvements
+- New features development
+- Cross-platform compatibility
+- npm package distribution
+
+### When to Use Go Version
+
+- Performance-critical scenarios
+- Large log file processing
+- Memory-constrained environments
+- Single binary distribution
+- System integration
+
+## Configuration and Data Sources
+
+### Input Data
+
+- **TypeScript**: `~/.claude/projects/*/*.jsonl` and `~/.config/claude/projects/*/*.jsonl`
+- **Go**: `~/.claude/projects/*/*.jsonl`
+
+### Data Format
+
+Both versions parse the same JSONL format:
+
+```json
+{
+  "timestamp": "2025-07-03T12:34:56.789Z",
+  "sessionId": "session-123",
+  "cwd": "/home/user/project",
+  "message": "user message",
+  "usage": { "input_tokens": 100, "output_tokens": 50 }
+}
+```
+
+## Important Notes
+
+### File Organization
+
+- **TypeScript files**: Located in project root
+- **Go files**: Located in `/go` directory
+- Both versions maintain their own README.md files
+- Shared assets (logos, documentation) in project root
+
+### CI/CD
+
+- **Main CI**: Tests TypeScript version (`.github/workflows/ci.yml`)
+- **Go CI**: Tests Go version (`.github/workflows/go-ci.yml`)
+- Both run on pushes and PRs affecting their respective code
+
+### Development Focus
+
+- **Primary development**: TypeScript version
+- **Maintenance**: Go version receives bug fixes and critical updates
+- **Feature parity**: Not required, each version can have unique features based on their strengths

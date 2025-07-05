@@ -1,53 +1,46 @@
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
-    name: Go Build and Test
+  typescript:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
       with:
-        go-version: '1.23'
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
 
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
+    - name: Install dependencies
+      run: npm ci
 
-    - name: Download dependencies
-      run: go mod download
+    - name: Run linter
+      run: npm run lint
 
-    - name: Run go fmt check
+    - name: Run type check
+      run: npm run type-check
+
+    - name: Run tests
+      run: npm run test
+
+    - name: Build project
+      run: npm run build
+
+    - name: Test build output
       run: |
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "Code is not formatted. Please run 'go fmt ./...'"
-          gofmt -s -l .
-          exit 1
-        fi
-
-    # - name: Run golangci-lint
-    #   run: |
-    #     curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.0
-    #     golangci-lint run
-
-    - name: Build
-      run: go build -v ./cmd/ccstat
-
-    - name: Test
-      run: go test -v ./...
+        node dist/index.js --help
+        node dist/index.js --hours 1
 
