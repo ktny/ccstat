@@ -24,7 +24,7 @@ export const ProjectRow: React.FC<ProjectRowProps> = ({
   durationWidth,
   activityColors,
 }) => {
-  const projectName = timeline.isChild ? ` └─${timeline.projectName}` : timeline.projectName;
+  const projectName = timeline.projectName;
 
   const truncatedName =
     projectName.length > projectWidth - 2

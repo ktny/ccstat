@@ -101,10 +101,7 @@ export function calculateProjectWidth(timelines: SessionTimeline[]): number {
 
   let maxNameLength = 0;
   for (const timeline of timelines) {
-    let displayName = timeline.projectName;
-    if (timeline.isChild) {
-      displayName = ' └─' + timeline.projectName;
-    }
+    const displayName = timeline.projectName;
     if (displayName.length > maxNameLength) {
       maxNameLength = displayName.length;
     }
