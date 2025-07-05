@@ -83,7 +83,13 @@ export async function loadSessionsInTimeRange(
     ? await groupEventsByRepositoryWithChildren(events)
     : await groupEventsByRepositoryConsolidated(events);
 
-  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+  // For worktree mode, the order is already established by sortTimelinesWithHierarchy
+  // For consolidated mode, sort by event count
+  if (worktree) {
+    return Array.from(grouped.values());
+  } else {
+    return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+  }
 }
 
 async function loadAllEvents(startTime: Date, endTime: Date): Promise<SessionEvent[]> {
@@ -392,9 +398,14 @@ function sortTimelinesWithHierarchy(
 ): Map<string, SessionTimeline> {
   const parentProjects: SessionTimeline[] = [];
   const childProjectsMap = new Map<string, SessionTimeline[]>();
+  const allRepositoryNames = new Set<string>();
 
-  // Separate parents and children
+  // First pass: collect all repository names and separate parents/children
   for (const timeline of timelines.values()) {
+    if (timeline.repository) {
+      allRepositoryNames.add(timeline.repository);
+    }
+
     if (!timeline.isChild) {
       parentProjects.push(timeline);
     } else {
@@ -406,10 +417,32 @@ function sortTimelinesWithHierarchy(
     }
   }
 
-  // Sort parents by event count
+  // Create synthetic parent projects for orphaned children
+  for (const repoName of allRepositoryNames) {
+    const hasParent = parentProjects.some(p => p.projectName === repoName);
+    const hasChildren = childProjectsMap.has(repoName);
+
+    if (!hasParent && hasChildren) {
+      // Create a synthetic parent with 0 events
+      const children = childProjectsMap.get(repoName)!;
+      const syntheticParent: SessionTimeline = {
+        projectName: repoName,
+        directory: '',
+        repository: repoName,
+        events: [],
+        eventCount: 0,
+        activeDuration: 0,
+        startTime: children[0].startTime,
+        endTime: children[0].endTime,
+      };
+      parentProjects.push(syntheticParent);
+    }
+  }
+
+  // Sort parents by event count (descending)
   parentProjects.sort((a, b) => b.eventCount - a.eventCount);
 
-  // Sort children within each parent
+  // Sort children within each parent by event count (descending)
   for (const children of childProjectsMap.values()) {
     children.sort((a, b) => b.eventCount - a.eventCount);
   }
@@ -417,8 +450,25 @@ function sortTimelinesWithHierarchy(
   // Build sorted result
   const sorted = new Map<string, SessionTimeline>();
 
+  // First, collect all children's event counts per parent
+  const parentTotalEvents = new Map<string, number>();
+  for (const [parentName, children] of childProjectsMap.entries()) {
+    const totalChildEvents = children.reduce((sum, child) => sum + child.eventCount, 0);
+    parentTotalEvents.set(parentName, totalChildEvents);
+  }
+
+  // Sort parents considering both their own events and their children's events
+  parentProjects.sort((a, b) => {
+    const aTotal = a.eventCount + (parentTotalEvents.get(a.projectName) || 0);
+    const bTotal = b.eventCount + (parentTotalEvents.get(b.projectName) || 0);
+    return bTotal - aTotal;
+  });
+
   for (const parent of parentProjects) {
-    sorted.set(parent.projectName, parent);
+    // Only add parent if it has events (skip synthetic parents with 0 events)
+    if (parent.eventCount > 0) {
+      sorted.set(parent.projectName, parent);
+    }
 
     const children = childProjectsMap.get(parent.projectName) || [];
     for (const child of children) {
