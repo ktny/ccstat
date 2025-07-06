@@ -28,17 +28,37 @@ async function findJSFiles(dir) {
 
 async function fixImportsInFile(filePath) {
   const content = await readFile(filePath, 'utf-8');
-  
-  // Fix relative imports: add .js extension
-  const fixedContent = content
-    // Fix relative imports without extensions (starting with ./ or ../)
-    .replace(/from ['"](\\.{1,2}\/[^'"]*[^'"\/])['"];/g, "from '$1.js';")
-    // Fix relative imports from directory paths (add /index.js)
-    .replace(/from ['"](\\.{1,2}\/[^'"]*\/)['"];/g, "from '$1index.js';")
-    // Fix absolute-style imports that should be relative (starting with ../)
-    .replace(/from ['"](\.\.\/[^'"]*[^'"\/])['"];/g, "from '$1.js';")
-    // Fix double extensions
-    .replace(/\.js\.js/g, '.js');
+  let fixedContent = content;
+
+  // 1. First pass: Add .js extensions to relative imports
+  fixedContent = fixedContent
+    .replace(/from ['"](\\.\/[^'"]*[^'"\/\.])['"];/g, "from '$1.js';")
+    .replace(/from ['"](\.\.\/[^'"]*[^'"\/\.])['"];/g, "from '$1.js';");
+
+  // 2. Fix directory imports to use index.js
+  fixedContent = fixedContent
+    .replace(/from ['"](\\.{1,2}\/[^'"]*\/)['"];/g, "from '$1index.js';");
+
+  // 3. Fix specific known import issues
+  fixedContent = fixedContent
+    // core/parser directory import
+    .replace(/from ['"]\.\.\/core\/parser['"];/g, "from '../core/parser/index.js';")
+    .replace(/from ['"]\.\.\/core\/git['"];/g, "from '../core/git/index.js';")
+    // ui components without .js
+    .replace(/from ['"]\.\.\/ui\/([^'"\/]+)['"];/g, "from '../ui/$1.js';")
+    .replace(/from ['"]\.\/([^'"\/]+)['"];/g, "from './$1.js';");
+
+  // 4. Special fix for dist/index.js: convert ../ to ./
+  if (filePath.endsWith('dist/index.js') || filePath.endsWith('dist\\index.js')) {
+    fixedContent = fixedContent
+      .replace(/from ['"]\.\.\/ui\//g, "from './ui/")
+      .replace(/from ['"]\.\.\/core\//g, "from './core/")
+      .replace(/from ['"]\.\.\/models\//g, "from './models/")
+      .replace(/from ['"]\.\.\/utils\//g, "from './utils/");
+  }
+
+  // 5. Clean up double extensions
+  fixedContent = fixedContent.replace(/\.js\.js/g, '.js');
 
   if (content !== fixedContent) {
     await writeFile(filePath, fixedContent, 'utf-8');
