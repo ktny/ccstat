@@ -34,8 +34,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns || 80;
 
-  const colorScheme = useMemo(() => getColorScheme(color), [color]);
-  const activityColors = colorScheme.colors;
+  const activityColors = useMemo(() => getColorScheme(color), [color]);
   const borderColor = useMemo(() => getBorderColor(color), [color]);
 
   // Apply project filtering and sorting
