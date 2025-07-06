@@ -31,8 +31,6 @@ function getCachedRepositoryName(directory: string): string {
     }
   }
 
-  console.log(`Repository name for ${directory}: ${repoName}`);
-
   if (repoName) {
     repositoryCache.set(directory, repoName);
   }
@@ -322,16 +320,12 @@ async function groupEventsByRepositoryConsolidated(
 function calculateActiveDuration(events: SessionEvent[]): number {
   if (events.length <= 1) return 5; // Minimum 5 minutes for single event
 
-  // Sort events by timestamp
-  const sortedEvents = events.sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-
+  // Assume events are already sorted by timestamp
   let activeMinutes = 0;
 
-  for (let i = 1; i < sortedEvents.length; i++) {
-    const prevTime = new Date(sortedEvents[i - 1].timestamp);
-    const currTime = new Date(sortedEvents[i].timestamp);
+  for (let i = 1; i < events.length; i++) {
+    const prevTime = new Date(events[i - 1].timestamp);
+    const currTime = new Date(events[i].timestamp);
     const intervalMinutes = (currTime.getTime() - prevTime.getTime()) / (1000 * 60);
 
     // Only count intervals up to the threshold as active time
