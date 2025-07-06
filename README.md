@@ -1,314 +1,68 @@
+<div align="center">
+  <img src="assets/logo.png" alt="ccstat logo" width="140" />
+</div>
+
 # ccstat
 
-[![npm version](https://badge.fury.io/js/%40ktny%2Fccstat.svg)](https://badge.fury.io/js/%40ktny%2Fccstat)
-[![CI](https://github.com/ktny/ccstat/actions/workflows/ci.yml/badge.svg)](https://github.com/ktny/ccstat/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+> Visualize your Claude Code session activity timeline — fast, beautiful, and insightful!
 
-A CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format.
+[![npm version](https://badge.fury.io/js/ccstat.svg)](https://badge.fury.io/js/ccstat)
+![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
 
-## ✨ Features
+## ✨ What is ccstat?
 
-- 📊 **Timeline Visualization**: Interactive timeline showing project activity patterns
-- 🔍 **Smart Analysis**: Automatically calculates active time based on message intervals (5-minute threshold)
-- 🗂️ **Git Integration**: Automatically groups projects by Git repository
-- 🌳 **Worktree Support**: Handles Git worktrees and shows parent-child relationships
-- 🎨 **Beautiful UI**: Terminal-based UI with color-coded activity density
-- ⚡ **Fast Performance**: File modification time optimization for large codebases
-- 🔧 **Flexible Options**: Multiple time range options and display modes
+ccstat is a powerful CLI tool that analyzes your Claude Code session history and transforms it into beautiful timeline visualizations. Track your coding patterns and gain insights into your development workflow.
+
+![demo](assets/demo.png)
+
+### 🎯 Key Features
+
+- 📈 **Timeline Visualization** — Color-coded activity blocks showing your coding patterns
+- 📁 **Git Integration** — Automatically groups projects by repository
+- 🕐 **Flexible Time Ranges** — View activity by days (1+) or hours (1-24)
 
 ## 🚀 Installation
 
-### Via npm (Recommended)
+Install with a single command:
 
-```bash
-# Install globally
-npm install -g @ktny/ccstat
+```sh
+# Using npx
+npx ccstat
 
-# Or use directly with npx
-npx @ktny/ccstat
+# Using bunx (recommended for speed)
+bunx ccstat
 ```
-
-### Pre-built Binaries
-
-Download pre-built binaries from the [releases page](https://github.com/ktny/ccstat/releases).
 
 ## 📖 Usage
 
-### Basic Usage
+### Basic Commands
 
 ```bash
-# Show activity for the last 1 day (default)
-ccstat
+# View last 24 hours of activity
+npx ccstat
 
-# Show activity for the last 7 days
-ccstat --days 7
+# View all period
+npx ccstat -a
 
-# Show activity for the last 6 hours
-ccstat --hours 6
-# or using short option
-ccstat -H 6
+# View last 7 days
+npx ccstat --days 7
+
+# View last 6 hours
+npx ccstat --hours 6
+
+# View sorted events descending
+npx ccstat --sort events --reverse -a
+
+# View ocean color
+npx ccstat --color ocean
 ```
-
-### Advanced Options
-
-```bash
-# Worktree display (separate directories within the same repository)
-ccstat --worktree
-
-# Enable debug output
-ccstat --debug
-
-# Show help
-ccstat --help
-```
-
-### Development Scripts
-
-```bash
-# Run in development mode
-npm run dev
-
-# Run with specific time ranges
-npm run dev:days   # --days 2
-npm run dev:hours  # --hours 6
-
-# Build for production
-npm run build
-
-# Run tests and quality checks
-npm run check
-```
-
-## 🏗️ Architecture
-
-### Tech Stack
-
-- **Language**: TypeScript
-- **Runtime**: Node.js 18+
-- **CLI Framework**: Commander.js
-- **Terminal UI**: Ink (React-like components)
-- **Git Integration**: simple-git
-- **Type Validation**: Zod
-- **Date Processing**: date-fns
-
-### Project Structure
-
-```
-src/
-├── cli/              # CLI entry point
-│   └── index.ts      # Main CLI definition
-├── core/             # Core business logic
-│   ├── parser/       # Claude log parser
-│   └── git/          # Git integration
-├── ui/               # UI components (Ink)
-│   ├── App.tsx
-│   └── ProjectTable.tsx
-├── models/           # Type definitions
-└── utils/            # Utilities
-```
-
-## 📊 Output Example
-
-```
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ 📊 Claude Project Timeline | 2025-07-03 16:49 - 2025-07-03 22:49 (6 hours) | │
-│  3 projects                                                                  │
-╰──────────────────────────────────────────────────────────────────────────────╯
-
-╭──────────────────────────────────────────────────────────────────────────────╮
-│                                                                              │
-│ Project             Timeline | less ■■■■■ more      Events  Duration         │
-│                                                                              │
-│                     17  18   19  20   21   22                                │
-│ ──────────────────────────────────────────────────────────────────────────   │
-│ ccstat              ■■■■■■■■■■■■■■■■■■■■■■■■■■■■      1011       51m         │
-│ web-project         ■■■■■■■■■■■■■■■                 245        23m         │
-│ └─ mobile-app       ■■■■■■■                          67         12m         │
-╰──────────────────────────────────────────────────────────────────────────────╯
-
-Summary Statistics:
-  - Total Projects: 3
-  - Total Events: 1323
-  - Total Duration: 86 minutes
-```
-
-## 🎯 Key Algorithms
-
-### Active Duration Calculation
-
-- Only counts time between consecutive events ≤ 5 minutes as active
-- Excludes long breaks (> 5 minutes) to measure actual work time
-- Minimum 5 minutes for single events
-- Provides realistic work time estimates
-
-### Project Grouping Logic
-
-- **Default Mode**: Consolidates all directories within same Git repo
-- **Worktree Mode**: Shows parent-child relationships for complex repos
-- **Repository Detection**: Uses Git config parsing with fallback to directory names
-
-### Timeline Visualization
-
-- Maps event count to 5-level color scale for activity density
-- Automatically selects appropriate time intervals based on range
-- Character-based timeline bars using `■` symbols with color coding
-
-## 🔧 Configuration
-
-### Data Sources
-
-ccstat reads Claude Code session logs from:
-
-- `~/.claude/projects/*/*.jsonl` (primary)
-- `~/.config/claude/projects/*/*.jsonl` (fallback)
-
-### File Format
-
-Each line in the JSONL files represents a session event:
-
-```json
-{
-  "timestamp": "2025-07-03T12:34:56.789Z",
-  "sessionId": "session-123",
-  "cwd": "/home/user/project",
-  "message": "user message",
-  "usage": { "input_tokens": 100, "output_tokens": 50 }
-}
-```
-
-## 🛠️ Development
-
-### Prerequisites
-
-- Node.js 18 or higher
-- npm or pnpm
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/ktny/ccstat.git
-cd ccstat
-
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-```
-
-### Available Scripts
-
-```bash
-npm run dev          # Development mode
-npm run build        # Build for production
-npm run test         # Run tests
-npm run lint         # Lint code
-npm run lint:fix     # Fix linting issues
-npm run format       # Format code
-npm run type-check   # TypeScript type checking
-npm run check        # Run all quality checks
-npm run clean        # Clean build artifacts
-```
-
-### Code Quality
-
-The project uses:
-
-- **ESLint** for code linting
-- **Prettier** for code formatting
-- **TypeScript** for type checking
-- **Husky** for pre-commit hooks
-- **lint-staged** for staged file processing
-
-## 📦 Build & Release
-
-### Building for Production
-
-```bash
-# Build TypeScript to JavaScript
-npm run build
-
-# Build standalone binaries
-npm run package
-
-# Complete production build
-npm run build:prod
-```
-
-### Automated Release Process
-
-This project uses **semantic-release** for automated versioning and publishing to npm. The release process is triggered automatically when tags are pushed to the repository.
-
-#### How it works:
-
-1. **Commit Analysis**: Based on [Conventional Commits](https://www.conventionalcommits.org/)
-   - `feat:` → minor version bump
-   - `fix:` → patch version bump
-   - `BREAKING CHANGE:` → major version bump
-2. **Automatic Release**: When a tag is pushed, GitHub Actions automatically:
-   - Analyzes commit messages
-   - Determines the next version
-   - Updates package.json
-   - Publishes to npm
-   - Creates GitHub release
-   - Generates CHANGELOG.md
-
-#### Creating a Release:
-
-```bash
-# Create and push a tag to trigger release
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Or let semantic-release handle versioning automatically:
-
-```bash
-# Use conventional commit messages
-git commit -m "feat: add new feature"
-git commit -m "fix: resolve issue"
-git commit -m "feat!: breaking change"
-
-# Push to main branch
-git push origin main
-
-# Create any tag to trigger release
-git tag v0.0.0-trigger
-git push origin v0.0.0-trigger
-```
-
-#### Prerequisites for Release:
-
-- **NPM_TOKEN**: Set in GitHub repository secrets for npm publishing
-- **Conventional Commits**: Follow commit message format for proper versioning
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/amazing-feature`)
-3. Make your changes
-4. Run quality checks (`npm run check`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feat/amazing-feature`)
-7. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Built with [Ink](https://github.com/vadimdemedes/ink) for beautiful terminal UIs
-- Inspired by Git activity visualization tools
-- Thanks to the Claude Code team for the session logging format
-
-## 📞 Support
-
-- 🐛 [Report Bug](https://github.com/ktny/ccstat/issues)
-- 💡 [Request Feature](https://github.com/ktny/ccstat/issues)
-- 📧 [Contact](https://github.com/ktny)
-
 ---
 
-Made with ❤️ by [ktny](https://github.com/ktny)
+<div align="center">
+  <sub>Built with ❤️ for the Claude Code community</sub>
+</div>
