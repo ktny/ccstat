@@ -22,7 +22,7 @@ export const HeaderRow: React.FC<HeaderRowProps> = ({
         <Text bold>Project</Text>
       </Box>
       <Box width={timelineWidth}>
-        <Text bold color="whiteBright">
+        <Text bold>
           <Text>Timeline | less </Text>
           {activityColors.map((color, index) => {
             if (typeof color === 'function') {
@@ -41,9 +41,7 @@ export const HeaderRow: React.FC<HeaderRowProps> = ({
         <Text bold>Events</Text>
       </Box>
       <Box width={durationWidth} justifyContent="flex-end">
-        <Text bold color="yellow">
-          Duration
-        </Text>
+        <Text bold>Duration</Text>
       </Box>
     </Box>
   );

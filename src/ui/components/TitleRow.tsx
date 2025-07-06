@@ -17,7 +17,7 @@ export const TitleRow: React.FC<TitleRowProps> = ({
 }) => {
   return (
     <Box>
-      <Text>
+      <Text bold>
         ClaudeCode Working Timeline | {format(startTime, 'yyyy-MM-dd HH:mm')} -{' '}
         {format(endTime, 'yyyy-MM-dd HH:mm')} ({timeRangeText}) | {projectCount} projects
       </Text>
