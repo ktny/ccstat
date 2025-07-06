@@ -43,7 +43,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
     if (count === 0) {
       // No activity
       timelineElements.push(
-        <Text key={i} color="gray">
+        <Text key={i} color="dim">
           ■
         </Text>
       );

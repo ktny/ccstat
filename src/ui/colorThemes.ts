@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-export type ColorTheme = 'forest' | 'ocean' | 'sunset' | 'violet';
+export type ColorTheme = 'forest' | 'ocean' | 'honey' | 'sunset' | 'violet';
 
 export type ColorScheme = (string | ((text: string) => string))[];
 
@@ -11,6 +11,7 @@ const createHexGradient = (hexColors: string[]): ColorScheme =>
 export const COLOR_THEMES: Record<ColorTheme, ColorScheme> = {
   forest: createHexGradient(['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']),
   ocean: createHexGradient(['#f1eef6', '#bdc9e1', '#74a9cf', '#2b8cbe', '#045a8d']),
+  honey: createHexGradient(['#FFF9CC', '#FFF176', '#FFEB3B', '#FBC02D', '#F57F17']),
   sunset: createHexGradient(['#fef0d9', '#fdcc8a', '#fc8d59', '#e34a33', '#b30000']),
   violet: createHexGradient(['#edf8fb', '#b3cde3', '#8c96c6', '#8856a7', '#810f7c']),
 };
@@ -26,8 +27,10 @@ export function getBorderColor(theme: ColorTheme): string {
       return 'green';
     case 'ocean':
       return 'blue';
-    case 'sunset':
+    case 'honey':
       return 'yellow';
+    case 'sunset':
+      return 'red';
     case 'violet':
       return 'magenta';
     default:
