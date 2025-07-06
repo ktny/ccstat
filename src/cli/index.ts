@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { render } from 'ink';
 import React from 'react';
 import { App } from '../ui/App';
+import { isValidColorTheme, COLOR_THEME_VALUES } from '../ui/colorThemes';
 
 const program = new Command();
 
@@ -21,6 +22,13 @@ program
 
 async function main() {
   const options = program.opts();
+
+  // Validate color theme
+  if (!isValidColorTheme(options.color)) {
+    console.error(`Error: Invalid color theme '${options.color}'.`);
+    console.error(`Available color themes: ${COLOR_THEME_VALUES.join(', ')}`);
+    process.exit(1);
+  }
 
   const app = render(
     React.createElement(App, {

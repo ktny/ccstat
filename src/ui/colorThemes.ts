@@ -1,6 +1,12 @@
 import chalk from 'chalk';
 
-export type ColorTheme = 'forest' | 'ocean' | 'honey' | 'sunset' | 'violet';
+export const COLOR_THEME_VALUES = ['forest', 'ocean', 'honey', 'sunset', 'violet'] as const;
+
+export type ColorTheme = (typeof COLOR_THEME_VALUES)[number];
+
+export function isValidColorTheme(value: string): value is ColorTheme {
+  return COLOR_THEME_VALUES.includes(value as ColorTheme);
+}
 
 export type ColorScheme = (string | ((text: string) => string))[];
 
