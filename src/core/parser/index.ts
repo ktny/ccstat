@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
-import { Event, EventSchema, Timeline } from '../../models/events';
+import { Event, EventSchema, Timeline } from '../../models/models';
 import { getRepositoryName } from '../git';
 import { ProgressTracker } from '../../utils/progressTracker';
 

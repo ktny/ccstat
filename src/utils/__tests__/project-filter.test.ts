@@ -1,4 +1,4 @@
-import { Timeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 
 // Helper function to simulate project filtering logic (exact match with case sensitivity)
 function filterProjectsByNames(timelines: Timeline[], projectNames: string[]): Timeline[] {

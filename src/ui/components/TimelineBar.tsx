@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from 'ink';
-import { Timeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 
 interface TimelineBarProps {
   timeline: Timeline;

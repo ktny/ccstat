@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { Timeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 import { TimelineBar } from './TimelineBar';
 
 interface ProjectRowProps {

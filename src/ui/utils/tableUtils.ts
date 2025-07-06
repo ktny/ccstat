@@ -1,4 +1,4 @@
-import { Timeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 import { format } from 'date-fns';
 
 interface TimeAxisFormat {

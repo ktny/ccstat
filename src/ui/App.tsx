@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
-import { Timeline } from '../models/events';
+import { Timeline } from '../models/models';
 import { loadTimelines } from '../core/parser';
 import { ProjectTable } from './ProjectTable';
 import { ColorTheme } from './colorThemes';

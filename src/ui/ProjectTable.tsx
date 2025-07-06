@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Text, useStdout } from 'ink';
-import { Timeline } from '../models/events';
+import { Timeline } from '../models/models';
 import { ColorTheme, getColorScheme, getBorderColor } from './colorThemes';
 import { calculateProjectWidth } from './utils/tableUtils';
 import { TitleRow } from './components/TitleRow';

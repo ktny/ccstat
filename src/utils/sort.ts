@@ -1,4 +1,4 @@
-import { Timeline } from '../models/events';
+import { Timeline } from '../models/models';
 
 export type SortField = 'project' | 'timeline' | 'events' | 'duration';
 export type SortOrder = 'asc' | 'desc';

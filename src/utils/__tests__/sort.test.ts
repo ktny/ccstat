@@ -1,5 +1,5 @@
 import { createSortOptions, sortTimelines, SortField, SortOrder } from '../sort';
-import { Timeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 
 // Mock session timeline data for testing
 const createMockTimeline = (
