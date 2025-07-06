@@ -3,9 +3,9 @@
   "version": "2.0.3",
   "description": "CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format",
   "type": "module",
-  "main": "dist/cli/index.js",
+  "main": "dist/index.js",
   "bin": {
-    "ccstat": "./dist/cli/index.js"
+    "ccstat": "./dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/cli/index.ts",
@@ -15,7 +15,7 @@
     "clean:dist": "rm -rf dist",
     "prepublishOnly": "npm run check && npm run build",
     "prepack": "npm run build",
-    "start": "node dist/cli/index.js",
+    "start": "node dist/index.js",
     "test": "jest --passWithNoTests",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
