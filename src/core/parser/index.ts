@@ -71,38 +71,32 @@ function findParentRepository(directory: string): string | null {
 }
 
 export async function loadSessionsInTimeRange(
-  startTime: Date,
-  endTime: Date,
+  startTime?: Date,
+  endTime?: Date,
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<SessionTimeline[]> {
   // Clear repository cache at the start of each execution
   clearRepositoryCache();
 
-  const events = await loadEventsFromProjects(
-    { startTime, endTime, projectNames },
-    progressTracker
-  );
+  const filterOptions: FilterOptions = { projectNames };
+  if (startTime && endTime) {
+    filterOptions.startTime = startTime;
+    filterOptions.endTime = endTime;
+  }
+
+  const events = await loadEventsFromProjects(filterOptions, progressTracker);
 
   const grouped = await groupEventsByRepositoryConsolidated(events);
 
-  // Always use consolidated mode - sort by event count
-  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+  return Array.from(grouped.values());
 }
 
 export async function loadAllSessions(
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<SessionTimeline[]> {
-  // Clear repository cache at the start of each execution
-  clearRepositoryCache();
-
-  const events = await loadEventsFromProjects({ projectNames }, progressTracker);
-
-  const grouped = await groupEventsByRepositoryConsolidated(events);
-
-  // Always use consolidated mode - sort by event count
-  return Array.from(grouped.values()).sort((a, b) => b.eventCount - a.eventCount);
+  return loadSessionsInTimeRange(undefined, undefined, projectNames, progressTracker);
 }
 
 interface FilterOptions {
@@ -121,56 +115,39 @@ async function loadEventsFromProjects(
     join(homedir(), '.config', 'claude', 'projects'),
   ];
 
-  let foundAnyDir = false;
-  const allFilePaths: { filePath: string; projectName: string }[] = [];
-
-  // First pass: discover all files
+  const allFilePaths: string[] = [];
 
   for (const projectsDir of projectsDirs) {
     try {
       const dirStat = await stat(projectsDir);
       if (!dirStat.isDirectory()) continue;
-
-      foundAnyDir = true;
-      const dirs = await readdir(projectsDir);
-
-      for (const dir of dirs) {
-        const dirPath = join(projectsDir, dir);
-        try {
-          const files = await readdir(dirPath);
-
-          // Check if directory has any jsonl files before processing
-          const hasJsonlFiles = files.some(file => file.endsWith('.jsonl'));
-          if (!hasJsonlFiles) {
-            continue;
-          }
-
-          // Early project filtering - check if directory should be processed
-          const repoName = getCachedRepositoryName(dirPath);
-          if (filterOptions?.projectNames?.length) {
-            if (!filterOptions.projectNames.includes(repoName)) {
-              continue; // Skip this entire directory
-            }
-          }
-
-          for (const file of files) {
-            if (file.endsWith('.jsonl')) {
-              const filePath = join(dirPath, file);
-              allFilePaths.push({ filePath, projectName: repoName });
-            }
-          }
-        } catch (error) {
-          // Skip inaccessible directories
-        }
-      }
     } catch (error) {
-      // Directory doesn't exist, try the next one
       continue;
     }
-  }
 
-  if (!foundAnyDir) {
-    throw new Error(`Claude projects directory not found. Checked: ${projectsDirs.join(', ')}`);
+    const dirs = await readdir(projectsDir);
+
+    for (const dir of dirs) {
+      const dirPath = join(projectsDir, dir);
+
+      let dirStats;
+      try {
+        dirStats = await stat(dirPath);
+      } catch (error) {
+        continue;
+      }
+
+      if (!dirStats.isDirectory()) continue;
+
+      const files = await readdir(dirPath);
+
+      for (const file of files) {
+        if (file.endsWith('.jsonl')) {
+          const filePath = join(dirPath, file);
+          allFilePaths.push(filePath);
+        }
+      }
+    }
   }
 
   // Set total files count
@@ -179,25 +156,22 @@ async function loadEventsFromProjects(
   }
 
   // Process files with progress tracking
-  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(({ filePath }) => {
+  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(filePath => {
     return parseJSONLFile(filePath, filterOptions, progressTracker);
   });
 
-  // Process all files in parallel and efficiently concatenate results
-  const allEventArrays = await Promise.all(fileProcessingTasks);
+  // Process all files in parallel and flatten results
+  // Use allSettled to allow individual file failures
+  const results = await Promise.allSettled(fileProcessingTasks);
 
-  // Calculate total length for better memory allocation
-  const totalLength = allEventArrays.reduce((sum, events) => sum + events.length, 0);
-  const allEvents: SessionEvent[] = new Array(totalLength);
+  // Filter successful results and flatten
+  const allEventArrays = results
+    .filter(
+      (result): result is PromiseFulfilledResult<SessionEvent[]> => result.status === 'fulfilled'
+    )
+    .map(result => result.value);
 
-  let index = 0;
-  for (const events of allEventArrays) {
-    for (const event of events) {
-      allEvents[index++] = event;
-    }
-  }
-
-  return allEvents;
+  return allEventArrays.flat();
 }
 
 async function parseJSONLFile(
@@ -346,16 +320,12 @@ async function groupEventsByRepositoryConsolidated(
 function calculateActiveDuration(events: SessionEvent[]): number {
   if (events.length <= 1) return 5; // Minimum 5 minutes for single event
 
-  // Sort events by timestamp
-  const sortedEvents = events.sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-
+  // Assume events are already sorted by timestamp
   let activeMinutes = 0;
 
-  for (let i = 1; i < sortedEvents.length; i++) {
-    const prevTime = new Date(sortedEvents[i - 1].timestamp);
-    const currTime = new Date(sortedEvents[i].timestamp);
+  for (let i = 1; i < events.length; i++) {
+    const prevTime = new Date(events[i - 1].timestamp);
+    const currTime = new Date(events[i].timestamp);
     const intervalMinutes = (currTime.getTime() - prevTime.getTime()) / (1000 * 60);
 
     // Only count intervals up to the threshold as active time
