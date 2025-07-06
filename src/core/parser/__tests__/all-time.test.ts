@@ -1,28 +1,29 @@
-import { loadAllSessions, loadSessionsInTimeRange } from '../index';
+import { loadTimelines } from '../index';
 
 describe('All-time functionality', () => {
-  describe('loadAllSessions', () => {
-    it('should load sessions without time filtering', async () => {
-      // This test verifies that loadAllSessions function exists and can be called
+  describe('loadTimelines', () => {
+    it('should load timelines without time filtering', async () => {
+      // This test verifies that loadTimelines function exists and can be called
       // The actual data loading will depend on the user's environment
-      expect(typeof loadAllSessions).toBe('function');
+      expect(typeof loadTimelines).toBe('function');
 
       try {
-        const sessions = await loadAllSessions();
-        expect(Array.isArray(sessions)).toBe(true);
+        const timelines = await loadTimelines();
+        expect(Array.isArray(timelines)).toBe(true);
 
-        // Each session should have required properties
-        sessions.forEach(session => {
-          expect(session).toHaveProperty('projectName');
-          expect(session).toHaveProperty('events');
-          expect(session).toHaveProperty('eventCount');
-          expect(session).toHaveProperty('activeDuration');
-          expect(session).toHaveProperty('startTime');
-          expect(session).toHaveProperty('endTime');
-          expect(typeof session.eventCount).toBe('number');
-          expect(typeof session.activeDuration).toBe('number');
-          expect(session.startTime instanceof Date).toBe(true);
-          expect(session.endTime instanceof Date).toBe(true);
+        // Each timeline should have required properties
+        timelines.forEach(timeline => {
+          expect(timeline).toHaveProperty('repository');
+          expect(timeline).toHaveProperty('directory');
+          expect(timeline).toHaveProperty('events');
+          expect(timeline).toHaveProperty('eventCount');
+          expect(timeline).toHaveProperty('activeDuration');
+          expect(timeline).toHaveProperty('startTime');
+          expect(timeline).toHaveProperty('endTime');
+          expect(typeof timeline.eventCount).toBe('number');
+          expect(typeof timeline.activeDuration).toBe('number');
+          expect(timeline.startTime instanceof Date).toBe(true);
+          expect(timeline.endTime instanceof Date).toBe(true);
         });
       } catch (error) {
         // If no Claude data is available, that's expected in test environment
@@ -37,17 +38,17 @@ describe('All-time functionality', () => {
       }
     });
 
-    it('should potentially return more sessions than time-restricted version', async () => {
+    it('should potentially return more timelines than time-restricted version', async () => {
       try {
-        const allSessions = await loadAllSessions();
+        const allTimelines = await loadTimelines();
 
         // Test with a very restrictive time range (1 hour ago)
         const now = new Date();
         const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-        const restrictedSessions = await loadSessionsInTimeRange(oneHourAgo, now);
+        const restrictedTimelines = await loadTimelines(oneHourAgo, now);
 
-        // All-time should return the same or more sessions
-        expect(allSessions.length).toBeGreaterThanOrEqual(restrictedSessions.length);
+        // All-time should return the same or more timelines
+        expect(allTimelines.length).toBeGreaterThanOrEqual(restrictedTimelines.length);
       } catch (error) {
         // If no Claude data is available, that's expected in test environment
         if (
