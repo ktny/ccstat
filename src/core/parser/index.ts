@@ -10,12 +10,6 @@ const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go versio
 // Repository cache to avoid redundant git operations
 const repositoryCache = new Map<string, string>();
 
-interface FilterOptions {
-  startTime?: Date;
-  endTime?: Date;
-  projectNames?: string[];
-}
-
 // Get cached repository name
 function getCachedRepositoryName(directory: string): string {
   if (repositoryCache.has(directory)) {
@@ -77,15 +71,15 @@ export async function loadTimelines(
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<Timeline[]> {
-  const filterOptions: FilterOptions = { startTime, endTime, projectNames };
-  const directoryEventMap = await loadEvents(filterOptions, progressTracker);
-  const grouped = await groupEventsByRepository(directoryEventMap);
+  const directoryEventMap = await loadEvents(startTime, endTime, progressTracker);
+  const grouped = await groupEventsByRepository(directoryEventMap, projectNames);
 
   return Array.from(grouped.values());
 }
 
 async function loadEvents(
-  filterOptions?: FilterOptions,
+  startTime?: Date,
+  endTime?: Date,
   progressTracker?: ProgressTracker
 ): Promise<Map<string, Event[]>> {
   // Check both possible directories
@@ -138,7 +132,7 @@ async function loadEvents(
 
   // Process files with progress tracking
   const fileProcessingTasks: Promise<Event[]>[] = allFilePaths.map(filePath => {
-    return parseJSONLFile(filePath, filterOptions, progressTracker);
+    return parseJSONLFile(filePath, startTime, endTime, progressTracker);
   });
 
   // Process all files in parallel
@@ -163,14 +157,15 @@ async function loadEvents(
 
 async function parseJSONLFile(
   filePath: string,
-  filterOptions?: FilterOptions,
+  startTime?: Date,
+  endTime?: Date,
   progressTracker?: ProgressTracker
 ): Promise<Event[]> {
   // Check file modification time for performance optimization
   // Skip stat check for --all-time (when no time filter is specified)
-  if (filterOptions && filterOptions.startTime && filterOptions.endTime) {
+  if (startTime && endTime) {
     const stats = await stat(filePath);
-    if (stats.mtime < filterOptions.startTime) {
+    if (stats.mtime < startTime) {
       return [];
     }
   }
@@ -200,11 +195,11 @@ async function parseJSONLFile(
       const eventTime = new Date(event.timestamp);
 
       // Apply time filtering if provided
-      if (filterOptions && filterOptions.startTime && filterOptions.endTime) {
+      if (startTime && endTime) {
         // Convert to local time
         const localEventTime = new Date(eventTime.toLocaleString());
 
-        if (localEventTime >= filterOptions.startTime && localEventTime <= filterOptions.endTime) {
+        if (localEventTime >= startTime && localEventTime <= endTime) {
           // Optimize object creation by directly modifying timestamp
           event.timestamp = eventTime.toISOString();
           events.push(event);
@@ -274,12 +269,20 @@ function createTimeline(repoName: string, repoEvents: Event[]): Timeline {
 
 // Main grouping function for consolidated mode (default)
 async function groupEventsByRepository(
-  directoryEventMap: Map<string, Event[]>
+  directoryEventMap: Map<string, Event[]>,
+  projectNames?: string[]
 ): Promise<Map<string, Timeline>> {
   const repoDirectoryMap = mapDirectoriesToRepositories(directoryEventMap);
   const timelines = new Map<string, Timeline>();
 
   for (const [repoName, directories] of repoDirectoryMap.entries()) {
+    // Filter by project names if specified
+    if (projectNames && projectNames.length > 0) {
+      if (!projectNames.includes(repoName)) {
+        continue;
+      }
+    }
+
     const repoEvents: Event[] = [];
 
     for (const directory of directories) {
