@@ -78,8 +78,8 @@ export async function loadTimelines(
   progressTracker?: ProgressTracker
 ): Promise<Timeline[]> {
   const filterOptions: FilterOptions = { startTime, endTime, projectNames };
-  const events = await loadEvents(filterOptions, progressTracker);
-  const grouped = await groupEventsByRepository(events);
+  const directoryEventMap = await loadEvents(filterOptions, progressTracker);
+  const grouped = await groupEventsByRepository(directoryEventMap);
 
   return Array.from(grouped.values());
 }
@@ -87,14 +87,14 @@ export async function loadTimelines(
 async function loadEvents(
   filterOptions?: FilterOptions,
   progressTracker?: ProgressTracker
-): Promise<Event[]> {
+): Promise<Map<string, Event[]>> {
   // Check both possible directories
   const projectsDirs = [
     join(homedir(), '.claude', 'projects'),
     join(homedir(), '.config', 'claude', 'projects'),
   ];
 
-  const allFilePaths: string[] = [];
+  const fileToDirectoryMap = new Map<string, string>();
 
   for (const projectsDir of projectsDirs) {
     try {
@@ -123,11 +123,13 @@ async function loadEvents(
       for (const file of files) {
         if (file.endsWith('.jsonl')) {
           const filePath = join(dirPath, file);
-          allFilePaths.push(filePath);
+          fileToDirectoryMap.set(filePath, dirPath);
         }
       }
     }
   }
+
+  const allFilePaths = Array.from(fileToDirectoryMap.keys());
 
   // Set total files count
   if (progressTracker) {
@@ -139,16 +141,24 @@ async function loadEvents(
     return parseJSONLFile(filePath, filterOptions, progressTracker);
   });
 
-  // Process all files in parallel and flatten results
-  // Use allSettled to allow individual file failures
-  const results = await Promise.allSettled(fileProcessingTasks);
+  // Process all files in parallel
+  const allEventArrays = await Promise.all(fileProcessingTasks);
 
-  // Filter successful results and flatten
-  const allEventArrays = results
-    .filter((result): result is PromiseFulfilledResult<Event[]> => result.status === 'fulfilled')
-    .map(result => result.value);
+  // Group events by directory
+  const directoryEventMap = new Map<string, Event[]>();
 
-  return allEventArrays.flat();
+  for (let i = 0; i < allFilePaths.length; i++) {
+    const filePath = allFilePaths[i];
+    const directoryPath = fileToDirectoryMap.get(filePath)!;
+    const events = allEventArrays[i];
+
+    if (events.length === 0) continue;
+
+    const existingEvents = directoryEventMap.get(directoryPath) || [];
+    directoryEventMap.set(directoryPath, [...existingEvents, ...events]);
+  }
+
+  return directoryEventMap;
 }
 
 async function parseJSONLFile(
@@ -219,29 +229,22 @@ async function parseJSONLFile(
   return events;
 }
 
-// Group events by directory
-function groupEventsByDirectory(events: Event[]): Map<string, Event[]> {
-  const directoryEventMap = new Map<string, Event[]>();
-
-  for (const event of events) {
-    const directory = event.cwd || 'unknown';
-    if (!directoryEventMap.has(directory)) {
-      directoryEventMap.set(directory, []);
-    }
-    directoryEventMap.get(directory)!.push(event);
-  }
-
-  return directoryEventMap;
-}
-
 // Map directories to repositories
 function mapDirectoriesToRepositories(
   directoryEventMap: Map<string, Event[]>
 ): Map<string, string[]> {
   const repoDirectoryMap = new Map<string, string[]>();
 
-  for (const directory of directoryEventMap.keys()) {
-    const repoName = getCachedRepositoryName(directory);
+  for (const [directory, events] of directoryEventMap.entries()) {
+    let eventCwd: string | undefined;
+    for (const event of events) {
+      if (event.cwd) {
+        eventCwd = event.cwd;
+        break;
+      }
+    }
+
+    const repoName = getCachedRepositoryName(eventCwd || directory);
 
     if (!repoDirectoryMap.has(repoName)) {
       repoDirectoryMap.set(repoName, []);
@@ -253,39 +256,40 @@ function mapDirectoriesToRepositories(
 }
 
 // Create session timeline from repository events
-function createTimeline(repoName: string, allRepoEvents: Event[]): Timeline {
+function createTimeline(repoName: string, repoEvents: Event[]): Timeline {
   // Sort events by timestamp
-  allRepoEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  repoEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return {
     projectName: repoName,
     directory: '',
     repository: repoName,
-    events: allRepoEvents,
-    eventCount: allRepoEvents.length,
-    activeDuration: calculateActiveDuration(allRepoEvents),
-    startTime: new Date(allRepoEvents[0].timestamp),
-    endTime: new Date(allRepoEvents[allRepoEvents.length - 1].timestamp),
+    events: repoEvents,
+    eventCount: repoEvents.length,
+    activeDuration: calculateActiveDuration(repoEvents),
+    startTime: new Date(repoEvents[0].timestamp),
+    endTime: new Date(repoEvents[repoEvents.length - 1].timestamp),
   };
 }
 
 // Main grouping function for consolidated mode (default)
-async function groupEventsByRepository(events: Event[]): Promise<Map<string, Timeline>> {
-  const directoryEventMap = groupEventsByDirectory(events);
+async function groupEventsByRepository(
+  directoryEventMap: Map<string, Event[]>
+): Promise<Map<string, Timeline>> {
   const repoDirectoryMap = mapDirectoriesToRepositories(directoryEventMap);
   const timelines = new Map<string, Timeline>();
 
   for (const [repoName, directories] of repoDirectoryMap.entries()) {
-    const allRepoEvents: Event[] = [];
+    const repoEvents: Event[] = [];
 
     for (const directory of directories) {
       const events = directoryEventMap.get(directory) || [];
-      allRepoEvents.push(...events);
+      repoEvents.push(...events);
     }
 
-    if (allRepoEvents.length === 0) continue;
+    if (repoEvents.length === 0) continue;
 
-    const timeline = createTimeline(repoName, allRepoEvents);
+    const timeline = createTimeline(repoName, repoEvents);
     timelines.set(repoName, timeline);
   }
 
