@@ -9,16 +9,6 @@ interface LoadingScreenProps {
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
   const { totalFiles, processedFiles } = progress;
 
-  const getStageMessage = (): string => {
-    if (totalFiles === 0) {
-      return '🔍 Discovering Claude project files...';
-    } else if (processedFiles < totalFiles) {
-      return '📁 Processing project files...';
-    } else {
-      return '📊 Analyzing sessions and calculating timelines...';
-    }
-  };
-
   const getProgressBar = (): string => {
     if (totalFiles === 0) return '';
 
@@ -39,26 +29,15 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
   };
 
   return (
-    <Box flexDirection="column" paddingX={2} paddingY={1}>
-      <Box marginBottom={1}>
-        <Text bold color="cyan">
-          🔄 Loading ccstat...
-        </Text>
-      </Box>
-
-      <Box marginBottom={1}>
-        <Text>{getStageMessage()}</Text>
-      </Box>
-
+    <Box flexDirection="column" paddingLeft={1} paddingBottom={1}>
       {totalFiles > 0 && (
         <>
-          <Box marginBottom={1}>
+          <Box>
             <Text>
               <Text color="cyan">{getProgressBar()}</Text> {getProgressPercentage()}%
             </Text>
           </Box>
-
-          <Box marginBottom={1}>
+          <Box>
             <Text>
               Files processed: <Text color="green">{processedFiles}</Text> /{' '}
               <Text color="blue">{totalFiles}</Text>
