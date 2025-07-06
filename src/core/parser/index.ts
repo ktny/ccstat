@@ -68,11 +68,10 @@ function findParentRepository(directory: string): string | null {
 export async function loadTimelines(
   startTime?: Date,
   endTime?: Date,
-  projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<Timeline[]> {
   const directoryEventMap = await loadEvents(startTime, endTime, progressTracker);
-  const grouped = await groupEventsByRepository(directoryEventMap, projectNames);
+  const grouped = await groupEventsByRepository(directoryEventMap);
 
   return Array.from(grouped.values());
 }
@@ -269,20 +268,12 @@ function createTimeline(repoName: string, repoEvents: Event[]): Timeline {
 
 // Main grouping function for consolidated mode (default)
 async function groupEventsByRepository(
-  directoryEventMap: Map<string, Event[]>,
-  projectNames?: string[]
+  directoryEventMap: Map<string, Event[]>
 ): Promise<Map<string, Timeline>> {
   const repoDirectoryMap = mapDirectoriesToRepositories(directoryEventMap);
   const timelines = new Map<string, Timeline>();
 
   for (const [repoName, directories] of repoDirectoryMap.entries()) {
-    // Filter by project names if specified
-    if (projectNames && projectNames.length > 0) {
-      if (!projectNames.includes(repoName)) {
-        continue;
-      }
-    }
-
     const repoEvents: Event[] = [];
 
     for (const directory of directories) {

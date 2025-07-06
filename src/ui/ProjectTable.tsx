@@ -38,13 +38,20 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
   const activityColors = colorScheme.colors;
   const borderColor = useMemo(() => getBorderColor(color), [color]);
 
-  // Apply sorting
-  const sortedTimelines = useMemo(() => {
-    const sortOptions = createSortOptions(sort, reverse);
-    return sortTimelines(timelines, sortOptions);
-  }, [timelines, sort, reverse]);
+  // Apply project filtering and sorting
+  const filteredAndSortedTimelines = useMemo(() => {
+    // Filter by project names if specified
+    let filtered = timelines;
+    if (project.length > 0) {
+      filtered = timelines.filter(timeline => project.includes(timeline.projectName));
+    }
 
-  if (sortedTimelines.length === 0) {
+    // Apply sorting
+    const sortOptions = createSortOptions(sort, reverse);
+    return sortTimelines(filtered, sortOptions);
+  }, [timelines, project, sort, reverse]);
+
+  if (filteredAndSortedTimelines.length === 0) {
     const message =
       project.length > 0
         ? `🔍 No Claude sessions found for project(s): ${project.join(', ')}`
@@ -52,13 +59,13 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
     return <Text>{message}</Text>;
   }
 
-  const totalEvents = sortedTimelines.reduce((sum, t) => sum + t.eventCount, 0);
-  const totalDuration = sortedTimelines.reduce((sum, t) => sum + t.activeDuration, 0);
+  const totalEvents = filteredAndSortedTimelines.reduce((sum, t) => sum + t.eventCount, 0);
+  const totalDuration = filteredAndSortedTimelines.reduce((sum, t) => sum + t.activeDuration, 0);
 
   const { startTime, endTime, timeRangeText } = useMemo(() => {
     if (allTime) {
       // Calculate actual time range from the data
-      if (sortedTimelines.length === 0) {
+      if (filteredAndSortedTimelines.length === 0) {
         const now = new Date();
         return {
           startTime: now,
@@ -67,8 +74,8 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
         };
       }
 
-      const allStartTimes = sortedTimelines.map(t => t.startTime);
-      const allEndTimes = sortedTimelines.map(t => t.endTime);
+      const allStartTimes = filteredAndSortedTimelines.map(t => t.startTime);
+      const allEndTimes = filteredAndSortedTimelines.map(t => t.endTime);
 
       return {
         startTime: new Date(Math.min(...allStartTimes.map(t => t.getTime()))),
@@ -92,10 +99,10 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
         timeRangeText: hours ? `${hours} hours` : `${days || 1} days`,
       };
     }
-  }, [allTime, sortedTimelines, hours, days]);
+  }, [allTime, filteredAndSortedTimelines, hours, days]);
 
   // Calculate responsive column widths
-  const projectWidth = calculateProjectWidth(sortedTimelines);
+  const projectWidth = calculateProjectWidth(filteredAndSortedTimelines);
   const eventsWidth = 8;
   const durationWidth = 10;
   const timelineWidth = Math.max(
@@ -110,7 +117,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
           startTime={startTime}
           endTime={endTime}
           timeRangeText={timeRangeText}
-          projectCount={sortedTimelines.length}
+          projectCount={filteredAndSortedTimelines.length}
         />
 
         <HeaderRow
@@ -131,7 +138,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
         />
 
         {/* Data rows */}
-        {sortedTimelines.map((timeline, index) => (
+        {filteredAndSortedTimelines.map((timeline, index) => (
           <ProjectRow
             key={index}
             timeline={timeline}
@@ -147,7 +154,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({
       </Box>
 
       <SummaryStatistics
-        projectCount={sortedTimelines.length}
+        projectCount={filteredAndSortedTimelines.length}
         totalEvents={totalEvents}
         totalDuration={totalDuration}
       />

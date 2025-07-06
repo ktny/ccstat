@@ -44,12 +44,9 @@ export const App: React.FC<AppProps> = ({
 
         let timelines: Timeline[];
 
-        // Pass project filtering to parser level for performance optimization
-        const projectNames = project.length > 0 ? project : undefined;
-
         if (allTime) {
           // Load all timelines without time filtering
-          timelines = await loadTimelines(undefined, undefined, projectNames, progressTracker);
+          timelines = await loadTimelines(undefined, undefined, progressTracker);
         } else {
           // Load timelines with time range filtering
           const now = new Date();
@@ -61,7 +58,7 @@ export const App: React.FC<AppProps> = ({
             startTime.setDate(now.getDate() - days);
           }
 
-          timelines = await loadTimelines(startTime, now, projectNames, progressTracker);
+          timelines = await loadTimelines(startTime, now, progressTracker);
         }
 
         setTimelines(timelines);
