@@ -256,19 +256,19 @@ function mapDirectoriesToRepositories(
 }
 
 // Create session timeline from repository events
-function createTimeline(repoName: string, allRepoEvents: Event[]): Timeline {
+function createTimeline(repoName: string, repoEvents: Event[]): Timeline {
   // Sort events by timestamp
-  allRepoEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  repoEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return {
     projectName: repoName,
     directory: '',
     repository: repoName,
-    events: allRepoEvents,
-    eventCount: allRepoEvents.length,
-    activeDuration: calculateActiveDuration(allRepoEvents),
-    startTime: new Date(allRepoEvents[0].timestamp),
-    endTime: new Date(allRepoEvents[allRepoEvents.length - 1].timestamp),
+    events: repoEvents,
+    eventCount: repoEvents.length,
+    activeDuration: calculateActiveDuration(repoEvents),
+    startTime: new Date(repoEvents[0].timestamp),
+    endTime: new Date(repoEvents[repoEvents.length - 1].timestamp),
   };
 }
 
@@ -280,16 +280,16 @@ async function groupEventsByRepository(
   const timelines = new Map<string, Timeline>();
 
   for (const [repoName, directories] of repoDirectoryMap.entries()) {
-    const allRepoEvents: Event[] = [];
+    const repoEvents: Event[] = [];
 
     for (const directory of directories) {
       const events = directoryEventMap.get(directory) || [];
-      allRepoEvents.push(...events);
+      repoEvents.push(...events);
     }
 
-    if (allRepoEvents.length === 0) continue;
+    if (repoEvents.length === 0) continue;
 
-    const timeline = createTimeline(repoName, allRepoEvents);
+    const timeline = createTimeline(repoName, repoEvents);
     timelines.set(repoName, timeline);
   }
 
