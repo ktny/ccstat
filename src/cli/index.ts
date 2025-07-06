@@ -12,7 +12,7 @@ program
   .version('1.0.0')
   .option('-d, --days <number>', 'display activity for the last N days', '1')
   .option('-H, --hours <number>', 'display activity for the last N hours')
-  .option('--color <theme>', 'color theme: blue, green, orange, purple, classic', 'green')
+  .option('--color <theme>', 'color theme: github, ocean, sunset, violet', 'github')
   .option(
     '--sort <field>',
     'sort by field: project, timeline, events, duration (default: timeline)',
