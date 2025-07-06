@@ -163,7 +163,16 @@ async function loadEventsFromProjects(
   });
 
   // Process all files in parallel and flatten results
-  const allEventArrays = await Promise.all(fileProcessingTasks);
+  // Use allSettled to allow individual file failures
+  const results = await Promise.allSettled(fileProcessingTasks);
+
+  // Filter successful results and flatten
+  const allEventArrays = results
+    .filter(
+      (result): result is PromiseFulfilledResult<SessionEvent[]> => result.status === 'fulfilled'
+    )
+    .map(result => result.value);
+
   return allEventArrays.flat();
 }
 
