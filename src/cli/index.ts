@@ -9,18 +9,14 @@ const program = new Command();
 program
   .name('ccstat')
   .description('Analyze Claude Code session history and visualize project activity patterns')
-  .version('1.0.0')
   .option('-d, --days <number>', 'display activity for the last N days', '1')
   .option('-H, --hours <number>', 'display activity for the last N hours')
-  .option('--color <theme>', 'color theme: github, ocean, sunset, violet', 'github')
-  .option(
-    '--sort <field>',
-    'sort by field: project, timeline, events, duration (default: timeline)',
-    'timeline'
-  )
-  .option('--reverse', 'reverse sort order (default: ascending)')
-  .option('--all-time', 'display all session history across all time periods')
+  .option('-c, --color <theme>', 'color theme: forest, ocean, sunset, violet', 'forest')
+  .option('-s --sort <field>', 'sort by field: project, timeline, events, duration', 'timeline')
+  .option('-r, --reverse', 'reverse sort order (default: ascending)')
   .option('-p, --project <names...>', 'filter by project names (space-separated)')
+  .option('-a, --all-time', 'display all session history across all time periods')
+  .version('1.0.0')
   .parse(process.argv);
 
 async function main() {
