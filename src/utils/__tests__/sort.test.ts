@@ -9,8 +9,6 @@ const createMockTimeline = (
   activeDuration: number
 ): Timeline => ({
   projectName,
-  directory: `/path/to/${projectName}`,
-  repository: `repo-${projectName}`,
   events: [],
   eventCount,
   activeDuration,

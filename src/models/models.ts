@@ -23,8 +23,6 @@ export type Event = z.infer<typeof EventSchema>;
 
 export interface Timeline {
   projectName: string;
-  directory: string;
-  repository?: string;
   events: Event[];
   eventCount: number;
   activeDuration: number;

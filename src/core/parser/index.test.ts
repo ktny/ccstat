@@ -14,8 +14,8 @@ describe('loadTimelines after removing worktree option', () => {
     // This test verifies the function signature is correct by calling it properly
     expect(typeof loadTimelines).toBe('function');
 
-    // The function should have exactly 4 parameters (length property, including optional projectNames and progressTracker)
-    expect(loadTimelines.length).toBe(4);
+    // The function should have exactly 3 parameters (length property, including optional progressTracker)
+    expect(loadTimelines.length).toBe(3);
   });
 
   it('should return consolidated repository view by default', async () => {

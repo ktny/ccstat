@@ -13,13 +13,13 @@ describe('All-time functionality', () => {
 
         // Each timeline should have required properties
         timelines.forEach(timeline => {
-          expect(timeline).toHaveProperty('repository');
-          expect(timeline).toHaveProperty('directory');
+          expect(timeline).toHaveProperty('projectName');
           expect(timeline).toHaveProperty('events');
           expect(timeline).toHaveProperty('eventCount');
           expect(timeline).toHaveProperty('activeDuration');
           expect(timeline).toHaveProperty('startTime');
           expect(timeline).toHaveProperty('endTime');
+          expect(typeof timeline.projectName).toBe('string');
           expect(typeof timeline.eventCount).toBe('number');
           expect(typeof timeline.activeDuration).toBe('number');
           expect(timeline.startTime instanceof Date).toBe(true);
