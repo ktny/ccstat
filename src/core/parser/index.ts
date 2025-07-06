@@ -256,8 +256,6 @@ function createTimeline(repoName: string, repoEvents: Event[]): Timeline {
 
   return {
     projectName: repoName,
-    directory: '',
-    repository: repoName,
     events: repoEvents,
     eventCount: repoEvents.length,
     activeDuration: calculateActiveDuration(repoEvents),

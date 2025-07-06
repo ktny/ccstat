@@ -14,8 +14,6 @@ describe('Project filtering logic', () => {
   const mockTimelines: Timeline[] = [
     {
       projectName: 'project-alpha',
-      directory: '/path/to/alpha',
-      repository: 'alpha-repo',
       events: [],
       eventCount: 100,
       activeDuration: 60,
@@ -24,8 +22,6 @@ describe('Project filtering logic', () => {
     },
     {
       projectName: 'project-beta',
-      directory: '/path/to/beta',
-      repository: 'beta-repo',
       events: [],
       eventCount: 200,
       activeDuration: 120,
@@ -34,8 +30,6 @@ describe('Project filtering logic', () => {
     },
     {
       projectName: 'other-project',
-      directory: '/path/to/other',
-      repository: 'other-repo',
       events: [],
       eventCount: 50,
       activeDuration: 30,
@@ -44,8 +38,6 @@ describe('Project filtering logic', () => {
     },
     {
       projectName: 'MyProject',
-      directory: '/path/to/myproject',
-      repository: 'my-repo',
       events: [],
       eventCount: 75,
       activeDuration: 45,
