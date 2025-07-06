@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Text, useStdout } from 'ink';
-import { SessionTimeline } from '../models/events';
+import { Timeline } from '../models/events';
 import { ColorTheme, getColorScheme, getBorderColor } from './colorThemes';
 import { calculateProjectWidth } from './utils/tableUtils';
 import { TitleRow } from './components/TitleRow';
@@ -11,7 +11,7 @@ import { SummaryStatistics } from './components/SummaryStatistics';
 import { sortTimelines, createSortOptions } from '../utils/sort';
 
 interface ProjectTableProps {
-  timelines: SessionTimeline[];
+  timelines: Timeline[];
   days?: number;
   hours?: number;
   color: ColorTheme;

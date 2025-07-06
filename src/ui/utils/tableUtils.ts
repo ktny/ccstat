@@ -1,4 +1,4 @@
-import { SessionTimeline } from '../../models/events';
+import { Timeline } from '../../models/events';
 import { format } from 'date-fns';
 
 interface TimeAxisFormat {
@@ -93,7 +93,7 @@ function determineTimeAxisFormat(durationMs: number): TimeAxisFormat {
 }
 
 // Calculate optimal project column width
-export function calculateProjectWidth(timelines: SessionTimeline[]): number {
+export function calculateProjectWidth(timelines: Timeline[]): number {
   const minWidth = 20;
   const maxWidth = 30;
 

@@ -1,5 +1,5 @@
 import { createSortOptions, sortTimelines, SortField, SortOrder } from '../sort';
-import { SessionTimeline } from '../../models/events';
+import { Timeline } from '../../models/events';
 
 // Mock session timeline data for testing
 const createMockTimeline = (
@@ -7,7 +7,7 @@ const createMockTimeline = (
   startTime: Date,
   eventCount: number,
   activeDuration: number
-): SessionTimeline => ({
+): Timeline => ({
   projectName,
   directory: `/path/to/${projectName}`,
   repository: `repo-${projectName}`,
@@ -18,7 +18,7 @@ const createMockTimeline = (
   endTime: new Date(startTime.getTime() + activeDuration * 60000), // Convert minutes to ms
 });
 
-const mockTimelines: SessionTimeline[] = [
+const mockTimelines: Timeline[] = [
   createMockTimeline('beta-project', new Date('2025-01-02T10:00:00Z'), 50, 30),
   createMockTimeline('alpha-project', new Date('2025-01-01T09:00:00Z'), 100, 60),
   createMockTimeline('gamma-project', new Date('2025-01-03T11:00:00Z'), 25, 90),
