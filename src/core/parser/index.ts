@@ -235,8 +235,16 @@ function mapDirectoriesToRepositories(
 ): Map<string, string[]> {
   const repoDirectoryMap = new Map<string, string[]>();
 
-  for (const directory of directoryEventMap.keys()) {
-    const repoName = getCachedRepositoryName(directory);
+  for (const [directory, events] of directoryEventMap.entries()) {
+    let eventCwd: string | undefined;
+    for (const event of events) {
+      if (event.cwd) {
+        eventCwd = event.cwd;
+        break;
+      }
+    }
+
+    const repoName = getCachedRepositoryName(eventCwd || directory);
 
     if (!repoDirectoryMap.has(repoName)) {
       repoDirectoryMap.set(repoName, []);
