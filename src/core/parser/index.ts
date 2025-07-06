@@ -10,11 +10,6 @@ const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go versio
 // Repository cache to avoid redundant git operations
 const repositoryCache = new Map<string, string>();
 
-// Clear cache at the start of each execution
-function clearRepositoryCache(): void {
-  repositoryCache.clear();
-}
-
 // Get cached repository name
 function getCachedRepositoryName(directory: string): string {
   if (repositoryCache.has(directory)) {
@@ -76,9 +71,6 @@ export async function loadSessionsInTimeRange(
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<SessionTimeline[]> {
-  // Clear repository cache at the start of each execution
-  clearRepositoryCache();
-
   const filterOptions: FilterOptions = { projectNames };
   if (startTime && endTime) {
     filterOptions.startTime = startTime;
