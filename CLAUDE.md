@@ -232,4 +232,58 @@ The application parses JSONL format:
 ### CI/CD
 
 - **Main CI**: Tests TypeScript implementation (`.github/workflows/ci.yml`)
+- **Release CI**: Automated npm publishing (`.github/workflows/release.yml`)
 - Runs on pushes and PRs affecting code
+
+## Release Management
+
+### Automated Release Process
+
+This project uses **semantic-release** for automated versioning and npm publishing:
+
+#### Release Configuration
+
+- **File**: `.releaserc.json`
+- **Trigger**: Git tags pushed to repository (`v*`)
+- **Workflow**: `.github/workflows/release.yml`
+
+#### Release Steps
+
+1. **Tag Creation**: Push a tag to trigger release
+
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. **Automated Process**:
+   - Analyzes commit messages using Conventional Commits
+   - Determines next version (major/minor/patch)
+   - Updates package.json version
+   - Publishes to npmjs.com
+   - Creates GitHub release
+   - Generates/updates CHANGELOG.md
+
+#### Conventional Commits
+
+Follow these patterns for automatic versioning:
+
+```bash
+# Patch version (1.0.0 → 1.0.1)
+git commit -m "fix: resolve issue description"
+
+# Minor version (1.0.0 → 1.1.0)
+git commit -m "feat: add new feature"
+
+# Major version (1.0.0 → 2.0.0)
+git commit -m "feat!: breaking change"
+# or
+git commit -m "feat: add feature
+
+BREAKING CHANGE: describe breaking change"
+```
+
+#### Prerequisites
+
+- **NPM_TOKEN**: Set in GitHub repository secrets for npm publishing
+- **Proper commit messages**: Follow Conventional Commits format
