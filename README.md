@@ -236,12 +236,52 @@ npm run package
 npm run build:prod
 ```
 
-### Publishing to npm
+### Automated Release Process
+
+This project uses **semantic-release** for automated versioning and publishing to npm. The release process is triggered automatically when tags are pushed to the repository.
+
+#### How it works:
+
+1. **Commit Analysis**: Based on [Conventional Commits](https://www.conventionalcommits.org/)
+   - `feat:` → minor version bump
+   - `fix:` → patch version bump
+   - `BREAKING CHANGE:` → major version bump
+2. **Automatic Release**: When a tag is pushed, GitHub Actions automatically:
+   - Analyzes commit messages
+   - Determines the next version
+   - Updates package.json
+   - Publishes to npm
+   - Creates GitHub release
+   - Generates CHANGELOG.md
+
+#### Creating a Release:
 
 ```bash
-# Publish to npm registry
-npm publish
+# Create and push a tag to trigger release
+git tag v1.0.0
+git push origin v1.0.0
 ```
+
+Or let semantic-release handle versioning automatically:
+
+```bash
+# Use conventional commit messages
+git commit -m "feat: add new feature"
+git commit -m "fix: resolve issue"
+git commit -m "feat!: breaking change"
+
+# Push to main branch
+git push origin main
+
+# Create any tag to trigger release
+git tag v0.0.0-trigger
+git push origin v0.0.0-trigger
+```
+
+#### Prerequisites for Release:
+
+- **NPM_TOKEN**: Set in GitHub repository secrets for npm publishing
+- **Conventional Commits**: Follow commit message format for proper versioning
 
 ## 🤝 Contributing
 
