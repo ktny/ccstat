@@ -10,6 +10,12 @@ const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go versio
 // Repository cache to avoid redundant git operations
 const repositoryCache = new Map<string, string>();
 
+interface FilterOptions {
+  startTime?: Date;
+  endTime?: Date;
+  projectNames?: string[];
+}
+
 // Get cached repository name
 function getCachedRepositoryName(directory: string): string {
   if (repositoryCache.has(directory)) {
@@ -71,26 +77,14 @@ export async function loadTimelines(
   projectNames?: string[],
   progressTracker?: ProgressTracker
 ): Promise<Timeline[]> {
-  const filterOptions: FilterOptions = { projectNames };
-  if (startTime && endTime) {
-    filterOptions.startTime = startTime;
-    filterOptions.endTime = endTime;
-  }
-
-  const events = await loadEventsFromProjects(filterOptions, progressTracker);
-
-  const grouped = await groupEventsByRepositoryConsolidated(events);
+  const filterOptions: FilterOptions = { startTime, endTime, projectNames };
+  const events = await loadEvents(filterOptions, progressTracker);
+  const grouped = await groupEventsByRepository(events);
 
   return Array.from(grouped.values());
 }
 
-interface FilterOptions {
-  startTime?: Date;
-  endTime?: Date;
-  projectNames?: string[];
-}
-
-async function loadEventsFromProjects(
+async function loadEvents(
   filterOptions?: FilterOptions,
   progressTracker?: ProgressTracker
 ): Promise<Event[]> {
@@ -276,9 +270,7 @@ function createTimeline(repoName: string, allRepoEvents: Event[]): Timeline {
 }
 
 // Main grouping function for consolidated mode (default)
-async function groupEventsByRepositoryConsolidated(
-  events: Event[]
-): Promise<Map<string, Timeline>> {
+async function groupEventsByRepository(events: Event[]): Promise<Map<string, Timeline>> {
   const directoryEventMap = groupEventsByDirectory(events);
   const repoDirectoryMap = mapDirectoriesToRepositories(directoryEventMap);
   const timelines = new Map<string, Timeline>();
