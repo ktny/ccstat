@@ -5,47 +5,37 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-    
-    - name: Build binaries
-      run: |
-        # Extract version from tag
-        VERSION=${GITHUB_REF#refs/tags/}
-        COMMIT_HASH=${GITHUB_SHA::7}
-        BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        
-        # Linux amd64
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'" -o ccstat-linux-amd64 ./cmd/ccstat
-        
-        # Linux arm64
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'" -o ccstat-linux-arm64 ./cmd/ccstat
-        
-        # macOS amd64
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'" -o ccstat-darwin-amd64 ./cmd/ccstat
-        
-        # macOS arm64 (Apple Silicon)
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X 'main.versionString=${VERSION}' -X 'main.commitHash=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}'" -o ccstat-darwin-arm64 ./cmd/ccstat
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          ccstat-linux-amd64
-          ccstat-linux-arm64
-          ccstat-darwin-amd64
-          ccstat-darwin-arm64
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        run: npm audit signatures
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
