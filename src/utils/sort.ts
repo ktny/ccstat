@@ -1,4 +1,4 @@
-import { SessionTimeline } from '../models/events';
+import { Timeline } from '../models/models';
 
 export type SortField = 'project' | 'timeline' | 'events' | 'duration';
 export type SortOrder = 'asc' | 'desc';
@@ -25,14 +25,11 @@ function isValidSortField(field?: string): field is SortField {
   return field === 'project' || field === 'timeline' || field === 'events' || field === 'duration';
 }
 
-export function sortTimelines(
-  timelines: SessionTimeline[],
-  sortOptions: SortOptions
-): SessionTimeline[] {
+export function sortTimelines(timelines: Timeline[], sortOptions: SortOptions): Timeline[] {
   const sorted = [...timelines];
   const { field, order } = sortOptions;
 
-  const compare = (a: SessionTimeline, b: SessionTimeline): number => {
+  const compare = (a: Timeline, b: Timeline): number => {
     let result: number;
 
     switch (field) {

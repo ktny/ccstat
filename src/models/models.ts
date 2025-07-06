@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SessionEventSchema = z
+export const EventSchema = z
   .object({
     timestamp: z.string(),
     sessionId: z.string().optional(),
@@ -19,13 +19,13 @@ export const SessionEventSchema = z
   })
   .passthrough(); // Allow additional properties
 
-export type SessionEvent = z.infer<typeof SessionEventSchema>;
+export type Event = z.infer<typeof EventSchema>;
 
-export interface SessionTimeline {
+export interface Timeline {
   projectName: string;
   directory: string;
   repository?: string;
-  events: SessionEvent[];
+  events: Event[];
   eventCount: number;
   activeDuration: number;
   startTime: Date;

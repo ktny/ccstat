@@ -1,9 +1,9 @@
 import React from 'react';
 import { Text } from 'ink';
-import { SessionTimeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 
 interface TimelineBarProps {
-  timeline: SessionTimeline;
+  timeline: Timeline;
   startTime: Date;
   endTime: Date;
   width: number;

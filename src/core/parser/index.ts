@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
-import { SessionEvent, SessionEventSchema, SessionTimeline } from '../../models/events';
+import { Event, EventSchema, Timeline } from '../../models/models';
 import { getRepositoryName } from '../git';
 import { ProgressTracker } from '../../utils/progressTracker';
 
@@ -9,6 +9,12 @@ const INACTIVE_THRESHOLD_MINUTES = 5; // Changed to 5 minutes to match Go versio
 
 // Repository cache to avoid redundant git operations
 const repositoryCache = new Map<string, string>();
+
+interface FilterOptions {
+  startTime?: Date;
+  endTime?: Date;
+  projectNames?: string[];
+}
 
 // Get cached repository name
 function getCachedRepositoryName(directory: string): string {
@@ -65,42 +71,23 @@ function findParentRepository(directory: string): string | null {
   return null;
 }
 
-export async function loadSessionsInTimeRange(
+export async function loadTimelines(
   startTime?: Date,
   endTime?: Date,
   projectNames?: string[],
   progressTracker?: ProgressTracker
-): Promise<SessionTimeline[]> {
-  const filterOptions: FilterOptions = { projectNames };
-  if (startTime && endTime) {
-    filterOptions.startTime = startTime;
-    filterOptions.endTime = endTime;
-  }
-
-  const events = await loadEventsFromProjects(filterOptions, progressTracker);
-
-  const grouped = await groupEventsByRepositoryConsolidated(events);
+): Promise<Timeline[]> {
+  const filterOptions: FilterOptions = { startTime, endTime, projectNames };
+  const events = await loadEvents(filterOptions, progressTracker);
+  const grouped = await groupEventsByRepository(events);
 
   return Array.from(grouped.values());
 }
 
-export async function loadAllSessions(
-  projectNames?: string[],
-  progressTracker?: ProgressTracker
-): Promise<SessionTimeline[]> {
-  return loadSessionsInTimeRange(undefined, undefined, projectNames, progressTracker);
-}
-
-interface FilterOptions {
-  startTime?: Date;
-  endTime?: Date;
-  projectNames?: string[];
-}
-
-async function loadEventsFromProjects(
+async function loadEvents(
   filterOptions?: FilterOptions,
   progressTracker?: ProgressTracker
-): Promise<SessionEvent[]> {
+): Promise<Event[]> {
   // Check both possible directories
   const projectsDirs = [
     join(homedir(), '.claude', 'projects'),
@@ -148,7 +135,7 @@ async function loadEventsFromProjects(
   }
 
   // Process files with progress tracking
-  const fileProcessingTasks: Promise<SessionEvent[]>[] = allFilePaths.map(filePath => {
+  const fileProcessingTasks: Promise<Event[]>[] = allFilePaths.map(filePath => {
     return parseJSONLFile(filePath, filterOptions, progressTracker);
   });
 
@@ -158,9 +145,7 @@ async function loadEventsFromProjects(
 
   // Filter successful results and flatten
   const allEventArrays = results
-    .filter(
-      (result): result is PromiseFulfilledResult<SessionEvent[]> => result.status === 'fulfilled'
-    )
+    .filter((result): result is PromiseFulfilledResult<Event[]> => result.status === 'fulfilled')
     .map(result => result.value);
 
   return allEventArrays.flat();
@@ -170,7 +155,7 @@ async function parseJSONLFile(
   filePath: string,
   filterOptions?: FilterOptions,
   progressTracker?: ProgressTracker
-): Promise<SessionEvent[]> {
+): Promise<Event[]> {
   // Check file modification time for performance optimization
   // Skip stat check for --all-time (when no time filter is specified)
   if (filterOptions && filterOptions.startTime && filterOptions.endTime) {
@@ -182,7 +167,7 @@ async function parseJSONLFile(
 
   const content = await readFile(filePath, 'utf-8');
   const lines = content.trim().split('\n');
-  const events: SessionEvent[] = [];
+  const events: Event[] = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -196,7 +181,7 @@ async function parseJSONLFile(
       }
 
       // Validate and parse event
-      const validationResult = SessionEventSchema.safeParse(data);
+      const validationResult = EventSchema.safeParse(data);
       if (!validationResult.success) {
         continue;
       }
@@ -235,8 +220,8 @@ async function parseJSONLFile(
 }
 
 // Group events by directory
-function groupEventsByDirectory(events: SessionEvent[]): Map<string, SessionEvent[]> {
-  const directoryEventMap = new Map<string, SessionEvent[]>();
+function groupEventsByDirectory(events: Event[]): Map<string, Event[]> {
+  const directoryEventMap = new Map<string, Event[]>();
 
   for (const event of events) {
     const directory = event.cwd || 'unknown';
@@ -251,7 +236,7 @@ function groupEventsByDirectory(events: SessionEvent[]): Map<string, SessionEven
 
 // Map directories to repositories
 function mapDirectoriesToRepositories(
-  directoryEventMap: Map<string, SessionEvent[]>
+  directoryEventMap: Map<string, Event[]>
 ): Map<string, string[]> {
   const repoDirectoryMap = new Map<string, string[]>();
 
@@ -268,7 +253,7 @@ function mapDirectoriesToRepositories(
 }
 
 // Create session timeline from repository events
-function createSessionTimeline(repoName: string, allRepoEvents: SessionEvent[]): SessionTimeline {
+function createTimeline(repoName: string, allRepoEvents: Event[]): Timeline {
   // Sort events by timestamp
   allRepoEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -285,15 +270,13 @@ function createSessionTimeline(repoName: string, allRepoEvents: SessionEvent[]):
 }
 
 // Main grouping function for consolidated mode (default)
-async function groupEventsByRepositoryConsolidated(
-  events: SessionEvent[]
-): Promise<Map<string, SessionTimeline>> {
+async function groupEventsByRepository(events: Event[]): Promise<Map<string, Timeline>> {
   const directoryEventMap = groupEventsByDirectory(events);
   const repoDirectoryMap = mapDirectoriesToRepositories(directoryEventMap);
-  const timelines = new Map<string, SessionTimeline>();
+  const timelines = new Map<string, Timeline>();
 
   for (const [repoName, directories] of repoDirectoryMap.entries()) {
-    const allRepoEvents: SessionEvent[] = [];
+    const allRepoEvents: Event[] = [];
 
     for (const directory of directories) {
       const events = directoryEventMap.get(directory) || [];
@@ -302,14 +285,14 @@ async function groupEventsByRepositoryConsolidated(
 
     if (allRepoEvents.length === 0) continue;
 
-    const timeline = createSessionTimeline(repoName, allRepoEvents);
+    const timeline = createTimeline(repoName, allRepoEvents);
     timelines.set(repoName, timeline);
   }
 
   return timelines;
 }
 
-function calculateActiveDuration(events: SessionEvent[]): number {
+function calculateActiveDuration(events: Event[]): number {
   if (events.length <= 1) return 5; // Minimum 5 minutes for single event
 
   // Assume events are already sorted by timestamp

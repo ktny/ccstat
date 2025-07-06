@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
-import { SessionTimeline } from '../models/events';
-import { loadSessionsInTimeRange, loadAllSessions } from '../core/parser';
+import { Timeline } from '../models/models';
+import { loadTimelines } from '../core/parser';
 import { ProjectTable } from './ProjectTable';
 import { ColorTheme } from './colorThemes';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -26,7 +26,7 @@ export const App: React.FC<AppProps> = ({
   allTime,
   project = [],
 }) => {
-  const [timelines, setTimelines] = useState<SessionTimeline[]>([]);
+  const [timelines, setTimelines] = useState<Timeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate>({
@@ -42,16 +42,16 @@ export const App: React.FC<AppProps> = ({
           setProgress(update);
         });
 
-        let sessions: SessionTimeline[];
+        let timelines: Timeline[];
 
         // Pass project filtering to parser level for performance optimization
         const projectNames = project.length > 0 ? project : undefined;
 
         if (allTime) {
-          // Load all sessions without time filtering
-          sessions = await loadAllSessions(projectNames, progressTracker);
+          // Load all timelines without time filtering
+          timelines = await loadTimelines(undefined, undefined, projectNames, progressTracker);
         } else {
-          // Load sessions with time range filtering
+          // Load timelines with time range filtering
           const now = new Date();
           const startTime = new Date();
 
@@ -61,10 +61,10 @@ export const App: React.FC<AppProps> = ({
             startTime.setDate(now.getDate() - days);
           }
 
-          sessions = await loadSessionsInTimeRange(startTime, now, projectNames, progressTracker);
+          timelines = await loadTimelines(startTime, now, projectNames, progressTracker);
         }
 
-        setTimelines(sessions);
+        setTimelines(timelines);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
         setError(errorMessage);

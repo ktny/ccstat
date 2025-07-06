@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { SessionTimeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 import { TimelineBar } from './TimelineBar';
 
 interface ProjectRowProps {
-  timeline: SessionTimeline;
+  timeline: Timeline;
   startTime: Date;
   endTime: Date;
   projectWidth: number;

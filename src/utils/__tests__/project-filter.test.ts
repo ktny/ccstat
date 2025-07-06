@@ -1,10 +1,7 @@
-import { SessionTimeline } from '../../models/events';
+import { Timeline } from '../../models/models';
 
 // Helper function to simulate project filtering logic (exact match with case sensitivity)
-function filterProjectsByNames(
-  timelines: SessionTimeline[],
-  projectNames: string[]
-): SessionTimeline[] {
+function filterProjectsByNames(timelines: Timeline[], projectNames: string[]): Timeline[] {
   if (projectNames.length === 0) {
     return timelines;
   }
@@ -14,7 +11,7 @@ function filterProjectsByNames(
 }
 
 describe('Project filtering logic', () => {
-  const mockTimelines: SessionTimeline[] = [
+  const mockTimelines: Timeline[] = [
     {
       projectName: 'project-alpha',
       directory: '/path/to/alpha',
