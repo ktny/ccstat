@@ -1,54 +1,110 @@
----
-name: project:release
-description: Automate the release process for ccstat
----
+# Release Process
 
-## Usage
+このドキュメントは ccstat プロジェクトのリリースプロセスを説明します。
 
-This command automates the release process for ccstat, including version updates and GitHub release creation.
+## 前提条件
 
-## Steps
+- GitHub CLI (`gh`) がセットアップされていること
+- npmjs.com への公開権限があること
+- プロジェクトのメンテナーであること
 
-1. First, I'll ensure we're on the main branch with a clean working directory
-2. You'll be prompted to enter the new version number (format: vX.Y.Z)
-3. I'll update version references in README.md
-4. Create and push a version update commit
-5. Create and push a git tag to trigger the GitHub Actions release workflow
+## リリース手順
 
-## What I'll do
+### 1. バージョン更新
 
-1. **Check prerequisites:**
-   - Verify we're on the main branch
-   - Ensure working directory is clean
-   - Confirm all PRs are merged
+```bash
+# package.json の version フィールドを手動で更新
+# 例: "version": "2.0.3"
+```
 
-2. **Update version references:**
-   - Update installation commands in README.md
-   - Replace old version with new version
+### 2. 品質チェック
 
-3. **Create release commit:**
-   - Commit message: `fix: update installation instructions to use version vX.Y.Z`
-   - Push to main branch
+```bash
+# リント、型チェック、テストを実行
+npm run check
 
-4. **Create and push tag:**
-   - Create lightweight tag with version number
-   - Push tag to trigger GitHub Actions
+# ビルドを実行
+npm run build
 
-5. **GitHub Actions will automatically:**
-   - Build binaries for multiple platforms (Linux/macOS, amd64/arm64)
-   - Create GitHub release with auto-generated release notes
-   - Upload binary artifacts
+# 動作確認
+node dist/index.js
+```
 
-## Version numbering guidelines
+### 3. 変更のコミット
 
-- Follow semantic versioning: `vMAJOR.MINOR.PATCH`
-- MAJOR: Breaking changes
-- MINOR: New features (backward compatible)
-- PATCH: Bug fixes and minor improvements
-- Always prefix with 'v' (e.g., v0.1.4, not 0.1.4)
+```bash
+# 変更をステージング
+git add package.json
 
-## Prerequisites
+# コミット（バージョン番号を含む）
+git commit -m "chore: bump version to v2.0.3"
+```
 
-- All PRs for the release must be merged to main branch
-- You must have git push permissions to the repository
-- GitHub Actions must be properly configured (`.github/workflows/release.yml`)
+### 4. Gitタグの作成とプッシュ
+
+```bash
+# タグを作成（semantic-release用のフォーマット）
+git tag v2.0.3
+
+# タグをリモートにプッシュ（自動リリースをトリガー）
+git push origin v2.0.3
+
+# 変更もプッシュ
+git push origin main
+```
+
+## 自動化されるプロセス
+
+以下は GitHub Actions で自動実行されます：
+
+1. **リリースワークフロー** (`.github/workflows/release.yml`)
+   - タグプッシュで自動トリガー
+   - ビルド実行
+   - npmjs.com への公開
+   - GitHub Release の作成
+   - CHANGELOG.md の更新
+
+2. **Conventional Commits**
+   - コミットメッセージから自動的にバージョニング
+   - `feat:` → minor バージョンアップ
+   - `fix:` → patch バージョンアップ
+   - `BREAKING CHANGE:` → major バージョンアップ
+
+## トラブルシューティング
+
+### リリースが失敗した場合
+
+1. GitHub Actions のログを確認
+2. NPM_TOKEN が正しく設定されているか確認
+3. package.json の設定を確認
+
+### 手動でのnpm公開（緊急時）
+
+```bash
+# ビルド
+npm run build
+
+# 公開
+npm publish
+```
+
+## 注意事項
+
+- **必ず main ブランチから リリースする**
+- **リリース前に必ず品質チェックを実行する**
+- **タグは semantic versioning に従う（v1.2.3 形式）**
+- **package.json のバージョンとタグバージョンを一致させる**
+
+## リリース後の確認
+
+1. npmjs.com でパッケージが公開されているか確認
+   - https://www.npmjs.com/package/ccstat
+
+2. GitHub Release が作成されているか確認
+   - https://github.com/ktny/ccstat/releases
+
+3. 実際にインストールして動作確認
+   ```bash
+   npm install -g ccstat@2.0.3
+   ccstat --version
+   ```

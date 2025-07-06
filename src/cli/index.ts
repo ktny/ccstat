@@ -17,7 +17,7 @@ program
   .option('-r, --reverse', 'reverse sort order (default: ascending)')
   .option('-p, --project <names...>', 'filter by project names (space-separated)')
   .option('-a, --all-time', 'display all session history across all time periods')
-  .version('1.0.0')
+  .version('2.0.3')
   .parse(process.argv);
 
 async function main() {

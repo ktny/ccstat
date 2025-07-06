@@ -1,6 +1,6 @@
 {
   "name": "ccstat",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "CLI tool that analyzes Claude Code session history and visualizes project activity patterns in a timeline format",
   "type": "module",
   "main": "dist/cli/index.js",
