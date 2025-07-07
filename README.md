@@ -6,7 +6,6 @@
 
 > Visualize your Claude Code session activity timeline — fast, beautiful, and insightful!
 
-[![npm version](https://badge.fury.io/js/ccstat.svg)](https://badge.fury.io/js/ccstat)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)
 
 ## ✨ What is ccstat?
@@ -52,6 +51,9 @@ npx ccstat --hours 6
 
 # View sorted events descending
 npx ccstat --sort events --reverse -a
+
+# View filtered projects
+npx ccstat --project myproject1 myproject2
 
 # View ocean color
 npx ccstat --color ocean
