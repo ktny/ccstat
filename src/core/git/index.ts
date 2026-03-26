@@ -52,17 +52,26 @@ export function getRepositoryName(directory: string): string | null {
 
 function extractRepoNameFromConfig(content: string): string | null {
   const lines = content.split('\n');
+  let inRemoteSection = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Look for URL lines
-    const urlMatch = trimmed.match(/url\s*=\s*(.+)/);
-    if (urlMatch) {
-      const url = urlMatch[1].trim();
-      const repoName = extractRepoNameFromURL(url);
-      if (repoName) {
-        return repoName;
+    // Track section headers — only extract URLs from [remote "..."] sections,
+    // not [submodule "..."] sections whose URLs point to unrelated repos.
+    if (trimmed.startsWith('[')) {
+      inRemoteSection = /^\[remote\s+"/.test(trimmed);
+      continue;
+    }
+
+    if (inRemoteSection) {
+      const urlMatch = trimmed.match(/url\s*=\s*(.+)/);
+      if (urlMatch) {
+        const url = urlMatch[1].trim();
+        const repoName = extractRepoNameFromURL(url);
+        if (repoName) {
+          return repoName;
+        }
       }
     }
   }

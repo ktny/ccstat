@@ -33,7 +33,10 @@ function getCachedRepositoryName(directory: string): string {
   return repoName;
 }
 
-// Find parent repository by walking up the directory tree
+// Find parent repository by walking up the directory tree.
+// Only checks for actual .git/config with remotes — never uses the
+// repositoryCache to avoid cross-project name pollution (e.g. a cached
+// parent "/home/user" → "user" would incorrectly rename unrelated child projects).
 function findParentRepository(directory: string): string | null {
   let currentDir = directory;
 
@@ -44,19 +47,11 @@ function findParentRepository(directory: string): string | null {
       break;
     }
 
-    if (repositoryCache.has(parentDir)) {
-      const repoName = repositoryCache.get(parentDir)!;
-      if (repoName) {
-        repositoryCache.set(directory, repoName);
-        return repoName;
-      }
-    } else {
-      const repoName = getRepositoryName(parentDir);
-      if (repoName) {
-        repositoryCache.set(parentDir, repoName);
-        repositoryCache.set(directory, repoName);
-        return repoName;
-      }
+    const repoName = getRepositoryName(parentDir);
+    if (repoName) {
+      repositoryCache.set(parentDir, repoName);
+      repositoryCache.set(directory, repoName);
+      return repoName;
     }
 
     currentDir = parentDir;
